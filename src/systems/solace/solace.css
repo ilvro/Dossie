@@ -443,23 +443,64 @@ body:has(.solace-page) .relation-option-btn { border-color: #7a5634; background:
 }
 
 /* ══ MOLDURA (solace-frame.js) ══════════════════════════════════════════
-   Recortes da própria pintura de referência (scripts/gen-solace-frame.py), no tamanho
-   original: a pedra e o traço gasto vêm da pintura, o CSS só encaixa as peças. */
+   Traço da pintura de referência em vetor; pedra, desgaste e filetes em código.
+   --k: escala das peças (unidade = px da referência de 1610 px); --kw: a do disco alado. */
 .sl-frame {
-  --e: 3px;
+  --k: 0.8;
+  --kw: 0.9;
+  --e: 4px;
+  --H: calc(var(--band-h) * var(--k) * 1px);
+  --W: calc(var(--col-w) * var(--k) * 1px);
+  --ink: #c4915a;
   overflow: hidden;
 }
-.slf-band { position: absolute; overflow: hidden; }
+/* A regra global dos ícones (svg { fill: none; stroke: currentColor }) não vale aqui */
+.sl-frame svg { fill: var(--ink); stroke: none; }
+.slf-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* Pedra: marrom manchado e riscado, quase opaco (a pintura mal aparece, como na referência) */
+.slf-band {
+  position: absolute;
+  background: var(--stone) 0 0 / calc(260px * var(--k)) repeat, #4a3424;
+  box-shadow: 0 0 0 1px rgba(30, 18, 10, 0.35);
+}
 .slf-top,
-.slf-bottom { left: calc(var(--e) + var(--corner-l)); right: calc(var(--e) + var(--corner-r)); height: var(--band-h); }
+.slf-bottom { left: var(--e); right: var(--e); height: var(--H); }
 .slf-top { top: var(--e); }
 .slf-bottom { bottom: var(--e); }
-.slf-left,
-.slf-right { top: calc(var(--e) + var(--band-h)); bottom: calc(var(--e) + var(--band-h)); }
-.slf-left { left: var(--e); width: var(--col); }
-.slf-right { right: var(--e); width: var(--col); }
-/* A coluna da direita é a da esquerda espelhada: o filete grosso fica sempre do lado de fora */
-.slf-right .slf-run { transform: scaleX(-1); }
+.slf-col { top: calc(var(--e) + var(--H)); bottom: calc(var(--e) + var(--H)); width: var(--W); }
+.slf-left { left: var(--e); }
+.slf-right { right: var(--e); }
+.slf-bottom { background-position: 90px 40px, 0 0; }
+.slf-right { background-position: 30px 120px, 0 0; }
+
+/* Miolo: filetes contínuos + glifos, gastos pela mesma máscara de ruído */
+.slf-mid {
+  position: absolute;
+  inset: 0;
+  -webkit-mask: var(--wear) 0 0 / calc(220px * var(--k)) repeat;
+  mask: var(--wear) 0 0 / calc(220px * var(--k)) repeat;
+}
+.slf-top .slf-mid,
+.slf-bottom .slf-mid { left: calc(var(--corner-l) * var(--k) * 1px); right: calc(var(--corner-r) * var(--k) * 1px); }
+.slf-right .slf-mid { transform: scaleX(-1); }
+.slf-mid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  filter: url(#slf-rough);
+  background: linear-gradient(180deg,
+    transparent 9.2%, var(--ink) 9.2%, var(--ink) 15.4%, transparent 15.4%,
+    transparent 80%, var(--ink) 80%, var(--ink) 86.2%, transparent 86.2%,
+    transparent 95.4%, var(--ink) 95.4%, var(--ink) 98.5%, transparent 98.5%);
+}
+/* Embaixo os cantos são virados: os filetes viram junto para se encontrarem (os glifos, não) */
+.slf-bottom .slf-mid::before { transform: scaleY(-1); }
+.slf-col .slf-mid::before {
+  background: linear-gradient(90deg,
+    transparent 4.8%, var(--ink) 4.8%, var(--ink) 11.9%, transparent 11.9%,
+    transparent 85.7%, var(--ink) 85.7%, var(--ink) 95.2%, transparent 95.2%);
+}
 
 /* Os grupos entram em fila e esticam juntos até fechar a largura (ou a altura) */
 .slf-run {
@@ -468,45 +509,42 @@ body:has(.solace-page) .relation-option-btn { border-color: #7a5634; background:
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
+  overflow: hidden;
+  fill: var(--ink);
 }
-.slf-left .slf-run,
-.slf-right .slf-run { flex-direction: column; }
-.slf-run > i {
-  display: block;
-  height: var(--band-h);
-  background-image: var(--src);
-  background-repeat: no-repeat;
-}
-.slf-left .slf-run > i,
-.slf-right .slf-run > i { height: auto; width: 100%; }
+.slf-col .slf-run { flex-direction: column; }
+.slf-run > svg { display: block; height: 100%; min-width: 0; overflow: visible; }
+.slf-col .slf-run > svg { height: auto; width: 100%; min-height: 0; }
 
+/* Cantos: só o traço (a pedra é a da faixa por baixo); embaixo, os mesmos virados */
 .slf-corner {
   position: absolute;
-  height: var(--band-h);
-  background: url('/assets/solace/moldura-canto-e.webp') 0 0 / 100% 100% no-repeat;
+  width: calc(var(--w) * var(--k) * 1px);
+  height: var(--H);
+  overflow: visible;
 }
 .slf-corner-tl,
-.slf-corner-bl { left: var(--e); width: var(--corner-l); }
+.slf-corner-bl { left: var(--e); }
 .slf-corner-tr,
-.slf-corner-br { right: var(--e); width: var(--corner-r); background-image: url('/assets/solace/moldura-canto-d.webp'); }
+.slf-corner-br { right: var(--e); }
 .slf-corner-tl,
 .slf-corner-tr { top: var(--e); }
-/* Embaixo, os mesmos cantos virados: a asa abre para cima e a cabeça da coluna sobe */
 .slf-corner-bl,
 .slf-corner-br { bottom: var(--e); transform: scaleY(-1); }
 
-/* Disco alado: o disco fica logo abaixo das abas de frente e verso, a asa sobre a faixa */
+/* Disco alado: o disco logo abaixo das abas de frente e verso, a asa sobre a faixa */
 .slf-winged {
   position: absolute;
-  top: calc(70px - var(--disk-y));
+  top: calc(72px - var(--dy) * var(--kw) * 1px);
   left: 50%;
-  width: var(--wing-w);
-  height: var(--wing-h);
+  width: calc(var(--w) * var(--kw) * 1px);
+  height: calc(var(--h) * var(--kw) * 1px);
   transform: translateX(-50%);
-  background: url('/assets/solace/moldura-asa.webp') 0 0 / 100% 100% no-repeat;
+  overflow: visible;
+  filter: drop-shadow(0 2px 3px rgba(20, 10, 4, 0.45));
 }
 
-/* Uma luz morna e lenta passando pela moldura (só realça: soft-light sobre a pintura) */
+/* Uma luz morna e lenta passando pela moldura (soft-light: só realça o que já está lá) */
 .slf-glint {
   position: absolute;
   inset: 0;
@@ -519,29 +557,30 @@ body:has(.solace-page) .relation-option-btn { border-color: #7a5634; background:
   background: linear-gradient(190deg, transparent 44%, rgba(255, 226, 178, 0.75) 50%, transparent 56%) 0 130% / 100% 400% no-repeat;
   animation-name: slf-sweep-y;
 }
-.slf-winged .slf-glint {
-  -webkit-mask: url('/assets/solace/moldura-asa.webp') 0 0 / 100% 100% no-repeat;
-  mask: url('/assets/solace/moldura-asa.webp') 0 0 / 100% 100% no-repeat;
-  background-size: 300% 100%;
-  animation: slf-sweep-x 17s ease-in-out infinite;
-  animation-delay: calc(var(--amb-t, 0s) - 3s);
-}
 /* A luz dá a volta na moldura: topo → direita → baixo → esquerda */
 .slf-right .slf-glint { animation-delay: calc(var(--amb-t, 0s) - 5.5s); }
 .slf-bottom .slf-glint { animation-delay: calc(var(--amb-t, 0s) - 11s); animation-direction: reverse; }
 .slf-left .slf-glint { animation-delay: calc(var(--amb-t, 0s) - 16.5s); animation-direction: reverse; }
 @keyframes slf-sweep-x { from { background-position: 130% 0; } to { background-position: -30% 0; } }
 @keyframes slf-sweep-y { from { background-position: 0 130%; } to { background-position: 0 -30%; } }
+.slf-glint-wing { animation: slf-wing-glint 17s ease-in-out infinite; animation-delay: calc(var(--amb-t, 0s) - 3s); }
+@keyframes slf-wing-glint {
+  0% { transform: translateX(0); }
+  40%, 100% { transform: translateX(560px); }
+}
 
 body.ambient-off .sl-frame * { animation: none !important; }
-body.ambient-off .slf-glint { display: none; }
+body.ambient-off .slf-glint,
+body.ambient-off .slf-glint-wing { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .sl-frame * { animation: none !important; }
-  .slf-glint { display: none; }
+  .slf-glint,
+  .slf-glint-wing { display: none; }
 }
 @media (max-width: 768px) {
+  .sl-frame { --k: 0.55; }
   .slf-winged,
   .slf-corner { display: none; }
-  .slf-top,
-  .slf-bottom { left: var(--e); right: var(--e); }
+  .slf-top .slf-mid,
+  .slf-bottom .slf-mid { left: 0; right: 0; }
 }
