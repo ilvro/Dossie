@@ -44,12 +44,18 @@ SEGS = {
 }
 
 
-def trace(field, ox=0.0, oy=0.0, blur=1.6, eps=0.35, min_area=1.5):
+def trace(field, ox=0.0, oy=0.0, blur=1.6, eps=0.35, min_area=1.5, clean=0):
     """Contorna field (0..1, em px da referência) e devolve o 'd' de um caminho.
-    Coordenadas na unidade da referência, deslocadas por (ox, oy)."""
+    Coordenadas na unidade da referência, deslocadas por (ox, oy).
+    clean > 0: fechamento e abertura (em px ampliados) antes de contornar, para tapar as
+    falhas do traço e tirar os pontinhos da textura da pintura."""
     h, w = field.shape
     img = Image.fromarray((np.clip(field, 0, 1) * 255).astype(np.uint8))
     img = img.resize((w * UP, h * UP), Image.BICUBIC).filter(ImageFilter.GaussianBlur(blur))
+    if clean:
+        img = img.filter(ImageFilter.MaxFilter(clean)).filter(ImageFilter.MinFilter(clean))
+        img = img.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(3))
+        img = img.filter(ImageFilter.GaussianBlur(1.2))
     f = np.pad(np.asarray(img).astype(np.float32) / 255, 1)
     t = 0.5
     b = (f >= t).astype(np.int32)
@@ -202,8 +208,9 @@ mask[:14 - WY[0]] = 0
 ys, xs = np.nonzero(mask > 0.5)
 top, bot, left, right = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
 m = mask[top:bot, left:right]
-# o traço só dentro da silhueta, também espelhado (a metade esquerda pintada é mais falha)
-soft = SOFT[WY[0]:WY[1], WX[0]:WX[1]]
+# o traço só dentro da silhueta, também espelhado (a metade esquerda pintada é mais falha).
+# Limiar mais alto que o da faixa: só a areia de verdade, para as linhas das penas saírem finas
+soft = (np.clip((R - 148) / 35, 0, 1) * np.clip((R - B - 48) / 25, 0, 1))[WY[0]:WY[1], WX[0]:WX[1]]
 soft = np.concatenate([soft[:, HALF:][:, ::-1], soft[:, HALF:]], 1)[top:bot, left:right]
 # dentro do disco não há traço (o reflexo pintado, espelhado, virava dois olhos): o CSS pinta o disco
 dy_, dx_ = np.mgrid[0:bot - top, 0:right - left]
@@ -214,7 +221,7 @@ wing = {
     'w': int(right - left), 'h': int(bot - top),
     'diskX': float(AXIS - (WX[0] + left)), 'diskY': float(DISK_Y - (WY[0] + top)), 'diskR': DISK_R + 1,
     'body': trace(m, 0, 0, blur=2.4, eps=0.5),
-    'd': trace(soft * m_in, 0, 0, blur=1.4),
+    'd': trace(soft * m_in, 0, 0, blur=1.2, eps=0.35, min_area=3, clean=3),
 }
 
 data = {

@@ -8,7 +8,7 @@
  *   são contínuos, levemente tortos;
  * - cantos (disco e asa), virados embaixo, e o disco alado no centro, sob as abas.
  * Tudo é vetor: nítido em qualquer tela, no tamanho que o CSS mandar (--k).
- * Vida: uma luz morna e lenta passando pela moldura (desligável com o ambiente).
+ * Vida: uma luz morna e lenta passando pelas faixas (desligável com o ambiente).
  */
 
 import { FRAME } from './solace-frame-data.js';
@@ -79,7 +79,7 @@ function run(kind, seed) {
   return `<div class="slf-run">${cells}</div>`;
 }
 
-// Definições compartilhadas: os glifos, a pedra e o desgaste (para os cantos e o disco)
+// Definições compartilhadas: os glifos, a pedra e o desgaste
 function defs() {
   const band = FRAME.band.map((g, i) => `<path id="slf-b${i}" d="${g.d}"/>`).join('');
   const col = FRAME.col.map((g, i) => `<path id="slf-c${i}" d="${g.d}"/>`).join('');
@@ -94,9 +94,6 @@ function defs() {
           <feTurbulence type="fractalNoise" baseFrequency="0.035 0.09" numOctaves="2" seed="5"/>
           <feDisplacementMap in="SourceGraphic" scale="2.2" xChannelSelector="R" yChannelSelector="G"/>
         </filter>
-        <linearGradient id="slf-glint-g" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stop-color="#ffe2b0" stop-opacity="0"/><stop offset="0.5" stop-color="#ffe2b0" stop-opacity="0.5"/><stop offset="1" stop-color="#ffe2b0" stop-opacity="0"/>
-        </linearGradient>
       </defs>
     </svg>`;
 }
@@ -107,21 +104,17 @@ const corner = (cls, piece) => `
     <path d="${piece.d}" fill="${INK}" fill-rule="evenodd" mask="url(#slf-wear)"/>
   </svg>`;
 
-/* Disco alado: corpo escuro de pedra pela silhueta, traço por cima e uma luz que passa */
+/* Disco alado: corpo escuro de pedra pela silhueta, disco fosco e o traço por cima (sem brilho:
+   é pintura gasta, não metal) */
 function winged() {
   const { w, h, body, d, diskX, diskY, diskR } = FRAME.wing;
   return `
   <svg class="slf-winged" viewBox="0 0 ${w} ${h}" style="--w:${w};--h:${h};--dy:${diskY}" aria-hidden="true">
-    <defs><clipPath id="slf-wing-clip"><path d="${body}"/></clipPath></defs>
     <path d="${body}" fill="${BODY}"/>
-    <path d="${body}" fill="url(#slf-stone)" opacity="0.75"/>
-    <radialGradient id="slf-disk-g" cx="0.4" cy="0.36" r="0.75">
-      <stop offset="0" stop-color="#7a5a40"/><stop offset="0.55" stop-color="#4e3524"/><stop offset="1" stop-color="#2f1f15"/>
-    </radialGradient>
-    <circle cx="${diskX}" cy="${diskY}" r="${diskR}" fill="url(#slf-disk-g)"/>
-    <circle cx="${diskX}" cy="${diskY}" r="${diskR}" fill="url(#slf-stone)" opacity="0.35"/>
-    <path d="${d}" fill="${INK}" fill-rule="evenodd" mask="url(#slf-wear)"/>
-    <g clip-path="url(#slf-wing-clip)"><rect class="slf-glint-wing" x="-120" y="0" width="110" height="${h}" fill="url(#slf-glint-g)"/></g>
+    <path d="${body}" fill="url(#slf-stone)" opacity="0.6"/>
+    <circle cx="${diskX}" cy="${diskY}" r="${diskR}" fill="#553b29"/>
+    <circle cx="${diskX}" cy="${diskY}" r="${diskR}" fill="url(#slf-stone)" opacity="0.45"/>
+    <path d="${d}" fill="${INK}" fill-rule="evenodd"/>
   </svg>`;
 }
 

@@ -541,7 +541,6 @@ body:has(.solace-page) .relation-option-btn { border-color: #7a5634; background:
   height: calc(var(--h) * var(--kw) * 1px);
   transform: translateX(-50%);
   overflow: visible;
-  filter: drop-shadow(0 2px 3px rgba(20, 10, 4, 0.45));
 }
 
 /* Uma luz morna e lenta passando pela moldura (soft-light: só realça o que já está lá) */
@@ -563,19 +562,12 @@ body:has(.solace-page) .relation-option-btn { border-color: #7a5634; background:
 .slf-left .slf-glint { animation-delay: calc(var(--amb-t, 0s) - 16.5s); animation-direction: reverse; }
 @keyframes slf-sweep-x { from { background-position: 130% 0; } to { background-position: -30% 0; } }
 @keyframes slf-sweep-y { from { background-position: 0 130%; } to { background-position: 0 -30%; } }
-.slf-glint-wing { animation: slf-wing-glint 17s ease-in-out infinite; animation-delay: calc(var(--amb-t, 0s) - 3s); }
-@keyframes slf-wing-glint {
-  0% { transform: translateX(0); }
-  40%, 100% { transform: translateX(560px); }
-}
 
 body.ambient-off .sl-frame * { animation: none !important; }
-body.ambient-off .slf-glint,
-body.ambient-off .slf-glint-wing { display: none; }
+body.ambient-off .slf-glint { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .sl-frame * { animation: none !important; }
-  .slf-glint,
-  .slf-glint-wing { display: none; }
+  .slf-glint { display: none; }
 }
 @media (max-width: 768px) {
   .sl-frame { --k: 0.55; }
