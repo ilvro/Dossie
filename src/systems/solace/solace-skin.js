@@ -1,9 +1,9 @@
 /**
  * Skin "Solace" do layout de frente e verso de Ordem II (src/systems/vigilia/vigilia-view.js).
  * Solace é o país do deserto. A ficha é a da Vigília (mesmas fontes, faixas, medalhões e
- * palavras dos atributos), em sépia e creme, sobre a pintura do deserto com a moldura de
- * hieróglifos e o disco solar alado (public/assets/solace/solace-bg.webp, moldura inclusa,
- * estendida para baixo para cobrir a página sem esticar).
+ * palavras dos atributos), em sépia e creme, sobre a pintura limpa do deserto
+ * (public/assets/solace/solace-bg.webp). A moldura de hieróglifos, o disco solar alado
+ * e os cantos são desenhados em código (solace-frame.js).
  *
  * Ambiente (no molde da névoa da Vigília: camadas largas e lentas, que respiram):
  * bruma de areia em três alturas, uma rajada rara rente ao chão, poucos grãos ao vento,
@@ -11,6 +11,7 @@
  */
 
 import { installMistTexture } from '../../fx/mist-texture.js';
+import { renderSolaceFrame } from './solace-frame.js';
 import './solace.css';
 
 const VIG = './assets/vigilia/';
@@ -84,7 +85,7 @@ export const SOLACE_SKIN = {
             </defs>
             <path fill="url(#sl-chevron)" stroke="url(#sl-chevron)" stroke-width="1.8" stroke-linejoin="round" d="M27.70,173.73L2.96,85.95L35.07,0.00L0.00,86.40L1.49,86.22L0.04,86.57Z" />
           </svg>`,
-  // A moldura de hieróglifos e o disco alado já estão pintados no fundo
-  frame: () => '',
+  // Moldura de hieróglifos, disco alado e cantos desenhados em código (solace-frame.js)
+  frame: renderSolaceFrame,
   ambient: renderAmbient
 };
