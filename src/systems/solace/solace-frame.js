@@ -1,18 +1,21 @@
 /**
  * Moldura de Solace, desenhada em código (SVG) sobre a pintura limpa do deserto.
  *
- * - Faixas de hieróglifos: um conjunto de símbolos próprios, distribuído à moda egípcia
- *   (altos sozinhos, baixos empilhados, divisórias e um cartucho), gerado uma vez como
- *   ladrilho que o CSS repete; as pontas das faixas ficam sob os cantos.
- * - Disco solar alado no topo e discos com uma asa nos cantos, com penas geradas em leque.
- * - Vida: um brilho percorre o ouro gravado das faixas e das asas, o disco respira
- *   e os raios dos cantos giram devagar (tudo em CSS, desligável com o ambiente).
+ * Linguagem da referência: uma gravação na própria pintura, não uma peça aplicada.
+ * - As faixas só escurecem a pintura (multiplicação translúcida): a textura aparece por baixo.
+ * - Hieróglifos, filetes e contornos em areia fosca, com um filtro que entorta de leve o traço
+ *   e "gasta" trechos dele, como tinta velha.
+ * - Asas em duas tonalidades: penas no marrom da faixa com contorno de areia e, junto do disco,
+ *   uma camada interna clara riscada de marrom. Discos foscos, marrom-escuros, com aro de areia.
+ * - Filetes contínuos (CSS) contornam as faixas; os hieróglifos seguem a escrita egípcia (altos sozinhos, baixos empilhados, divisórias e
+ *   um cartucho), num ladrilho gerado uma vez que o CSS repete; as pontas ficam sob os cantos.
+ * - Vida: só uma luz morna e lenta passando pelo traço (CSS, desligável com o ambiente).
  */
 
-const GOLD_HI = '#f6cf8a';
-const GOLD = '#dca25a';
-const GOLD_LO = '#a8692e';
-const SHADOW = '#120800';
+const INK = '#c98f58';        // areia fosca: traço, filetes, contornos (medido: ~200,141,87)
+const INK_DARK = '#4a3322';   // marrom dos riscos sobre a camada clara
+const FILL = 'rgba(52, 34, 20, 0.5)';      // miolo das penas, no tom da faixa
+const PALE = 'rgba(196, 142, 92, 0.78)';   // camada clara das asas
 
 // Pseudoaleatório com semente fixa: a moldura sai igual em todo render
 function rng(seed) {
@@ -22,6 +25,16 @@ function rng(seed) {
     return s / 4294967296;
   };
 }
+
+// Traço gasto: desloca de leve (mão humana) e apaga manchas (tinta descascada)
+const wornFilter = (id, scale = 1.4, seed = 3) => `
+  <filter id="${id}" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="${seed}" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="${scale}" xChannelSelector="R" yChannelSelector="G" result="d"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="${seed + 6}" result="m"/>
+    <feColorMatrix in="m" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -5 3.95" result="wear"/>
+    <feComposite in="d" in2="wear" operator="in"/>
+  </filter>`;
 
 /* ─── Hieróglifos (traço, em px; h 26 = alto, ≤12 = baixo) ─────────────────── */
 const dot = (x, y, r = 1.3) => `M${x - r} ${y}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`;
@@ -60,116 +73,114 @@ const TALL = ['ankh', 'djed', 'was', 'reed', 'feather', 'owl', 'cobra', 'nefer',
 const SQUARE = ['scarab', 'eye', 'sun', 'shen', 'quail', 'vase'];
 const FLAT = ['water', 'mouth', 'bread', 'hand', 'basket', 'house', 'viper', 'bolt', 'pool', 'rope'];
 
-// Um símbolo gravado: sombra escura deslocada + traço dourado
+// Um símbolo: traço de areia (o filtro do ladrilho gasta e entorta)
 function glyph(name, x, y, scale = 1) {
   const g = GLYPHS[name];
   const t = `translate(${x.toFixed(1)} ${y.toFixed(1)})${scale !== 1 ? ` scale(${scale.toFixed(3)})` : ''}`;
-  return `<g transform="${t}"><path d="${g.d}" transform="translate(0.7 0.9)" stroke="${SHADOW}" stroke-opacity="0.75"/><path d="${g.d}" stroke="url(#g)"/></g>`;
+  return `<path d="${g.d}" transform="${t}"/>`;
 }
 
-const svgTile = (w, h, body, gradVertical) => {
-  const grad = gradVertical
-    ? `<linearGradient id="g" x1="0" y1="0" x2="0" y2="${h}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${GOLD_HI}"/><stop offset="0.55" stop-color="${GOLD}"/><stop offset="1" stop-color="${GOLD_LO}"/></linearGradient>`
-    : `<linearGradient id="g" x1="0" y1="0" x2="${w}" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${GOLD_HI}"/><stop offset="0.5" stop-color="${GOLD}"/><stop offset="1" stop-color="${GOLD_HI}"/></linearGradient>`;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs>${grad}</defs><g fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${body}</g></svg>`;
+// Os símbolos são desenhados numa caixa menor e ampliados: ficam grandes e de traço grosso
+const SC = 1.3;
+const svgTile = (w, h, body) => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${(w * SC).toFixed(1)}" height="${(h * SC).toFixed(1)}" viewBox="0 0 ${w} ${h}"><defs>${wornFilter('w')}</defs><g filter="url(#w)" fill="none" stroke="${INK}" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round">${body}</g></svg>`;
   // Aspas simples (e ' escapado): o valor vai dentro de style="..." no HTML
   return `url('data:image/svg+xml,${encodeURIComponent(svg).replace(/'/g, '%27')}')`;
 };
 
-/* Faixa horizontal: altos sozinhos, baixos empilhados, divisórias e um cartucho */
-function horizontalTile(seed, H = 44) {
+/* Faixa horizontal: filetes nas bordas; altos sozinhos, baixos empilhados (2 ou 3),
+   divisórias e um cartucho */
+function horizontalTile(seed, HP = 44) {
+  const H = HP / SC;
   const r = rng(seed);
   const pick = list => list[Math.floor(r() * list.length)];
-  const top = (H - 26) / 2;
+  const top = (H - 26) / 2 + 0.3;
   let x = 5;
   let body = '';
   let groups = 0;
   let cartoucheDone = false;
-  const TARGET = 760;
-  while (x < TARGET - 40) {
+  while (x < 560) {
     groups++;
     if (!cartoucheDone && groups === 9) {
-      // Cartucho: moldura oval com três símbolos e a barra no fim
       const start = x;
       let cx = x + 7;
-      const inner = [pick(TALL), pick(SQUARE), pick(TALL)];
       let parts = '';
-      for (const n of inner) {
+      for (const n of [pick(TALL), pick(SQUARE), pick(TALL)]) {
         const g = GLYPHS[n];
-        const s = Math.min(1, 22 / g.h);
-        parts += glyph(n, cx, top + 2 + (22 - g.h * s) / 2, s);
+        const s = Math.min(0.9, 20 / g.h);
+        parts += glyph(n, cx, top + 3 + (20 - g.h * s) / 2, s);
         cx += g.w * s + 4;
       }
       const w = cx - start + 3;
-      body += `<rect x="${start}" y="${top - 3}" width="${w}" height="32" rx="12" stroke="url(#g)" stroke-width="1.4"/>`;
-      body += `<path d="M${start + w + 3} ${top - 3}V${top + 29}" stroke="url(#g)" stroke-width="1.8"/>`;
-      body += parts;
+      body += `<rect x="${start}" y="${top - 2}" width="${w.toFixed(1)}" height="30" rx="11" stroke-width="1.2"/>`;
+      body += `<path d="M${(start + w + 3).toFixed(1)} ${top - 2}V${top + 28}"/>` + parts;
       x = start + w + 12;
       cartoucheDone = true;
       continue;
     }
     const roll = r();
-    if (roll < 0.42) {
-      const n = pick(TALL);
-      const g = GLYPHS[n];
-      body += glyph(n, x, top + (26 - g.h) / 2);
-      x += g.w + 6;
-    } else if (roll < 0.66) {
-      const n = pick(SQUARE);
-      const g = GLYPHS[n];
-      body += glyph(n, x, top + (26 - g.h) / 2);
-      x += g.w + 6;
+    if (roll < 0.36) {
+      const n = pick(TALL), g = GLYPHS[n], s = 1;
+      body += glyph(n, x, top + (26 - g.h * s) / 2, s);
+      x += g.w * s + 5;
+    } else if (roll < 0.56) {
+      const n = pick(SQUARE), g = GLYPHS[n], s = 0.95;
+      body += glyph(n, x, top + (26 - g.h * s) / 2, s);
+      x += g.w * s + 5;
     } else if (roll < 0.94) {
-      // dois baixos empilhados, centrados na coluna
-      const a = pick(FLAT);
-      let b = pick(FLAT);
-      if (b === a) b = FLAT[(FLAT.indexOf(a) + 3) % FLAT.length];
-      const wa = GLYPHS[a].w, wb = GLYPHS[b].w;
-      const w = Math.max(wa, wb);
-      body += glyph(a, x + (w - wa) / 2, top + 1 + (11 - GLYPHS[a].h) / 2);
-      body += glyph(b, x + (w - wb) / 2, top + 14 + (11 - GLYPHS[b].h) / 2);
-      x += w + 6;
+      // baixos empilhados, centrados na coluna (às vezes três)
+      const k = r() < 0.3 ? 3 : 2;
+      const names = [];
+      while (names.length < k) { const n = pick(FLAT); if (!names.includes(n)) names.push(n); }
+      const s = k === 3 ? 0.78 : 0.9;
+      const w = Math.max(...names.map(n => GLYPHS[n].w)) * s;
+      const slot = 26 / k;
+      names.forEach((n, i) => {
+        const g = GLYPHS[n];
+        body += glyph(n, x + (w - g.w * s) / 2, top + i * slot + (slot - g.h * s) / 2, s);
+      });
+      x += w + 5;
     } else {
-      // divisória dupla entre registros
-      body += `<path d="M${x + 1} ${top - 2}V${top + 28}M${x + 4} ${top - 2}V${top + 28}" stroke="url(#g)" stroke-width="1.1"/>`;
-      x += 11;
+      body += `<path d="M${x + 1} ${top - 1}V${top + 27}" stroke-width="1.1"/>`;
+      x += 7;
     }
   }
-  const W = Math.ceil(x + 4);
-  return { url: svgTile(W, H, body, true), w: W, h: H };
+  const W = Math.ceil(x + 2);
+  return { url: svgTile(W, H, body), w: +(W * SC).toFixed(1), h: HP };
 }
 
-/* Coluna vertical: os mesmos símbolos, um sob o outro (os largos encolhem para caber) */
-function verticalTile(seed, W = 30) {
+/* Coluna vertical: filetes nas bordas e os mesmos símbolos, um sob o outro */
+function verticalTile(seed, WP = 30) {
+  const W = WP / SC;
   const r = rng(seed);
   const pick = list => list[Math.floor(r() * list.length)];
-  const maxW = W - 12;
-  let y = 8;
+  const maxW = W - 7;
+  let y = 6;
   let body = '';
-  while (y < 640) {
+  while (y < 500) {
     const roll = r();
-    const n = roll < 0.4 ? pick(TALL) : roll < 0.65 ? pick(SQUARE) : pick(FLAT);
-    if (roll > 0.93) {
-      body += `<path d="M5 ${y + 1}H${W - 5}M5 ${y + 4}H${W - 5}" stroke="url(#g)" stroke-width="1.1"/>`;
-      y += 11;
+    if (roll > 0.94) {
+      body += `<path d="M7 ${y + 1}H${W - 7}" stroke-width="1.1"/>`;
+      y += 7;
       continue;
     }
+    const n = roll < 0.38 ? pick(TALL) : roll < 0.6 ? pick(SQUARE) : pick(FLAT);
     const g = GLYPHS[n];
     const s = Math.min(1, maxW / g.w);
     body += glyph(n, (W - g.w * s) / 2, y, s);
-    y += g.h * s + 6;
+    y += g.h * s + 5;
   }
   const H = Math.ceil(y + 2);
-  return { url: svgTile(W, H, body, false), w: W, h: H };
+  return { url: svgTile(W, H, body), w: WP, h: +(H * SC).toFixed(1) };
 }
 
 /* ─── Asas em leque ────────────────────────────────────────────────────────── */
 // Penas entre os ângulos th0..th1 (graus, 0 = para fora na horizontal, positivo = para baixo),
 // do raio relativo rIn ao rOut de uma elipse a×b centrada no disco.
-function fan({ dir, a, b, th0, th1, rows, edge }) {
+function fan({ dir, a, b, th0, th1, rows, edge, cx = 0, cy = 0 }) {
   const rad = d => (d * Math.PI) / 180;
   const R = t => (a * b) / Math.sqrt((b * Math.cos(t)) ** 2 + (a * Math.sin(t)) ** 2);
-  const P = (t, k) => [dir * Math.cos(t) * R(t) * k, Math.sin(t) * R(t) * k];
+  const P = (t, k) => [cx + dir * Math.cos(t) * R(t) * k, cy + Math.sin(t) * R(t) * k];
   const f = p => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`;
   let out = '';
   rows.forEach(({ rIn, rOut, n, tip, cls, rib }) => {
@@ -199,52 +210,47 @@ function fan({ dir, a, b, th0, th1, rows, edge }) {
   return out;
 }
 
-const WING_ROWS = [
-  { rIn: 0.66, rOut: 1, n: 22, tip: 'point', cls: 'slf-f3', rib: true },
-  { rIn: 0.44, rOut: 0.68, n: 16, tip: 'round', cls: 'slf-f2' },
-  { rIn: 0.25, rOut: 0.46, n: 11, tip: 'round', cls: 'slf-f1' }
-];
 
-function sunDisk(r, id, rays = 16) {
-  const lines = Array.from({ length: rays }, (_, i) => {
-    const t = (i / rays) * Math.PI * 2;
-    return `M${(Math.cos(t) * r * 0.32).toFixed(1)} ${(Math.sin(t) * r * 0.32).toFixed(1)}L${(Math.cos(t) * r * 0.86).toFixed(1)} ${(Math.sin(t) * r * 0.86).toFixed(1)}`;
-  }).join('');
-  return `
-    <circle class="slf-sun" r="${r}" fill="url(#${id}-disk)"/>
-    <g class="slf-rays"><path d="${lines}" stroke="#fff3d0" stroke-opacity="0.32" stroke-width="1.2" stroke-linecap="round"/></g>
-    <circle r="${r}" fill="none" stroke="${GOLD}" stroke-width="2.6"/>
-    <circle r="${r - 4}" fill="none" stroke="${SHADOW}" stroke-opacity="0.55" stroke-width="1"/>
-    <circle r="${r + 3.5}" fill="none" stroke="${GOLD_LO}" stroke-width="1"/>`;
-}
-
-const sharedDefs = id => `
-  <radialGradient id="${id}-disk" cx="0.4" cy="0.35" r="0.75">
-    <stop offset="0" stop-color="#ffe9b0"/><stop offset="0.35" stop-color="#e9a752"/><stop offset="0.75" stop-color="#9a5121"/><stop offset="1" stop-color="#4f260c"/>
+// Disco fosco: marrom-escuro com aro de areia e um leve volume
+const disk = (r, id) => `
+  <circle r="${r}" fill="url(#${id}-disk)"/>
+  <circle r="${r}" fill="none" stroke="${INK}" stroke-width="2"/>
+  <circle r="${r + 3}" fill="none" stroke="${INK}" stroke-width="0.9" stroke-opacity="0.7"/>`;
+const diskDefs = id => `
+  <radialGradient id="${id}-disk" cx="0.38" cy="0.32" r="0.8">
+    <stop offset="0" stop-color="#7a5a40"/><stop offset="0.55" stop-color="#523826"/><stop offset="1" stop-color="#36241a"/>
   </radialGradient>
-  <radialGradient id="${id}-halo"><stop offset="0" stop-color="#ffd78f" stop-opacity="0.55"/><stop offset="1" stop-color="#ffb860" stop-opacity="0"/></radialGradient>
-  <linearGradient id="${id}-feather" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="#4a2c15"/><stop offset="1" stop-color="#26140a"/>
-  </linearGradient>
   <linearGradient id="${id}-glint" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0" stop-color="#fff0c8" stop-opacity="0"/><stop offset="0.5" stop-color="#fff0c8" stop-opacity="0.75"/><stop offset="1" stop-color="#fff0c8" stop-opacity="0"/>
+    <stop offset="0" stop-color="#ffe2b0" stop-opacity="0"/><stop offset="0.5" stop-color="#ffe2b0" stop-opacity="0.45"/><stop offset="1" stop-color="#ffe2b0" stop-opacity="0"/>
   </linearGradient>`;
 
-/* Disco solar alado do topo, com as duas uraeus */
+/* Disco solar alado do topo: penas marrons com contorno de areia por fora,
+   camada clara riscada de marrom junto do disco, e o abutre (cabeça e pescoço) por cima */
 function wingedDisk() {
   const id = 'slf-c';
-  const wing = { a: 236, b: 74, th0: -4, th1: 64, rows: WING_ROWS, edge: { from: 0.2, to: 1.02, n: 14, t0: -13, t1: -4 } };
-  const feathers = fan({ ...wing, dir: 1 }) + fan({ ...wing, dir: -1 });
-  const uraeus = dir => `<path d="M${dir * 24} 14C${dir * 30} 20 ${dir * 22} 26 ${dir * 27} 33C${dir * 31} 38 ${dir * 26} 44 ${dir * 22} 41M${dir * 24} 14C${dir * 21} 9 ${dir * 27} 6 ${dir * 29} 10" fill="none" stroke="${GOLD}" stroke-width="2" stroke-linecap="round"/>`;
+  const outer = { a: 214, b: 52, th0: -11, th1: 80 };
+  const feathers = fan({ ...outer, dir: 1, rows: [
+    { rIn: 0.62, rOut: 1, n: 21, tip: 'point', cls: 'p' },
+    { rIn: 0.4, rOut: 0.64, n: 15, tip: 'round', cls: 's' }
+  ] }) + fan({ ...outer, dir: -1, rows: [
+    { rIn: 0.62, rOut: 1, n: 21, tip: 'point', cls: 'p' },
+    { rIn: 0.4, rOut: 0.64, n: 15, tip: 'round', cls: 's' }
+  ] });
+  // asas internas, claras, erguidas em volta do disco
+  const inner = { a: 118, b: 60, th0: -60, th1: -6, rows: [{ rIn: 0.3, rOut: 1, n: 7, tip: 'point', cls: 'i' }] };
+  const pale = fan({ ...inner, dir: 1 }) + fan({ ...inner, dir: -1 });
   return `
-  <svg class="slf-winged" viewBox="-250 -40 500 120" aria-hidden="true">
-    <defs>${sharedDefs(id)}
-      <mask id="${id}-mask"><g fill="#fff">${feathers}</g></mask>
+  <svg class="slf-winged" viewBox="-236 -52 472 112" aria-hidden="true">
+    <defs>${wornFilter(`${id}-w`, 1.6, 11)}${diskDefs(id)}
+      <mask id="${id}-mask"><g fill="#fff">${feathers}${pale}</g></mask>
     </defs>
-    <g class="slf-wing" fill="url(#${id}-feather)" stroke="${GOLD}" stroke-width="1.15" stroke-linejoin="round">${feathers}</g>
-    <g mask="url(#${id}-mask)"><rect class="slf-glint slf-glint-wing" x="-330" y="-40" width="110" height="140" fill="url(#${id}-glint)"/></g>
-    ${uraeus(1)}${uraeus(-1)}
-    ${sunDisk(27, id)}
+    <g filter="url(#${id}-w)">
+      <g class="slf-feathers" fill="${FILL}" stroke="${INK}" stroke-width="1.3" stroke-linejoin="round">${feathers}</g>
+      <g fill="${PALE}" stroke="${INK_DARK}" stroke-width="1.1" stroke-linejoin="round">${pale}</g>
+      <path d="M-6 -21C-9 -30 -6 -40 0 -42C6 -40 9 -30 6 -21Z" fill="${PALE}" stroke="${INK_DARK}" stroke-width="1"/><path d="M-3 -34H3M-4 -28H4" stroke="${INK_DARK}" stroke-width="0.9"/>
+      ${disk(22, id)}
+    </g>
+    <g mask="url(#${id}-mask)"><rect class="slf-glint slf-glint-wing" x="-320" y="-52" width="90" height="112" fill="url(#${id}-glint)"/></g>
   </svg>`;
 }
 
@@ -252,47 +258,50 @@ function wingedDisk() {
 function cornerDisk(side) {
   const id = `slf-${side}`;
   const dir = side.endsWith('l') ? 1 : -1;
-  const feathers = fan({ dir, a: 132, b: 40, th0: -2, th1: 38, rows: [
-    { rIn: 0.6, rOut: 1, n: 16, tip: 'point', cls: 'slf-f3', rib: true },
-    { rIn: 0.3, rOut: 0.62, n: 10, tip: 'round', cls: 'slf-f2' }
-  ], edge: { from: 0.2, to: 1.02, n: 9, t0: -12, t1: -3 } });
+  const feathers = fan({ dir, a: 142, b: 27, th0: -2, th1: 44, rows: [
+    { rIn: 0.5, rOut: 1, n: 17, tip: 'point', cls: 'p' }
+  ] });
+  const pale = fan({ dir, a: 60, b: 21, th0: -48, th1: -4, rows: [{ rIn: 0.45, rOut: 1, n: 6, tip: 'point', cls: 'i' }] });
   return `
-  <svg class="slf-corner slf-corner-${side}" viewBox="${dir > 0 ? -40 : -170} -40 210 100" aria-hidden="true">
-    <defs>${sharedDefs(id)}
+  <svg class="slf-corner slf-corner-${side}" viewBox="${dir > 0 ? -34 : -150} -30 184 72" aria-hidden="true">
+    <defs>${wornFilter(`${id}-w`, 1.4, side === 'tl' ? 17 : 23)}${diskDefs(id)}
       <mask id="${id}-mask"><g fill="#fff">${feathers}</g></mask>
     </defs>
-    <g class="slf-wing" fill="url(#${id}-feather)" stroke="${GOLD}" stroke-width="1.1" stroke-linejoin="round">${feathers}</g>
-    <g mask="url(#${id}-mask)"><rect class="slf-glint slf-glint-corner" x="${dir > 0 ? -120 : -260}" y="-40" width="80" height="120" fill="url(#${id}-glint)"/></g>
-    ${sunDisk(21, id, 12)}
+    <g filter="url(#${id}-w)">
+      <g fill="${FILL}" stroke="${INK}" stroke-width="1.2" stroke-linejoin="round">${feathers}</g>
+      <g fill="${PALE}" stroke="${INK_DARK}" stroke-width="1" stroke-linejoin="round">${pale}</g>
+      ${disk(17, id)}
+    </g>
+    <g mask="url(#${id}-mask)"><rect class="slf-glint slf-glint-corner" x="${dir > 0 ? -110 : -250}" y="-30" width="70" height="72" fill="url(#${id}-glint)"/></g>
   </svg>`;
 }
 
-/* Roseta de lótus dos cantos de baixo */
+/* Cantos de baixo: um quadrado gravado com a roseta de lótus */
 const rosette = side => `
   <svg class="slf-rosette slf-rosette-${side}" viewBox="-20 -20 40 40" aria-hidden="true">
-    <rect x="-18" y="-18" width="36" height="36" rx="3" fill="#2c180a" stroke="${GOLD}" stroke-width="1.6"/>
-    <rect x="-14.5" y="-14.5" width="29" height="29" rx="2" fill="none" stroke="${GOLD_LO}" stroke-width="0.9"/>
-    <g fill="none" stroke="${GOLD}" stroke-width="1.3">${Array.from({ length: 8 }, (_, i) => `<path d="M0 -2.5C-3.5 -6 -2.5 -11 0 -12C2.5 -11 3.5 -6 0 -2.5Z" transform="rotate(${i * 45})"/>`).join('')}</g>
-    <circle r="2.6" fill="${GOLD_HI}"/>
+    <defs>${wornFilter(`slf-${side}-w`, 1.2, side === 'bl' ? 29 : 37)}</defs>
+    <g filter="url(#slf-${side}-w)" fill="none" stroke="${INK}" stroke-width="1.4">
+      <rect x="-17" y="-17" width="34" height="34" fill="${FILL}"/>
+      <rect x="-13.5" y="-13.5" width="27" height="27" stroke-width="0.9"/>
+      ${Array.from({ length: 8 }, (_, i) => `<path d="M0 -2.5C-3.2 -5.5 -2.4 -10 0 -11C2.4 -10 3.2 -5.5 0 -2.5Z" transform="rotate(${i * 45})"/>`).join('')}
+      <circle r="2.2" fill="${INK}"/>
+    </g>
   </svg>`;
 
 let cache = null;
 function tiles() {
   if (cache) return cache;
-  const top = horizontalTile(7);
-  const bottom = horizontalTile(31, 30);
-  const left = verticalTile(13);
-  const right = verticalTile(57);
-  cache = { top, bottom, left, right };
+  cache = { top: horizontalTile(7), bottom: horizontalTile(31, 30), left: verticalTile(13), right: verticalTile(57) };
   return cache;
 }
 
 export function renderSolaceFrame() {
   const t = tiles();
-  const band = (cls, tile, vertical) => `<div class="slf-band ${cls}" style="--tile:${tile.url};--tw:${tile.w}px;--th:${tile.h}px"><i class="slf-band-glint${vertical ? ' v' : ''}"></i></div>`;
+  const ink = (vertical, seg = '') => `<i class="slf-band-ink${seg}"></i><i class="slf-band-glint${vertical ? ' v' : ''}${seg}"></i>`;
+  const band = (cls, tile, vertical, inner = ink(vertical)) => `<div class="slf-band ${cls}" style="--tile:${tile.url};--tw:${tile.w}px;--th:${tile.h}px">${inner}</div>`;
   return `
     <div class="vigilia-frame-layer sl-frame" aria-hidden="true">
-      ${band('slf-top', t.top)}
+      ${band('slf-top', t.top, false, ink(false, ' seg-l') + ink(false, ' seg-r'))}
       ${band('slf-bottom', t.bottom)}
       ${band('slf-left', t.left, true)}
       ${band('slf-right', t.right, true)}

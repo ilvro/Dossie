@@ -443,23 +443,20 @@ body:has(.solace-page) .relation-option-btn { border-color: #7a5634; background:
 }
 
 /* ══ MOLDURA (solace-frame.js) ══════════════════════════════════════════
-   Faixas de pedra escura com hieróglifos em ouro gravado e filete duplo de ouro.
-   O ladrilho repete a partir do começo de cada faixa; as pontas ficam sob os discos
-   dos cantos e as rosetas, então nenhum símbolo cortado aparece. */
+   Gravada na pintura: a faixa só escurece um pouco (translúcida, a textura aparece),
+   e o traço é areia fosca e gasta. Sem ouro brilhante nem sombras projetadas. */
 .sl-frame { overflow: hidden; }
 .slf-band {
   position: absolute;
-  background-color: #2a170a;
-  background-image: var(--tile), linear-gradient(180deg, #3d2413 0%, #2a170a 55%, #1f1107 100%);
-  background-size: var(--tw) var(--th), 100% 100%;
-  background-repeat: repeat-x, no-repeat;
-  background-position: 0 0, 0 0;
-  box-shadow:
-    inset 0 0 0 1.5px #dca25a,
-    inset 0 0 0 3.5px rgba(31, 17, 7, 0.95),
-    inset 0 0 0 4.5px rgba(168, 105, 46, 0.9),
-    0 2px 8px rgba(18, 8, 0, 0.55);
+  background: linear-gradient(180deg, rgba(40, 25, 14, 0.34), rgba(40, 25, 14, 0.26));
 }
+.slf-band > i { position: absolute; inset: 0; }
+/* Filetes de areia contínuos, inclusive sob as asas */
+.slf-top,
+.slf-bottom { box-shadow: inset 0 1.5px 0 rgba(201, 143, 88, 0.9), inset 0 -1.5px 0 rgba(201, 143, 88, 0.9); }
+.slf-left,
+.slf-right { box-shadow: inset 1.5px 0 0 rgba(201, 143, 88, 0.9), inset -1.5px 0 0 rgba(201, 143, 88, 0.9); }
+.slf-band-ink { background: var(--tile) 0 0 / var(--tw) var(--th) repeat-x; }
 .slf-top { top: 10px; left: 8px; right: 8px; height: 44px; }
 .slf-bottom { bottom: 8px; left: 8px; right: 8px; height: 30px; }
 .slf-left,
@@ -467,94 +464,72 @@ body:has(.solace-page) .relation-option-btn { border-color: #7a5634; background:
   top: 54px;
   bottom: 38px;
   width: 30px;
-  background-image: var(--tile), linear-gradient(90deg, #3d2413 0%, #2a170a 55%, #1f1107 100%);
-  background-repeat: repeat-y, no-repeat;
+  background: linear-gradient(90deg, rgba(40, 25, 14, 0.34), rgba(40, 25, 14, 0.26));
 }
+/* Os símbolos do topo começam depois da asa do canto e param antes da asa central,
+   como na referência (a asa ocupa a faixa); o mesmo vale para a base e as rosetas */
+.slf-top > .seg-l { left: 168px; right: calc(50% + 236px); }
+.slf-top > .seg-r { left: calc(50% + 236px); right: 168px; }
+.slf-bottom > i { left: 40px; right: 40px; }
+.slf-left > i,
+.slf-right > i { top: 20px; }
+.slf-left .slf-band-ink,
+.slf-right .slf-band-ink { background-repeat: repeat-y; }
 .slf-left { left: 8px; }
 .slf-right { right: 8px; }
 
-/* O brilho que percorre o ouro: só aparece onde há símbolo (máscara = o próprio ladrilho) */
+/* Uma luz morna e lenta passando pelo traço (máscara = o próprio ladrilho) */
 .slf-band-glint {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(100deg, transparent 46%, rgba(255, 238, 196, 0.95) 50%, transparent 54%) 130% 0 / 400% 100% no-repeat;
+  background: linear-gradient(100deg, transparent 46%, rgba(255, 226, 178, 0.6) 50%, transparent 54%) 130% 0 / 400% 100% no-repeat;
   -webkit-mask: var(--tile) 0 0 / var(--tw) var(--th) repeat-x;
   mask: var(--tile) 0 0 / var(--tw) var(--th) repeat-x;
-  animation: slf-sweep-x 16s linear infinite;
+  animation: slf-sweep-x 22s linear infinite;
   animation-delay: var(--amb-t, 0s);
 }
 .slf-band-glint.v {
-  background: linear-gradient(190deg, transparent 46%, rgba(255, 238, 196, 0.95) 50%, transparent 54%) 0 130% / 100% 400% no-repeat;
+  background: linear-gradient(190deg, transparent 46%, rgba(255, 226, 178, 0.6) 50%, transparent 54%) 0 130% / 100% 400% no-repeat;
   -webkit-mask-repeat: repeat-y;
   mask-repeat: repeat-y;
   animation-name: slf-sweep-y;
 }
 /* A luz dá a volta na moldura: topo → direita → baixo → esquerda */
-.slf-right .slf-band-glint { animation-delay: calc(var(--amb-t, 0s) - 4s); animation-direction: normal; }
-.slf-bottom .slf-band-glint { animation-delay: calc(var(--amb-t, 0s) - 8s); animation-direction: reverse; }
-.slf-left .slf-band-glint { animation-delay: calc(var(--amb-t, 0s) - 12s); animation-direction: reverse; }
+.slf-right .slf-band-glint { animation-delay: calc(var(--amb-t, 0s) - 5.5s); }
+.slf-bottom .slf-band-glint { animation-delay: calc(var(--amb-t, 0s) - 11s); animation-direction: reverse; }
+.slf-left .slf-band-glint { animation-delay: calc(var(--amb-t, 0s) - 16.5s); animation-direction: reverse; }
 @keyframes slf-sweep-x { from { background-position: 130% 0; } to { background-position: -30% 0; } }
 @keyframes slf-sweep-y { from { background-position: 0 130%; } to { background-position: 0 -30%; } }
 
-/* Disco alado do topo, logo abaixo da barra frente/verso */
+/* Disco alado: logo abaixo da barra frente/verso, sobre a faixa */
 .slf-winged {
   position: absolute;
-  top: 44px;
+  top: 28px;
   left: 50%;
-  width: 500px;
-  height: 120px;
+  width: 472px;
+  height: 112px;
   transform: translateX(-50%);
   overflow: visible;
-  filter: drop-shadow(0 4px 8px rgba(18, 8, 0, 0.6));
 }
-.slf-corner {
-  position: absolute;
-  top: -6px;
-  width: 210px;
-  height: 100px;
-  overflow: visible;
-  filter: drop-shadow(0 3px 6px rgba(18, 8, 0, 0.6));
-}
-.slf-corner-tl { left: -6px; }
-.slf-corner-tr { right: -6px; }
+.slf-corner { position: absolute; top: 2px; width: 184px; height: 72px; overflow: visible; }
+.slf-corner-tl { left: -4px; }
+.slf-corner-tr { right: -4px; }
 .slf-rosette { position: absolute; bottom: 3px; width: 40px; height: 40px; }
 .slf-rosette-bl { left: 3px; }
 .slf-rosette-br { right: 3px; }
 
-/* Penas em bronze: cada fileira um tom, alternando claro/escuro, nervura e filete de ouro */
-.slf-wing .slf-f3 { fill: #6d4020; }
-.slf-wing .slf-f2 { fill: #845028; }
-.slf-wing .slf-f1 { fill: #9a6030; }
-.slf-wing .slf-edge { fill: #b07438; }
-.slf-wing .alt { fill-opacity: 0.78; }
-.slf-wing .slf-rib { fill: none; stroke: #e8b46a; stroke-width: 0.8; stroke-opacity: 0.75; }
-.slf-sun { animation: slf-breathe 7s ease-in-out infinite alternate; animation-delay: var(--amb-t, 0s); }
-.slf-rays {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: slf-spin 90s linear infinite;
-}
-.slf-glint-wing { animation: slf-wing-glint 13s ease-in-out infinite; animation-delay: calc(var(--amb-t, 0s) - 2s); }
-.slf-glint-corner { animation: slf-corner-glint 13s ease-in-out infinite; animation-delay: calc(var(--amb-t, 0s) - 8s); }
-@keyframes slf-breathe {
-  from { filter: drop-shadow(0 0 2px rgba(255, 196, 110, 0.35)); }
-  to { filter: drop-shadow(0 0 9px rgba(255, 206, 120, 0.95)); }
-}
-@keyframes slf-spin { to { transform: rotate(360deg); } }
+.slf-glint-wing { animation: slf-wing-glint 17s ease-in-out infinite; animation-delay: calc(var(--amb-t, 0s) - 3s); }
+.slf-glint-corner { animation: slf-corner-glint 17s ease-in-out infinite; animation-delay: calc(var(--amb-t, 0s) - 10s); }
 @keyframes slf-wing-glint {
   0% { transform: translateX(0); }
-  45%, 100% { transform: translateX(580px); }
+  40%, 100% { transform: translateX(600px); }
 }
 @keyframes slf-corner-glint {
   0% { transform: translateX(0); }
-  40%, 100% { transform: translateX(300px); }
+  35%, 100% { transform: translateX(290px); }
 }
 
-body.ambient-off .sl-frame *,
-body.ambient-off .sl-frame *::before {
-  animation: none !important;
-}
-body.ambient-off .slf-band-glint { display: none; }
+body.ambient-off .sl-frame * { animation: none !important; }
+body.ambient-off .slf-band-glint,
+body.ambient-off .slf-glint { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .sl-frame * { animation: none !important; }
   .slf-band-glint,
