@@ -6,7 +6,8 @@
  * e os cantos são desenhados em código (solace-frame.js).
  *
  * Ambiente (no molde da névoa da Vigília: camadas largas e lentas, que respiram):
- * bruma de areia em três alturas, uma rajada rara rente ao chão, poucos grãos ao vento,
+ * bruma de areia em três alturas, uma rajada rara rente ao chão, nuvens de poeira que
+ * atravessam a página de vez em quando, poucos grãos ao vento,
  * pó dourado subindo na luz e o sol pulsando onde a pintura já é clara.
  */
 
@@ -52,6 +53,7 @@ function renderAmbient() {
       <div class="solace-haze haze-near"></div>
       <div class="solace-haze haze-ground"></div>
       <div class="solace-haze haze-gust"></div>
+      <div class="solace-clouds"><i class="cloud-a"></i><i class="cloud-b"></i><i class="cloud-c"></i></div>
       <div class="solace-grains">${grains}</div>
       <div class="solace-motes">${motes}</div>
     </div>

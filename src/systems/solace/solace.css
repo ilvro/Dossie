@@ -351,6 +351,33 @@
   75% { opacity: 0; transform: translate3d(-1100px, -14px, 0); }
 }
 
+/* Nuvens de poeira: de vez em quando uma nuvem solta atravessa a página com o vento
+   (para a esquerda), devagar, e some. Passam a maior parte do ciclo invisíveis. */
+.solace-clouds i {
+  position: absolute;
+  left: 100%;
+  top: var(--y);
+  width: var(--w);
+  height: calc(var(--w) * 0.42);
+  background: var(--sl-dust, none) 0 0 / 620px 620px;
+  -webkit-mask-image: radial-gradient(closest-side, #000 0%, rgba(0, 0, 0, 0.6) 45%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 0%, rgba(0, 0, 0, 0.6) 45%, transparent 100%);
+  opacity: 0;
+  animation: solace-cloud var(--d) linear infinite;
+  animation-delay: calc(var(--amb-t, 0s) + var(--o));
+  will-change: transform, opacity;
+}
+.solace-clouds .cloud-a { --y: 8%; --w: 1100px; --d: 84s; --o: -20s; --a: 0.68; --rise: -40px; }
+.solace-clouds .cloud-b { --y: 46%; --w: 900px; --d: 113s; --o: -71s; --a: 0.55; --rise: -70px; }
+.solace-clouds .cloud-c { --y: 70%; --w: 1300px; --d: 141s; --o: -118s; --a: 0.62; --rise: -25px; }
+@keyframes solace-cloud {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.9); }
+  8% { opacity: var(--a); }
+  36% { opacity: calc(var(--a) * 0.8); }
+  44% { opacity: 0; transform: translate3d(calc(-100vw - var(--w) * 1.1), var(--rise), 0) scale(1.1); }
+  100% { opacity: 0; transform: translate3d(calc(-100vw - var(--w) * 1.1), var(--rise), 0) scale(1.1); }
+}
+
 /* Grãos de areia ao vento: poucos riscos finos, só perto do chão */
 .solace-grains i {
   position: absolute;
@@ -402,6 +429,7 @@ body.critical-pd-state .solace-page .solace-ambient { filter: hue-rotate(170deg)
 @media (prefers-reduced-motion: reduce) {
   .solace-grains,
   .solace-motes,
+  .solace-clouds,
   .solace-haze.haze-gust { display: none !important; }
   .solace-haze,
   .solace-sun { animation: none !important; }
