@@ -40,9 +40,19 @@ import {
   trilhaLiberada,
   pendenciaDeTrilha,
   aplicarVersatilidade,
-  recusarVersatilidade
+  recusarVersatilidade,
+  atributoEfetivoDaPericia
 } from './systems/original/original-system.js';
 import { renderDecisaoTrilha, renderEscolhaDeTrilha } from './systems/original/original-views.js';
+import {
+  definirAumentoAtributo,
+  aplicarTransicaoDeClasse,
+  reverterTreinoDePoder,
+  sincronizarAoMudarNex,
+  solicitarPromptProgressao,
+  abrirModalProgressao,
+  bindEventosProgressaoOriginal,
+} from './systems/original/original-progression.js';
 import { die } from './dice-icon.js';
 import { enhanceSelects } from './custom-select.js';
 import { abrirTutorial, fecharTutorial } from './systems/original/original-wizard.js';
@@ -53,7 +63,7 @@ import { icon } from './icons.js';
 let promptTrilhaInicial=null, promptTrilhaAdiado=null, promptTrilhaFoco=null;
 function mudarNexOriginal(aplicar){
  const antes=trilhaLiberada(state);
- aplicar();
+ sincronizarAoMudarNex(state, aplicar);
  if(!antes&&trilhaLiberada(state)){promptTrilhaInicial=state.id;promptTrilhaFoco=null;}
  promptTrilhaAdiado=null;
 }
@@ -80,12 +90,13 @@ function syncPromptDeTrilha(){
    const p=pendenciaDeTrilha(state);
    if(!p) return;
    const acao=btn.dataset.trilhaDecisao;
-   if(acao==='depois'){promptTrilhaAdiado=`${state.id}:${p.tier}`;syncPromptDeTrilha();return;}
+   if(acao==='depois'){promptTrilhaAdiado=`${state.id}:${p.tier}`;solicitarPromptProgressao(state.id);render();return;}
    if(acao==='recusar') recusarVersatilidade(state,p.tier);
    if(acao==='versatilidade'){
     const sel=btn.closest('.trilha-decisao')?.querySelector('[data-trilha-decisao-select]');
     if(!aplicarVersatilidade(state,sel?.value)) return;
    }
+   solicitarPromptProgressao(state.id);
    save(false);
    render();
   };
@@ -110,6 +121,7 @@ function syncPromptDeTrilha(){
    if(state.trilhaTerciariaId===state.trilhaId) state.trilhaTerciariaId='';
    promptTrilhaInicial=null;
    promptTrilhaFoco=null;
+   solicitarPromptProgressao(state.id);
    save(false);
    render();
   };
@@ -120,7 +132,7 @@ import {
   renderTraditionalOriginal,
   renderCinematicOriginal
 } from './systems/original/original-views.js';
-import { initOriginalCompendium } from './systems/original/original-compendium.js';
+import { initOriginalCompendium, openOriginalCompendium } from './systems/original/original-compendium.js';
 import { normalizeThreatSheet, applyDerivedDice } from './systems/threat/threat-system.js';
 import { renderThreatBook } from './systems/threat/threat-views.js';
 import { abrirThreatWizard, fecharThreatWizard } from './systems/threat/threat-wizard.js';
@@ -757,6 +769,9 @@ function renderPresentationDock(){
  const presSheets=getPresentationSheets();
  const total=presSheets.length;
  if(!total)return '';
+ const matchedIdx=presSheets.findIndex(s=>s.id===state?.id);
+ if(matchedIdx>=0)presentationIndex=matchedIdx;
+ else presentationIndex=((presentationIndex%total)+total)%total;
  const prevIdx=(presentationIndex-1+total)%total,currIdx=presentationIndex,nextIdx=(presentationIndex+1+total)%total;
  const prevSheet=presSheets[prevIdx],currSheet=presSheets[currIdx],nextSheet=presSheets[nextIdx];
  const prevAccent=getSheetAccent(prevSheet);
@@ -2866,7 +2881,7 @@ function moveSheet(sheetId, delta) {
  const [moved] = sheets.splice(fromIndex, 1);
  sheets.splice(toIndex, 0, moved);
  if (presentationMode) {
-  presentationIndex = Math.max(0, sheets.findIndex(s => s.id === state.id));
+  presentationIndex = Math.max(0, getPresentationSheets().findIndex(s => s.id === state.id));
  }
  save(true, 'FICHA MOVIDA');
  render();
@@ -2999,7 +3014,7 @@ function switchToSheet(targetId) {
    if (state.systemMode === 'threat') {
     presentationMode = false;
    } else {
-    presentationIndex = Math.max(0, sheets.findIndex(s => s.id === state.id));
+    presentationIndex = Math.max(0, getPresentationSheets().findIndex(s => s.id === state.id));
     state.viewMode = 'cinematic';
    }
   }
@@ -3802,7 +3817,7 @@ function bindSheetInteractions() {
    if (!isTop) targetIndex += 1;
    sheets.splice(targetIndex, 0, moved);
    if (presentationMode) {
-    presentationIndex = Math.max(0, sheets.findIndex(s => s.id === state.id));
+    presentationIndex = Math.max(0, getPresentationSheets().findIndex(s => s.id === state.id));
    }
    save(true, 'FICHAS REORGANIZADAS');
    render();
@@ -3825,7 +3840,7 @@ function bindSheetInteractions() {
    const [moved] = sheets.splice(fromIndex, 1);
    sheets.push(moved);
    if (presentationMode) {
-    presentationIndex = Math.max(0, sheets.findIndex(s => s.id === state.id));
+    presentationIndex = Math.max(0, getPresentationSheets().findIndex(s => s.id === state.id));
    }
    save(true, 'FICHAS REORGANIZADAS');
    render();
@@ -3852,7 +3867,8 @@ async function rollOriginalSkill(periciaId){
  if(presentationMode)return;
  const pericia=ORIGINAL_PERICIAS.find(p=>p.id===periciaId)||{nome:periciaId,atributo:'pre'};
  const st=state.pericias?.[periciaId]||{treino:0,extra:0};
- const attrVal=Number(state.atributos?.[pericia.atributo]??1);
+ const attrEfetivo=atributoEfetivoDaPericia(state,pericia);
+ const attrVal=Number(state.atributos?.[attrEfetivo]??1);
  const count=attrVal>0?attrVal:2;
  const rollMode=attrVal>0?'highest':'lowest';
  const sides=Array(count).fill(20);
@@ -4315,7 +4331,7 @@ function bind(){
       if(mode==='threat'){
        presentationMode=false;
       }else{
-       presentationIndex=Math.max(0,sheets.findIndex(s=>s.id===state.id));
+       presentationIndex=Math.max(0,getPresentationSheets().findIndex(s=>s.id===state.id));
       }
       if(state.viewMode==='cinematic'&&presentationMode){
        triggerGlitchTransition(()=>render());
@@ -4529,7 +4545,8 @@ function bind(){
    btn.onclick=()=>{
     const idx=Number(btn.dataset.removeChosenPower);
     if(!isNaN(idx)&&state.poderesEscolhidos){
-     state.poderesEscolhidos.splice(idx,1);
+     const [removido]=state.poderesEscolhidos.splice(idx,1);
+     if(removido?.nome) reverterTreinoDePoder(state,removido.nome);
      save(false);
      render();
     }
@@ -4643,6 +4660,7 @@ function bind(){
    el.onchange=e=>{
     if(presentationMode){notifyPresentationLocked();return;}
     const key=e.target.dataset.originalField;
+    const classeAnterior=state.classeId;
     if(key==='nex'){
      mudarNexOriginal(()=>{state.nex=snapNex(e.target.value);ajustarNexDaClasse(state);});
     }else if(key==='estagio'){
@@ -4653,15 +4671,22 @@ function bind(){
      state[key]=e.target.value;
     }
     if(key==='classeId'){
-     const cls=classeAtual(state);
-     state.trilhaId=cls.trilhas?.[0]?.id||'';
-     state.trilhaSecundariaId='';
-     state.trilhaTerciariaId='';
-     ajustarNexDaClasse(state);
+     sincronizarAoMudarNex(state,()=>{
+      aplicarTransicaoDeClasse(state,classeAnterior,state.classeId);
+      const cls=classeAtual(state);
+      state.trilhaId=cls.trilhas?.[0]?.id||'';
+      state.trilhaSecundariaId='';
+      state.trilhaTerciariaId='';
+      ajustarNexDaClasse(state);
+     });
     }
     if(key==='trilhaId'){
      if(state.trilhaSecundariaId===state.trilhaId) state.trilhaSecundariaId='';
      if(state.trilhaTerciariaId===state.trilhaId) state.trilhaTerciariaId='';
+     solicitarPromptProgressao(state.id);
+    }
+    if(key==='origemId'){
+     solicitarPromptProgressao(state.id);
     }
     if(key==='nivelTrilhaTerciaria') state.nivelTrilhaTerciaria=Number(e.target.value)||1;
     save(false);
@@ -4679,13 +4704,23 @@ function bind(){
   document.querySelectorAll('[data-aumento-atributo]').forEach(el=>{
    el.onchange=e=>{
     if(presentationMode){notifyPresentationLocked();return;}
-    if(!state.aumentosAtributo) state.aumentosAtributo={};
-    state.aumentosAtributo[e.target.dataset.aumentoAtributo]=e.target.value;
+    sincronizarAoMudarNex(state,()=>{
+     definirAumentoAtributo(state,e.target.dataset.aumentoAtributo,e.target.value);
+    });
     save(false);
     render();
    };
   });
+  const progCtx={
+   getSheet:()=>state,
+   isLocked:()=>presentationMode,
+   saveAndRender:()=>{save(false);render();},
+   openCompendium:opts=>openOriginalCompendium(opts),
+   onOpenTrilhaInicial:()=>{promptTrilhaInicial=state.id;promptTrilhaFoco=null;syncPromptDeTrilha();},
+   onOpenVersatilidade:()=>{promptTrilhaAdiado=null;syncPromptDeTrilha();},
+  };
   syncPromptDeTrilha();
+  bindEventosProgressaoOriginal(progCtx);
  // ── Mobile bottom nav ──────────────────────────────────────────────────────
  document.querySelectorAll('[data-mobile-tab]').forEach(el=>el.onclick=()=>{mobileTab=el.dataset.mobileTab;render()});
  document.querySelectorAll('[data-cinematic-mobile-tab]').forEach(el=>el.onclick=()=>{cinematicMobileTab=el.dataset.cinematicMobileTab;render()});
@@ -4826,9 +4861,20 @@ if (state.systemMode === 'threat') {
 } else {
  state.viewMode = 'cinematic';
  presentationMode = true;
- presentationIndex = Math.max(0, sheets.findIndex(sheet => sheet.id === state.id));
- state = sheets[presentationIndex];
+ const presSheets = getPresentationSheets();
+ presentationIndex = Math.max(0, presSheets.findIndex(sheet => sheet.id === state.id));
+ state = presSheets[presentationIndex] || state;
 }
 activeSheetId = state.id;
-initOriginalCompendium({getSheet:()=>state,isOriginal:()=>state.systemMode==='original',isLocked:()=>presentationMode,onChange:()=>{save(false);render();}});
+initOriginalCompendium({
+ getSheet:()=>state,
+ isOriginal:()=>state.systemMode==='original',
+ isLocked:()=>presentationMode,
+ onChange:()=>{save(false);render();},
+ onNeedChoice:nomePoder=>abrirModalProgressao(`sub_escolha:${nomePoder}`,{
+  getSheet:()=>state,
+  isLocked:()=>presentationMode,
+  saveAndRender:()=>{save(false);render();},
+ }),
+});
 render();

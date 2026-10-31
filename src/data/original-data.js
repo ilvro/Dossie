@@ -2573,8 +2573,8 @@ const RITUAIS = [
     "descricaoPEVerdadeiro": "Você pode alterar ou apagar memórias de até 24 horas atrás. Requer 4º círculo."
   },
   {
-    "id": "amaldicoar-arma",
-    "nome": "Amaldiçoar Arma",
+    "id": "amaldicoar-arma-conhecimento",
+    "nome": "Amaldiçoar Arma (Conhecimento)",
     "elemento": "Conhecimento",
     "circulo": 1,
     "custoPE": 1,
@@ -2590,8 +2590,8 @@ const RITUAIS = [
     "descricaoPEVerdadeiro": "Muda o bônus de dano para +4d6. Requer 3º círculo e afinidade."
   },
   {
-    "id": "amaldicoar-arma",
-    "nome": "Amaldiçoar Arma",
+    "id": "amaldicoar-arma-energia",
+    "nome": "Amaldiçoar Arma (Energia)",
     "elemento": "Energia",
     "circulo": 1,
     "custoPE": 1,
@@ -2607,8 +2607,8 @@ const RITUAIS = [
     "descricaoPEVerdadeiro": "Muda o bônus de dano para +4d6. Requer 3º círculo e afinidade."
   },
   {
-    "id": "amaldicoar-arma",
-    "nome": "Amaldiçoar Arma",
+    "id": "amaldicoar-arma-morte",
+    "nome": "Amaldiçoar Arma (Morte)",
     "elemento": "Morte",
     "circulo": 1,
     "custoPE": 1,
@@ -2624,8 +2624,8 @@ const RITUAIS = [
     "descricaoPEVerdadeiro": "Muda o bônus de dano para +4d6. Requer 3º círculo e afinidade."
   },
   {
-    "id": "amaldicoar-arma",
-    "nome": "Amaldiçoar Arma",
+    "id": "amaldicoar-arma-sangue",
+    "nome": "Amaldiçoar Arma (Sangue)",
     "elemento": "Sangue",
     "circulo": 1,
     "custoPE": 1,

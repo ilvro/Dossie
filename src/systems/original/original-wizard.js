@@ -3,7 +3,8 @@
 // cinco passos e só grava na ficha ao concluir. Depois disso tudo continua
 // editável pela ficha normalmente.
 import { ATRIBUTOS, PERICIAS, ORIGENS, PODERES_GERAIS, CLASSES } from '../../data/original-data.js';
-import { calcPvMax, calcPeMax, calcSanMax, definirRegraDeRecursos, poderValeNaRegra } from './original-system.js';
+import { calcPvMax, calcPeMax, calcSanMax, definirRegraDeRecursos, poderValeNaRegra, PODERES_TREINO_OU_MAIS_2 } from './original-system.js';
+import { aplicarTreinoDePoder } from './original-progression.js';
 import { safe, rich } from './original-text.js';
 
 // O primeiro passo (regra de recursos) é perguntado em toda ficha nova; os
@@ -262,6 +263,7 @@ function concluir() {
   }
   const { fixas } = periciasDaOrigem(d);
   sheet.classeId = 'sobrevivente';
+  sheet.veioDeSobrevivente = true;
   sheet.nex = 0;
   sheet.origemId = d.origemId;
   sheet.atributos = { ...d.atributos };
@@ -272,6 +274,9 @@ function concluir() {
     { nome: aprimoramento.nome, descricao: aprimoramento.descricao, preRequisito: aprimoramento.preRequisito, origemTipo: `Poder de ${CLASSES.sobrevivente.nome}`, bonus: aprimoramento.bonus || null },
     { nome: geral.nome, descricao: geral.descricao, preRequisito: geral.preRequisito, origemTipo: 'Poder Geral', bonus: geral.bonus || null },
   ];
+  if (geral && PODERES_TREINO_OU_MAIS_2[geral.nome]) {
+    aplicarTreinoDePoder(sheet, geral.nome, PODERES_TREINO_OU_MAIS_2[geral.nome]);
+  }
   aplicarRecursos(sheet, d);
   fecharTutorial(true);
   onFinish?.();

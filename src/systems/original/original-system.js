@@ -47,6 +47,12 @@ export const DEFAULT_ORIGINAL_SHEET = {
   versatilidadeRecusada: {},
   usaPD: false,
   aumentosAtributo: {},
+  elementoAfinidade: '',
+  escolhasDePoderes: {},
+  periciasTreinadasPorPoder: {},
+  ignorarPendencias: {},
+  veioDeSobrevivente: false,
+  teveIniciado: false,
   nex: 5,
   atributos: { for: 2, agi: 2, vig: 2, int: 1, pre: 1 },
   pv: 22,
@@ -326,8 +332,30 @@ function somaPorEstagioAlcancado(mapa, estagioAtualVal) {
   return Object.keys(mapa).reduce((acc, k) => acc + (parseInt(k, 10) <= estagioAtualVal ? mapa[k] : 0), 0);
 }
 
-function temPoderEscolhido(sheet, nome) {
+export function temPoderEscolhido(sheet, nome) {
   return Array.isArray(sheet.poderesEscolhidos) && sheet.poderesEscolhidos.some(p => p.nome === nome);
+}
+
+export function temPoderParanormal(sheet, nome) {
+  return Array.isArray(sheet.poderesParanormais) && sheet.poderesParanormais.some(p => p.nome === nome);
+}
+
+export function temAfinidadeComPoder(sheet, nome) {
+  if (!Array.isArray(sheet.poderesParanormais)) return false;
+  const p = sheet.poderesParanormais.find(x => x.nome === nome);
+  return Boolean(p?.comAfinidade);
+}
+
+export function temHabilidadeDeTrilha(sheet, nome) {
+  return progressaoDeTrilhas(sheet).some(i => i.poder?.nome === nome);
+}
+
+// Quantos níveis de NEX (de 5% em 5%) o personagem possui (99% conta como 20).
+function escalasNex5(sheet) {
+  const c = classeAtual(sheet);
+  if (classeEhMundana(c)) return estagioAtual(sheet);
+  const nex = Number(sheet.nex) || 0;
+  return Math.max(1, Math.floor((nex >= 99 ? 100 : nex) / 5));
 }
 
 // Regra opcional "Jogando sem Sanidade": PE e SAN dão lugar aos Pontos de
@@ -383,6 +411,7 @@ export function calcPvMax(sheet) {
   const nexBase = typeof c.nexBase === 'number' ? c.nexBase : 5;
   const t = trilhaAtual(sheet);
   const estagio = estagioAtual(sheet);
+  const n5 = escalasNex5(sheet);
 
   let progressaoPv = steps * c.pv.porNex + (c.escalaAtributoPorNex === false ? 0 : somaAtributoPorNivel(sheet, 'vig'));
   if (t && t.pvSubstituiProgressao) {
@@ -393,22 +422,70 @@ export function calcPvMax(sheet) {
   const bonusSaude = temPoderEscolhido(sheet, 'Saúde Aprimorada') ? 5 : 0;
   const bonus = Number(sheet.bonusTransicao?.pv) || 0;
 
-  return c.pv.base + (vig ? atributoNoNex(sheet, 'vig', nexBase) : 0) + progressaoPv + bonusTrilha + bonusSaude + bonus + bonusFixoPorNex(sheet, 'pv');
+  // Bônus passivos de poderes, origens e trilhas:
+  let passivosPv = 0;
+  if (temHabilidadeDeTrilha(sheet, 'Casca Grossa')) passivosPv += n5;
+  if (temHabilidadeDeTrilha(sheet, 'Primeiros Sintomas')) passivosPv += n5;
+  if (temPoderEscolhido(sheet, 'Vitalidade Reforçada')) passivosPv += n5;
+  if (temPoderParanormal(sheet, 'Sangue de Ferro')) passivosPv += n5 * 2;
+  if (sheet.origemId === 'desgarrado') {
+    passivosPv += n5;
+    if (aprimoramentoDeOrigemAtual(sheet)?.poder?.nome === 'Vigor Perfeito') passivosPv += n5;
+  }
+  if (sheet.origemId === 'mergulhador') passivosPv += 5;
+  if (temPoderEscolhido(sheet, 'Sobrevivente')) {
+    const fortTreino = Number(sheet.pericias?.fortitude?.treino) || 0;
+    const fortExtra = Number(sheet.pericias?.fortitude?.extra) || 0;
+    passivosPv += fortTreino + fortExtra;
+  }
+  if (temHabilidadeDeTrilha(sheet, 'Ser Amaldiçoado') && sheet.escolhasDePoderes?.['Ser Amaldiçoado'] === 'Morte') {
+    passivosPv += (Number(sheet.atributos?.for) || 0);
+  }
+
+  return c.pv.base + (vig ? atributoNoNex(sheet, 'vig', nexBase) : 0) + progressaoPv + bonusTrilha + bonusSaude + bonus + bonusFixoPorNex(sheet, 'pv') + passivosPv;
 }
 
 export function calcPeMax(sheet) {
   const c = classeAtual(sheet);
   const steps = passosNex(sheet);
-  const pre = Number(sheet.atributos?.pre) || 0;
+  // Racionalidade Inflexível permite usar Intelecto no lugar de Presença para PE
+  const usaIntNoPe = temPoderEscolhido(sheet, 'Racionalidade Inflexível') && (Number(sheet.atributos?.int) || 0) > (Number(sheet.atributos?.pre) || 0);
+  const attrPe = usaIntNoPe ? 'int' : 'pre';
+  const valAttr = Number(sheet.atributos?.[attrPe]) || 0;
   const nexBase = typeof c.nexBase === 'number' ? c.nexBase : 5;
   const recurso = usaPD(sheet) && c.pd ? c.pd : c.pe;
-  const progressaoPe = steps * recurso.porNex + (c.escalaAtributoPorNex === false ? 0 : somaAtributoPorNivel(sheet, 'pre'));
+  const progressaoPe = steps * recurso.porNex + (c.escalaAtributoPorNex === false ? 0 : somaAtributoPorNivel(sheet, attrPe));
   const bonusEsforco = usaPD(sheet)
     ? (temPoderEscolhido(sheet, 'Determinação Aprimorada') ? 3 : 0)
     : (temPoderEscolhido(sheet, 'Esforço Aprimorado') ? 5 : 0);
   const bonus = Number(sheet.bonusTransicao?.pe) || 0;
+  const n5 = escalasNex5(sheet);
+  const nex = Number(sheet.nex) || 0;
 
-  return recurso.base + (pre ? atributoNoNex(sheet, 'pre', nexBase) : 0) + progressaoPe + bonusEsforco + bonus + bonusFixoPorNex(sheet, 'pe');
+  let passivosPe = 0;
+  if (temPoderParanormal(sheet, 'Potencial Aprimorado')) {
+    const mult = temAfinidadeComPoder(sheet, 'Potencial Aprimorado') ? 2 : 1;
+    passivosPe += n5 * mult;
+  }
+  if (temPoderEscolhido(sheet, 'Personalidade Esotérica')) passivosPe += 3;
+  if (temPoderEscolhido(sheet, 'Vontade Inabalável')) passivosPe += Math.floor((nex >= 99 ? 100 : nex) / 10);
+  if (temPoderEscolhido(sheet, 'Mente Forte') && usaPD(sheet)) passivosPe += n5;
+  if (sheet.origemId === 'universitário') {
+    if (aprimoramentoDeOrigemAtual(sheet)?.poder?.nome === 'Força de Vontade') {
+      passivosPe += n5;
+    } else {
+      passivosPe += contarNexImpar(nex);
+    }
+  }
+  if (temHabilidadeDeTrilha(sheet, 'A Força do Saber')) {
+    passivosPe += (Number(sheet.atributos?.int) || 0);
+  }
+  if (temHabilidadeDeTrilha(sheet, 'Saber Ampliado')) {
+    const circulos = 1 + (nex >= 25 ? 1 : 0) + (nex >= 50 ? 1 : 0) + (nex >= 75 ? 1 : 0);
+    passivosPe += circulos * 2;
+  }
+
+  return recurso.base + (valAttr ? atributoNoNex(sheet, attrPe, nexBase) : 0) + progressaoPe + bonusEsforco + bonus + bonusFixoPorNex(sheet, 'pe') + passivosPe;
 }
 
 export function calcSanMax(sheet) {
@@ -416,30 +493,69 @@ export function calcSanMax(sheet) {
   const c = classeAtual(sheet);
   const steps = passosNex(sheet);
   const bonusSanidade = temPoderEscolhido(sheet, 'Sanidade Aprimorada') ? 5 : 0;
-  return c.san.base + steps * c.san.porNex + bonusSanidade;
+  const n5 = escalasNex5(sheet);
+
+  // Transcender: cada vez que o personagem escolhe Transcender, deixa de ganhar
+  // a Sanidade daquele aumento de NEX (c.san.porNex).
+  const qtdTranscender = Array.isArray(sheet.poderesEscolhidos)
+    ? sheet.poderesEscolhidos.filter(p => p.nome === 'Transcender').length
+    : 0;
+  const perdaTranscender = Math.min(steps, qtdTranscender) * c.san.porNex;
+
+  // Origem Cultista Arrependido começa com metade da Sanidade inicial da classe
+  const baseSan = sheet.origemId === 'cultista-arrependido' ? Math.floor(c.san.base / 2) : c.san.base;
+  const bonusVitima = sheet.origemId === 'vítima' ? n5 : 0;
+  const bonusMenteForte = temPoderEscolhido(sheet, 'Mente Forte') ? n5 : 0;
+
+  return Math.max(1, baseSan + steps * c.san.porNex - perdaTranscender + bonusSanidade + bonusVitima + bonusMenteForte);
 }
 
 export function calcPePorTurno(sheet) {
   const c = classeAtual(sheet);
-  if (classeEhMundana(c)) return 2;
-  return 2 + passosNex(sheet);
+  let base = classeEhMundana(c) ? 2 : (2 + passosNex(sheet));
+  if (sheet.origemId === 'universitário') base += 1;
+  if (temPoderParanormal(sheet, 'Encarar a Morte')) {
+    base += temAfinidadeComPoder(sheet, 'Encarar a Morte') ? 3 : 1;
+  }
+  return base;
 }
 
 export function calcDefesa(sheet) {
   const agi = Number(sheet.atributos?.agi) || 0;
   const outros = Number(sheet.defesaOutros) || 0;
-  return 10 + agi + outros;
+  let passivosDef = 0;
+  if (temPoderEscolhido(sheet, 'Reflexos Defensivos')) passivosDef += 2;
+  if (temPoderParanormal(sheet, 'Precognição')) passivosDef += 5;
+  if (temPoderEscolhido(sheet, 'Corpo Calejado')) passivosDef += (Number(sheet.atributos?.vig) || 0);
+  if (temPoderEscolhido(sheet, 'Raciocínio Rápido')) passivosDef += (Number(sheet.atributos?.int) || 0);
+  if (temPoderParanormal(sheet, 'Mão Espectral') && temAfinidadeComPoder(sheet, 'Mão Espectral')) passivosDef += 2;
+  if (sheet.origemId === 'policial') {
+    passivosDef += aprimoramentoDeOrigemAtual(sheet)?.poder?.nome === 'Sentinela' ? 5 : 2;
+  }
+  if (temHabilidadeDeTrilha(sheet, 'Ser Amaldiçoado') && sheet.escolhasDePoderes?.['Ser Amaldiçoado'] === 'Conhecimento') {
+    passivosDef += (Number(sheet.atributos?.int) || 0);
+  }
+  return 10 + agi + outros + passivosDef;
 }
 
 export function calcDtRituais(sheet) {
-  const peTurno = calcPePorTurno(sheet);
+  const c = classeAtual(sheet);
+  const peTurnoBase = classeEhMundana(c) ? 2 : (2 + passosNex(sheet) + (sheet.origemId === 'universitário' ? 1 : 0));
   const pre = Number(sheet.atributos?.pre) || 0;
-  return 10 + peTurno + pre;
+  let extraDt = 0;
+  if (temPoderEscolhido(sheet, 'Fortalecimento Ritualístico')) extraDt += (Number(sheet.atributos?.int) || 0);
+  if (temHabilidadeDeTrilha(sheet, 'Rituais Eficientes')) extraDt += 5;
+  return 10 + peTurnoBase + pre + extraDt;
 }
 
 export function calcCargaMax(sheet) {
   const forca = Number(sheet.atributos?.for) || 0;
-  return forca <= 0 ? 2 : forca * 5;
+  const int = Number(sheet.atributos?.int) || 0;
+  const attrTotal = temHabilidadeDeTrilha(sheet, 'Inventário Otimizado') ? (forca + int) : forca;
+  let base = attrTotal <= 0 ? 2 : attrTotal * 5;
+  if (temPoderEscolhido(sheet, 'Inventário Organizado')) base += Math.max(0, int);
+  if (temHabilidadeDeTrilha(sheet, 'Mascate')) base += 5;
+  return base;
 }
 
 export function calcCargaAtual(sheet) {
@@ -482,28 +598,149 @@ export function bonusLabel(sheet, bonus) {
   return '';
 }
 
+export const PODERES_TREINO_OU_MAIS_2 = {
+  'Acrobático': 'acrobacia',
+  'Atlético': 'atletismo',
+  'Dedos Ágeis': 'crime',
+  'Detector de Mentiras': 'intuicao',
+  'Especialista em Emergências': 'medicina',
+  'Informado': 'atualidades',
+  'Interrogador': 'intimidacao',
+  'Mentiroso Nato': 'enganacao',
+  'Observador': 'investigacao',
+  'Pai de Pet': 'adestramento',
+  'Palavras de Devoção': 'religiao',
+  'Pensamento Tático': 'tatica',
+  'Personalidade Esotérica': 'ocultismo',
+  'Persuasivo': 'diplomacia',
+  'Pesquisador Científico': 'ciencias',
+  'Proativo': 'iniciativa',
+  'Rato de Computador': 'tecnologia',
+  'Resposta Rápida': 'reflexos',
+  'Sentidos Aguçados': 'percepcao',
+  'Sobrevivencialista': 'sobrevivencia',
+  'Sorrateiro': 'furtividade',
+  'Talentoso': 'artes',
+  'Teimosia Obstinada': 'vontade',
+  'Tenacidade': 'fortitude',
+  'Ás do Volante': 'pilotagem',
+  // Habilidades de trilha com a mesma mecânica
+  'Rastrear o Paranormal': 'sobrevivencia',
+  'Ser Amaldiçoado': 'ocultismo',
+};
+
+export function atributoEfetivoDaPericia(sheet, periciaObj) {
+  if (!periciaObj) return 'agi';
+  if (sheet?.escolhasDePoderes?.['A Força do Saber'] === periciaObj.id) {
+    return 'int';
+  }
+  return periciaObj.atributo;
+}
+
 export function bonusPoderesPorPericia(sheet) {
   const soma = {};
+  const add = (periciaId, val) => {
+    if (!periciaId || !val) return;
+    soma[periciaId] = (soma[periciaId] || 0) + val;
+  };
+
   function considerar(fonte) {
     if (!fonte || !fonte.bonus || !fonte.bonus.pericia) return;
     const v = valorBonusPoder(sheet, fonte.bonus);
-    if (v) soma[fonte.bonus.pericia] = (soma[fonte.bonus.pericia] || 0) + v;
+    if (v) add(fonte.bonus.pericia, v);
   }
   const o = origemAtual(sheet);
   if (o) considerar(o.poder);
+  const apOrig = aprimoramentoDeOrigemAtual(sheet);
+  if (apOrig) considerar(apOrig.poder);
+
   if (Array.isArray(sheet.poderesEscolhidos)) sheet.poderesEscolhidos.forEach(considerar);
   if (Array.isArray(sheet.poderesParanormais)) sheet.poderesParanormais.forEach(considerar);
   if (Array.isArray(sheet.poderesCustomizados)) sheet.poderesCustomizados.forEach(considerar);
-
   progressaoDeTrilhas(sheet).forEach(item => considerar(item.poder));
+
+  // Poderes e habilidades de trilha "treina em X ou, se já for treinado, recebe +2"
+  const treinadasPorPoder = sheet.periciasTreinadasPorPoder || {};
+  Object.entries(PODERES_TREINO_OU_MAIS_2).forEach(([nomePoder, periciaId]) => {
+    const tem = temPoderEscolhido(sheet, nomePoder) || temHabilidadeDeTrilha(sheet, nomePoder);
+    if (!tem) return;
+    const treinoAtual = Number(sheet.pericias?.[periciaId]?.treino || 0);
+    const foiTreinadaPorEstePoder = Array.isArray(treinadasPorPoder[nomePoder])
+      && treinadasPorPoder[nomePoder].includes(periciaId);
+    if (treinoAtual >= 5 && !foiTreinadaPorEstePoder) {
+      add(periciaId, 2);
+    }
+  });
+
+  // Sub-escolhas de poderes/origens/trilhas
+  const escolhas = sheet.escolhasDePoderes || {};
+  if (escolhas['Companheiro Animal']) add(escolhas['Companheiro Animal'], 2);
+  if (escolhas['Mutação']) add(escolhas['Mutação'], 2);
+  if (Array.isArray(escolhas['Pai de Pet']) && temPoderEscolhido(sheet, 'Pai de Pet')) {
+    escolhas['Pai de Pet'].forEach(pId => add(pId, 2));
+  }
+  if (escolhas['Carteirada'] && temHabilidadeDeTrilha(sheet, 'Carteirada')) {
+    const pId = escolhas['Carteirada'];
+    const foiTreinada = Array.isArray(treinadasPorPoder['Carteirada']) && treinadasPorPoder['Carteirada'].includes(pId);
+    if (Number(sheet.pericias?.[pId]?.treino || 0) >= 5 && !foiTreinada) {
+      add(pId, 2);
+    }
+  }
+  if (escolhas['Laboratório de Campo'] && temHabilidadeDeTrilha(sheet, 'Laboratório de Campo')) {
+    const foiTreinada = Array.isArray(treinadasPorPoder['Laboratório de Campo']) && treinadasPorPoder['Laboratório de Campo'].includes('profissao');
+    if (Number(sheet.pericias?.profissao?.treino || 0) >= 5 && !foiTreinada) {
+      add('profissao', 5);
+    }
+  }
+
+  // Bônus passivos de habilidades de trilha e origens
+  if (temHabilidadeDeTrilha(sheet, 'Iniciativa Aprimorada')) add('iniciativa', 5);
+  if (temHabilidadeDeTrilha(sheet, 'Gatuno')) {
+    add('atletismo', 5);
+    add('crime', 5);
+  }
+  if (temHabilidadeDeTrilha(sheet, 'O Sorriso')) {
+    add('diplomacia', 2);
+    add('enganacao', 2);
+  }
+  if (o?.poder?.nome === 'Hacker') add('tecnologia', 5);
+
+  // Poderes de Sobrevivente (trilhas)
+  if (temHabilidadeDeTrilha(sheet, 'Vitalidade Reforçada')) add('fortitude', 2);
+  if (temHabilidadeDeTrilha(sheet, 'Vontade Inabalável')) add('vontade', 2);
+
+  // Bônus passivos de Poderes Paranormais
+  if (temPoderParanormal(sheet, 'Espreitar da Besta')) {
+    add('furtividade', temAfinidadeComPoder(sheet, 'Espreitar da Besta') ? 10 : 5);
+  }
+  if (temPoderParanormal(sheet, 'Sensitivo')) {
+    add('diplomacia', 5);
+    add('intimidacao', 5);
+    add('intuicao', 5);
+  }
+  if (temPoderParanormal(sheet, 'Visão do Oculto')) {
+    add('percepcao', 5);
+  }
+  if (temAfinidadeComPoder(sheet, 'Sangue de Ferro')) {
+    add('fortitude', 5);
+  }
+  if (temAfinidadeComPoder(sheet, 'Precognição')) {
+    add('iniciativa', 5);
+  }
+  if (temAfinidadeComPoder(sheet, 'Mão Espectral')) {
+    add('percepcao', 2);
+  }
+
   return soma;
 }
 
 export function periciasTreinadasDaOrigem(sheet) {
   const o = origemAtual(sheet);
   if (!o) return [];
-  const extra = aprimoramentoDeOrigemAtual(sheet)?.pericia;
-  return extra ? [...(o.pericias || []), extra] : (o.pericias || []);
+  const lista = [...(o.pericias || [])];
+  const extra = aprimoramentoDeOrigemAtual(sheet)?.pericia || sheet.escolhasDePoderes?.['Aprimoramento de Origem'];
+  if (extra && !lista.includes(extra)) lista.push(extra);
+  return lista;
 }
 
 export function normalizeOriginalSheet(raw = {}) {
@@ -538,6 +775,12 @@ export function normalizeOriginalSheet(raw = {}) {
   sheet.trilhaTerciariaId = raw.trilhaTerciariaId || '';
   sheet.nivelTrilhaTerciaria = Math.max(1, Number(raw.nivelTrilhaTerciaria) || 1);
   sheet.aumentosAtributo = (raw.aumentosAtributo && typeof raw.aumentosAtributo === 'object') ? { ...raw.aumentosAtributo } : {};
+  sheet.elementoAfinidade = typeof raw.elementoAfinidade === 'string' ? raw.elementoAfinidade : '';
+  sheet.escolhasDePoderes = (raw.escolhasDePoderes && typeof raw.escolhasDePoderes === 'object') ? { ...raw.escolhasDePoderes } : {};
+  sheet.periciasTreinadasPorPoder = (raw.periciasTreinadasPorPoder && typeof raw.periciasTreinadasPorPoder === 'object') ? { ...raw.periciasTreinadasPorPoder } : {};
+  sheet.ignorarPendencias = (raw.ignorarPendencias && typeof raw.ignorarPendencias === 'object') ? { ...raw.ignorarPendencias } : {};
+  sheet.veioDeSobrevivente = Boolean(raw.veioDeSobrevivente);
+  sheet.teveIniciado = Boolean(raw.teveIniciado);
   delete sheet.trilhaTierAtribuicoes;
   sheet.usaPD = !!raw.usaPD;
   // Fichas antigas não são questionadas sobre os NEX que já passaram.
@@ -546,6 +789,18 @@ export function normalizeOriginalSheet(raw = {}) {
     : Object.fromEntries(TIERS_TRILHA.filter(t => t <= (Number(raw.nex) || 0)).map(t => [t, true]));
   sheet.nex = Math.max(0, Math.min(99, Number(raw.nex ?? 5)));
   ajustarNexDaClasse(sheet);
+
+  sheet.skills = Array.isArray(raw.skills) ? raw.skills : [];
+  sheet.cards = Array.isArray(raw.cards) ? raw.cards : [];
+  sheet.ataques = Array.isArray(raw.ataques) ? raw.ataques : [];
+  sheet.poderesEscolhidos = Array.isArray(raw.poderesEscolhidos) ? raw.poderesEscolhidos : [];
+  sheet.poderesParanormais = Array.isArray(raw.poderesParanormais) ? raw.poderesParanormais : [];
+  sheet.poderesCustomizados = Array.isArray(raw.poderesCustomizados) ? raw.poderesCustomizados : [];
+  sheet.rituaisConhecidos = Array.isArray(raw.rituaisConhecidos)
+    ? raw.rituaisConhecidos.map(id => id === 'amaldicoar-arma' ? 'amaldicoar-arma-conhecimento' : id)
+    : [];
+  sheet.inventario = Array.isArray(raw.inventario) ? raw.inventario : [];
+  sheet.condicoesAtivas = Array.isArray(raw.condicoesAtivas) ? raw.condicoesAtivas : [];
 
   sheet.maxPv = calcPvMax(sheet);
   sheet.pv = raw.pv !== undefined ? Number(raw.pv) : sheet.maxPv;
@@ -563,16 +818,6 @@ export function normalizeOriginalSheet(raw = {}) {
 
   sheet.defesaOutros = Number(raw.defesaOutros) || 0;
   sheet.deslocamento = raw.deslocamento || '9m (6q)';
-
-  sheet.skills = Array.isArray(raw.skills) ? raw.skills : [];
-  sheet.cards = Array.isArray(raw.cards) ? raw.cards : [];
-  sheet.ataques = Array.isArray(raw.ataques) ? raw.ataques : [];
-  sheet.poderesEscolhidos = Array.isArray(raw.poderesEscolhidos) ? raw.poderesEscolhidos : [];
-  sheet.poderesParanormais = Array.isArray(raw.poderesParanormais) ? raw.poderesParanormais : [];
-  sheet.poderesCustomizados = Array.isArray(raw.poderesCustomizados) ? raw.poderesCustomizados : [];
-  sheet.rituaisConhecidos = Array.isArray(raw.rituaisConhecidos) ? raw.rituaisConhecidos : [];
-  sheet.inventario = Array.isArray(raw.inventario) ? raw.inventario : [];
-  sheet.condicoesAtivas = Array.isArray(raw.condicoesAtivas) ? raw.condicoesAtivas : [];
 
   sheet.diceColor = typeof raw.diceColor === 'string' ? raw.diceColor : '';
   sheet.themeColor = typeof raw.themeColor === 'string' ? raw.themeColor : '';

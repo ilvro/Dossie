@@ -13,8 +13,20 @@ import {
   classeAtual,
   bonusLabel,
   poderesDisponiveis,
-  poderPodeSerEscolhido
+  poderPodeSerEscolhido,
+  calcSanMax,
 } from './original-system.js';
+import {
+  avaliarPreRequisito,
+  PODERES_TREINO_OU_MAIS_2,
+  PODERES_COM_ESCOLHA,
+  aplicarTreinoDePoder,
+  cotaPoderesDeClasse,
+  poderesContabilizadosNaCota,
+  calcularCotaRituais,
+  circuloMaximoRitual,
+  contarTranscender,
+} from './original-progression.js';
 
 import { safe, rich } from './original-text.js';
 const norm = value => String(value ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -39,11 +51,20 @@ const TABS = [
 
 let ctx = null;
 let overlay = null;
-const ui = { tab: 'origens', busca: '', elemento: 'todos', circulo: 'todos', grupo: 'todos', pick: false };
+const ui = {
+  tab: 'origens',
+  busca: '',
+  elemento: 'todos',
+  circulo: 'todos',
+  grupo: 'todos',
+  pick: false,
+  apenasDisponiveis: false,
+  ateMeuCirculo: false,
+};
 // Classes e trilhas recolhidas na aba "Classes & Trilhas" (chaves de collapseKey).
 const collapsed = new Set();
 
-// options: { getSheet, isOriginal, isLocked, onChange }
+// options: { getSheet, isOriginal, isLocked, onChange, onNeedChoice }
 export function initOriginalCompendium(options) {
   ctx = options;
   document.addEventListener('click', e => {
@@ -51,7 +72,12 @@ export function initOriginalCompendium(options) {
     if (!trigger || !ctx.isOriginal()) return;
     e.preventDefault();
     const pick = trigger.hasAttribute('data-compendium-pick') && !ctx.isLocked();
-    openOriginalCompendium({ tab: trigger.dataset.openCompendium || undefined, pick });
+    const ateMeuCirculo = trigger.hasAttribute('data-compendium-ate-circulo');
+    openOriginalCompendium({
+      tab: trigger.dataset.openCompendium || undefined,
+      pick,
+      ateMeuCirculo,
+    });
   });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape' || !overlay?.classList.contains('open')) return;
@@ -60,14 +86,23 @@ export function initOriginalCompendium(options) {
   }, true);
 }
 
-export function openOriginalCompendium({ tab, pick = false } = {}) {
+export function openOriginalCompendium({
+  tab,
+  pick = false,
+  grupo = 'todos',
+  circulo = 'todos',
+  apenasDisponiveis = false,
+  ateMeuCirculo = false,
+} = {}) {
   ensureOverlay();
   if (tab && TABS.some(t => t.id === tab)) ui.tab = tab;
   ui.pick = pick;
   ui.busca = '';
   ui.elemento = 'todos';
-  ui.circulo = 'todos';
-  ui.grupo = 'todos';
+  ui.circulo = circulo;
+  ui.grupo = grupo;
+  ui.apenasDisponiveis = apenasDisponiveis;
+  ui.ateMeuCirculo = ateMeuCirculo;
   const input = overlay.querySelector('.oc-search input');
   input.value = '';
   overlay.classList.add('open');
@@ -112,7 +147,7 @@ function ensureOverlay() {
   });
 
   overlay.addEventListener('click', e => {
-    const el = e.target.closest('[data-oc-close],[data-oc-tab],[data-oc-el],[data-oc-circ],[data-oc-grupo],[data-oc-add],[data-oc-toggle]');
+    const el = e.target.closest('[data-oc-close],[data-oc-tab],[data-oc-el],[data-oc-circ],[data-oc-grupo],[data-oc-add],[data-oc-toggle],[data-oc-disp],[data-oc-atecirc]');
     if (!el) return;
     if (el.hasAttribute('data-oc-close')) { closeOriginalCompendium(); return; }
     if (el.dataset.ocAdd) { addToSheet(el.dataset.ocAdd); return; }
@@ -125,13 +160,21 @@ function ensureOverlay() {
       body.scrollTop = scroll;
       return;
     }
-    if (el.dataset.ocTab) {
+    if (el.hasAttribute('data-oc-disp')) {
+      ui.apenasDisponiveis = !ui.apenasDisponiveis;
+    } else if (el.hasAttribute('data-oc-atecirc')) {
+      ui.ateMeuCirculo = !ui.ateMeuCirculo;
+      if (ui.ateMeuCirculo) ui.circulo = 'todos';
+    } else if (el.dataset.ocTab) {
       ui.tab = el.dataset.ocTab;
       ui.elemento = 'todos';
       ui.circulo = 'todos';
       ui.grupo = 'todos';
     } else if (el.dataset.ocEl) ui.elemento = el.dataset.ocEl;
-    else if (el.dataset.ocCirc) ui.circulo = el.dataset.ocCirc === 'todos' ? 'todos' : Number(el.dataset.ocCirc);
+    else if (el.dataset.ocCirc) {
+      ui.circulo = el.dataset.ocCirc === 'todos' ? 'todos' : Number(el.dataset.ocCirc);
+      if (ui.circulo !== 'todos') ui.ateMeuCirculo = false;
+    }
     else if (el.dataset.ocGrupo) ui.grupo = el.dataset.ocGrupo;
     renderCompendium();
     overlay.querySelector('.oc-body').scrollTop = 0;
@@ -143,29 +186,55 @@ function addToSheet(key) {
   const sep = key.indexOf(':');
   const tipo = key.slice(0, sep);
   const id = key.slice(sep + 1);
+  let precisaSubEscolha = null;
+  let mudouParaParanormais = false;
+
   if (tipo === 'poder') {
     const power = poderesDisponiveis(sheet).find(p => p.nome === id);
     if (!power) return;
     const { label, ...escolhido } = power;
     if (!Array.isArray(sheet.poderesEscolhidos)) sheet.poderesEscolhidos = [];
     sheet.poderesEscolhidos.push(escolhido);
+
+    if (PODERES_TREINO_OU_MAIS_2[power.nome]) {
+      aplicarTreinoDePoder(sheet, power.nome, PODERES_TREINO_OU_MAIS_2[power.nome]);
+    }
+    if (power.nome === 'Transcender') {
+      sheet.maxSan = calcSanMax(sheet);
+      sheet.san = Math.min(sheet.san ?? sheet.maxSan, sheet.maxSan);
+      ui.tab = 'paranormais';
+      ui.pick = true;
+      mudouParaParanormais = true;
+    } else if (PODERES_COM_ESCOLHA[power.nome]) {
+      precisaSubEscolha = power.nome;
+    }
   } else if (tipo === 'paranormal') {
     const power = PODERES_PARANORMAIS.find(p => p.nome === id);
     if (!power) return;
     if (!Array.isArray(sheet.poderesParanormais)) sheet.poderesParanormais = [];
     if (sheet.poderesParanormais.some(p => p.nome === id)) return;
-    sheet.poderesParanormais.push(JSON.parse(JSON.stringify(power)));
+    const clone = JSON.parse(JSON.stringify(power));
+    sheet.poderesParanormais.push(clone);
+  } else if (tipo === 'paranormal-afinidade') {
+    const existing = (sheet.poderesParanormais || []).find(p => p.nome === id);
+    if (!existing) return;
+    existing.comAfinidade = true;
   } else if (tipo === 'ritual') {
     if (!RITUAIS.some(r => r.id === id)) return;
     if (!Array.isArray(sheet.rituaisConhecidos)) sheet.rituaisConhecidos = [];
     if (sheet.rituaisConhecidos.includes(id)) return;
     sheet.rituaisConhecidos.push(id);
   } else return;
+
   ctx.onChange();
   const body = overlay.querySelector('.oc-body');
   const scroll = body.scrollTop;
   renderCompendium();
-  body.scrollTop = scroll;
+  body.scrollTop = mudouParaParanormais ? 0 : scroll;
+
+  if (precisaSubEscolha && typeof ctx.onNeedChoice === 'function') {
+    ctx.onNeedChoice(precisaSubEscolha);
+  }
 }
 
 /* ---------------------------------------------------------------- render */
@@ -293,6 +362,16 @@ function renderClasses(bate) {
   return { count, html: html || emptyNote('Nada encontrado.') };
 }
 
+function renderPrereqBadge(p, sheet) {
+  const req = avaliarPreRequisito(p, sheet);
+  if (!req.texto) return '';
+  if (req.cumprido) {
+    return `<span class="card-meta card-prereq prereq-ok">✓ Pré-requisito cumprido: ${safe(req.texto)}</span>`;
+  }
+  const faltaTxt = req.faltando.length ? ` · Falta: ${req.faltando.join(', ')}` : '';
+  return `<span class="card-meta card-prereq prereq-missing">⚠ Requer: ${safe(req.texto)}${safe(faltaTxt)}</span>`;
+}
+
 function renderPoderes(bate) {
   const sheet = ctx.getSheet();
   const minhaClasseId = Object.keys(CLASSES).find(id => CLASSES[id] === classeAtual(sheet));
@@ -307,73 +386,143 @@ function renderPoderes(bate) {
   if (!grupos.some(g => g.id === ui.grupo)) ui.grupo = 'todos';
   const itens = grupos
     .filter(g => ui.grupo === 'todos' || g.id === ui.grupo)
-    .flatMap(g => g.poderes.filter(p => bate(p.nome)).map(p => ({ p, g })));
+    .flatMap(g => g.poderes.filter(p => {
+      if (!bate(p.nome) && !bate(p.descricao)) return false;
+      if (ui.apenasDisponiveis && !avaliarPreRequisito(p, sheet).cumprido) return false;
+      return true;
+    }).map(p => ({ p, g })));
+
+  const cotaTotal = cotaPoderesDeClasse(sheet);
+  const pegosCota = poderesContabilizadosNaCota(sheet);
+  const faltam = Math.max(0, cotaTotal - pegosCota);
+  const banner = ui.pick && cotaTotal > 0 ? `
+    <div class="oc-quota-banner ${faltam > 0 ? 'has-pending' : 'is-complete'}">
+      <span><strong>${faltam > 0 ? `✦ ${faltam} poder(es) pendente(s)` : '✓ Cota de poderes em dia'}</strong> (${pegosCota}/${cotaTotal} escolhidos para o seu NEX)</span>
+      <small>Dica: Escolha <b>Transcender</b> para despertar um Poder Paranormal (sem ganhar SAN neste NEX).</small>
+    </div>
+  ` : '';
+
   return {
     count: itens.length,
     filters: `<div class="oc-chip-row">
       ${chip('grupo', 'todos', 'Todos', ui.grupo === 'todos')}
       ${grupos.map(g => chip('grupo', g.id, g.label, ui.grupo === g.id)).join('')}
+      <button type="button" class="oc-chip oc-chip-disp ${ui.apenasDisponiveis ? 'active' : ''}" data-oc-disp="toggle">✓ Apenas com pré-requisito</button>
     </div>`,
-    html: itens.map(({ p, g }) => {
+    html: banner + (itens.map(({ p, g }) => {
       const owned = escolhidos.has(p.nome) && !p.repetivel;
+      const req = avaliarPreRequisito(p, sheet);
       return `
-        <article class="original-card oc-card ${ui.pick && owned ? 'owned' : ''}">
+        <article class="original-card oc-card ${ui.pick && owned ? 'owned' : ''} ${!req.cumprido ? 'prereq-locked' : ''}">
           <div class="card-head">
             <strong class="oc-title">${safe(p.nome)}</strong>
             ${pickControl('poder', p.nome, owned, 'ADICIONAR')}
           </div>
           <span class="card-meta">${safe(g.origem)}</span>
-          ${p.preRequisito ? `<span class="card-meta card-prereq">Pré-requisito: ${safe(p.preRequisito)}</span>` : ''}
+          ${renderPrereqBadge(p, sheet)}
           ${bonusBadge(p.bonus)}
           <p class="card-desc">${rich(p.descricao)}</p>
         </article>
       `;
-    }).join('') || emptyNote('Nenhum poder encontrado.')
+    }).join('') || emptyNote('Nenhum poder encontrado.'))
   };
 }
 
 function renderParanormais(bate) {
   const sheet = ctx.getSheet();
-  const conhecidos = new Set((sheet.poderesParanormais || []).map(p => p.nome));
-  const itens = PODERES_PARANORMAIS.filter(p => bate(p.nome) && (ui.elemento === 'todos' || p.elemento === ui.elemento));
+  const mapConhecidos = new Map((sheet.poderesParanormais || []).map(p => [p.nome, p]));
+  const itens = PODERES_PARANORMAIS.filter(p => {
+    if (!bate(p.nome) && !bate(p.descricao)) return false;
+    if (ui.elemento !== 'todos' && p.elemento !== ui.elemento) return false;
+    if (ui.apenasDisponiveis && !avaliarPreRequisito(p, sheet).cumprido) return false;
+    return true;
+  });
+
+  const transcInfo = contarTranscender(sheet);
+  const faltamParanormais = transcInfo.faltandoParanormais;
+  const banner = ui.pick && faltamParanormais > 0 ? `
+    <div class="oc-quota-banner has-pending">
+      <span><strong>✦ Transcender Ativo:</strong> Escolha ${faltamParanormais} Poder(es) Paranormal(is) (${transcInfo.atuaisParanormais}/${transcInfo.esperadoParanormais}).</span>
+      ${Number(sheet.nex || 0) >= 50 ? `<small>Em NEX 50%+, você também pode despertar <b>Afinidade</b> em um poder que já possui!</small>` : ''}
+    </div>
+  ` : '';
+
   return {
     count: itens.length,
-    filters: elementoChips(),
-    html: itens.map(p => {
+    filters: `<div class="oc-chip-row">
+      ${chip('el', 'todos', 'Todos', ui.elemento === 'todos')}
+      ${ELEMENTOS.map(el => chip('el', el, el, ui.elemento === el, ELEMENT_COLORS[el])).join('')}
+      <button type="button" class="oc-chip oc-chip-disp ${ui.apenasDisponiveis ? 'active' : ''}" data-oc-disp="toggle">✓ Apenas com pré-requisito</button>
+    </div>`,
+    html: banner + (itens.map(p => {
       const color = ELEMENT_COLORS[p.elemento] || '#e0150d';
-      const owned = conhecidos.has(p.nome);
+      const existing = mapConhecidos.get(p.nome);
+      const owned = Boolean(existing);
+      const podeDespertarAfinidade = owned
+        && !existing.comAfinidade
+        && Number(sheet.nex || 0) >= 50
+        && (!sheet.elementoAfinidade || norm(sheet.elementoAfinidade) === norm(p.elemento));
+      const req = avaliarPreRequisito(p, sheet);
+
+      let controlHtml = '';
+      if (ui.pick) {
+        if (podeDespertarAfinidade) {
+          controlHtml = `<button type="button" class="oc-add oc-add-affinity" data-oc-add="paranormal-afinidade:${safe(p.nome)}">✦ DESPERTAR AFINIDADE</button>`;
+        } else {
+          controlHtml = pickControl('paranormal', p.nome, owned, 'ADICIONAR');
+        }
+      }
+
       return `
-        <article class="original-card oc-card ${ui.pick && owned ? 'owned' : ''}" style="--el:${color}">
+        <article class="original-card oc-card ${ui.pick && owned && !podeDespertarAfinidade ? 'owned' : ''} ${!req.cumprido ? 'prereq-locked' : ''}" style="--el:${color}">
           <div class="card-head">
             <div class="ritual-title-group">
               <span class="oc-element">${safe(p.elemento)}</span>
               <strong class="oc-title">${safe(p.nome)}</strong>
+              ${existing?.comAfinidade ? `<span class="badge-afinidade-ativa">✦ AFINIDADE ATIVA</span>` : ''}
             </div>
-            ${pickControl('paranormal', p.nome, owned, 'ADICIONAR')}
+            ${controlHtml}
           </div>
           ${p.custoSAN ? `<span class="card-meta">Custo: ${safe(p.custoSAN)} SAN</span>` : ''}
+          ${renderPrereqBadge(p, sheet)}
           ${bonusBadge(p.bonus)}
           <p class="card-desc">${rich(p.descricao)}</p>
         </article>
       `;
-    }).join('') || emptyNote('Nenhum poder paranormal encontrado.')
+    }).join('') || emptyNote('Nenhum poder paranormal encontrado.'))
   };
 }
 
 function renderRituais(bate) {
   const sheet = ctx.getSheet();
   const conhecidos = new Set(sheet.rituaisConhecidos || []);
+  const circMax = circuloMaximoRitual(sheet);
+  const cotaRituais = calcularCotaRituais(sheet);
   const itens = RITUAIS
     .filter(r => bate(r.nome)
       && (ui.elemento === 'todos' || r.elemento === ui.elemento || r.elementoSecundario === ui.elemento)
-      && (ui.circulo === 'todos' || r.circulo === ui.circulo))
+      && (ui.circulo === 'todos' || r.circulo === ui.circulo)
+      && (!ui.ateMeuCirculo || r.circulo <= circMax))
     .sort((a, b) => a.circulo - b.circulo);
+
+  const banner = ui.pick && cotaRituais.totalEsperado > 0 ? `
+    <div class="oc-quota-banner ${cotaRituais.faltam > 0 ? 'has-pending' : 'is-complete'}">
+      <span><strong>${cotaRituais.faltam > 0 ? `✦ Faltam ${cotaRituais.faltam} ritual(is) na ficha` : '✓ Rituais em dia'}</strong> (${cotaRituais.atuais}/${cotaRituais.totalEsperado} · até ${circMax}º Círculo)</span>
+      <small>Fontes: ${safe(cotaRituais.fontes.join(' · '))}</small>
+    </div>
+  ` : '';
+
   return {
     count: itens.length,
-    filters: elementoChips() + circuloChips(),
-    html: itens.map(r => {
+    filters: elementoChips() + `<div class="oc-chip-row">
+      ${chip('circ', 'todos', 'Todos os círculos', ui.circulo === 'todos' && !ui.ateMeuCirculo)}
+      <button type="button" class="oc-chip oc-chip-disp ${ui.ateMeuCirculo ? 'active' : ''}" data-oc-atecirc="toggle">✓ Até meu círculo (${circMax}º)</button>
+      ${[1, 2, 3, 4].map(n => chip('circ', n, `${n}º Círculo`, ui.circulo === n)).join('')}
+    </div>`,
+    html: banner + (itens.map(r => {
       const color = ELEMENT_COLORS[r.elemento] || '#e0150d';
       const owned = conhecidos.has(r.id);
+      const acimaDoCirculo = r.circulo > circMax;
       const campos = [
         ['EXECUÇÃO', r.execucao],
         ['ALCANCE', r.alcance],
@@ -382,8 +531,12 @@ function renderRituais(bate) {
         ['DURAÇÃO', r.duracao],
         ['RESISTÊNCIA', r.resistencia]
       ].filter(([, valor]) => valor);
+      const discCusto = r.discente?.custoPE ?? r.adicionalPEDiscente;
+      const discDesc = r.discente?.descricao ?? r.descricaoDiscente;
+      const verdCusto = r.verdadeiro?.custoPE ?? r.adicionalPEVerdadeiro;
+      const verdDesc = r.verdadeiro?.descricao ?? r.descricaoPEVerdadeiro;
       return `
-        <article class="original-card oc-card ${ui.pick && owned ? 'owned' : ''}" style="--el:${color}">
+        <article class="original-card oc-card ${ui.pick && owned ? 'owned' : ''} ${acimaDoCirculo ? 'prereq-locked' : ''}" style="--el:${color}">
           <div class="card-head">
             <div class="ritual-title-group">
               <span class="oc-element">${safe(r.elementoSecundario ? `${r.elemento} / ${r.elementoSecundario}` : r.elemento)} · ${r.circulo}º CÍRCULO</span>
@@ -392,13 +545,14 @@ function renderRituais(bate) {
             </div>
             ${pickControl('ritual', r.id, owned, 'APRENDER')}
           </div>
+          ${acimaDoCirculo ? `<span class="card-meta card-prereq prereq-missing">⚠ Requer ${r.circulo}º Círculo (seu máximo atual é ${circMax}º Círculo)</span>` : ''}
           ${campos.length ? `<div class="oc-ritual-meta">${campos.map(([label, valor]) => `<div><small>${label}</small><span>${safe(valor)}</span></div>`).join('')}</div>` : ''}
           <p class="card-desc">${rich(r.descricao)}</p>
-          ${r.discente ? `<p class="oc-upgrade"><b>Discente (+${rich(r.discente.custoPE)} PE):</b> ${rich(r.discente.descricao)}</p>` : ''}
-          ${r.verdadeiro ? `<p class="oc-upgrade"><b>Verdadeiro (+${rich(r.verdadeiro.custoPE)} PE):</b> ${rich(r.verdadeiro.descricao)}</p>` : ''}
+          ${discDesc ? `<p class="oc-upgrade"><b>Discente (+${rich(discCusto)} PE):</b> ${rich(discDesc)}</p>` : ''}
+          ${verdDesc ? `<p class="oc-upgrade"><b>Verdadeiro (+${rich(verdCusto)} PE):</b> ${rich(verdDesc)}</p>` : ''}
         </article>
       `;
-    }).join('') || emptyNote('Nenhum ritual encontrado.')
+    }).join('') || emptyNote('Nenhum ritual encontrado.'))
   };
 }
 

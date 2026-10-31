@@ -2100,398 +2100,6 @@
     "favorite": false
   },
   {
-    "systemMode": "original",
-    "name": "AGENTE 9",
-    "jogador": "",
-    "origemId": "acadêmico",
-    "classeId": "sobrevivente",
-    "trilhaId": "durao",
-    "trilhaSecundariaId": "",
-    "trilhaTerciariaId": "",
-    "nivelTrilhaTerciaria": 1,
-    "versatilidadeRecusada": {
-      "10": true
-    },
-    "usaPD": false,
-    "aumentosAtributo": {},
-    "nex": 20,
-    "atributos": {
-      "for": 2,
-      "agi": 2,
-      "vig": 2,
-      "int": 1,
-      "pre": 1
-    },
-    "pv": 62,
-    "maxPv": 26,
-    "pvTemp": 0,
-    "pvMarcas": 0,
-    "pe": 5,
-    "maxPe": 8,
-    "peTemp": 0,
-    "san": 12,
-    "maxSan": 18,
-    "sanTemp": 0,
-    "sanMarcas": 0,
-    "defesaOutros": 0,
-    "deslocamento": "9m (6q)",
-    "pericias": {
-      "acrobacia": {
-        "treino": 15,
-        "extra": 0
-      },
-      "adestramento": {
-        "treino": 5,
-        "extra": 0
-      },
-      "artes": {
-        "treino": 5,
-        "extra": 0
-      },
-      "atletismo": {
-        "treino": 5,
-        "extra": 0
-      },
-      "atualidades": {
-        "treino": 0,
-        "extra": 0
-      },
-      "ciencias": {
-        "treino": 0,
-        "extra": 0
-      },
-      "crime": {
-        "treino": 10,
-        "extra": 0
-      },
-      "diplomacia": {
-        "treino": 10,
-        "extra": 0
-      },
-      "enganacao": {
-        "treino": 0,
-        "extra": 0
-      },
-      "fortitude": {
-        "treino": 0,
-        "extra": 0
-      },
-      "furtividade": {
-        "treino": 5,
-        "extra": 0
-      },
-      "iniciativa": {
-        "treino": 0,
-        "extra": 0
-      },
-      "intimidacao": {
-        "treino": 0,
-        "extra": 0
-      },
-      "intuicao": {
-        "treino": 0,
-        "extra": 0
-      },
-      "investigacao": {
-        "treino": 0,
-        "extra": 0
-      },
-      "luta": {
-        "treino": 0,
-        "extra": 0
-      },
-      "medicina": {
-        "treino": 0,
-        "extra": 0
-      },
-      "ocultismo": {
-        "treino": 0,
-        "extra": 0
-      },
-      "percepcao": {
-        "treino": 0,
-        "extra": 0
-      },
-      "pilotagem": {
-        "treino": 0,
-        "extra": 0
-      },
-      "pontaria": {
-        "treino": 0,
-        "extra": 0
-      },
-      "profissao": {
-        "treino": 0,
-        "extra": 0
-      },
-      "reflexos": {
-        "treino": 0,
-        "extra": 0
-      },
-      "religiao": {
-        "treino": 0,
-        "extra": 0
-      },
-      "sobrevivencia": {
-        "treino": 0,
-        "extra": 0
-      },
-      "tatica": {
-        "treino": 0,
-        "extra": 0
-      },
-      "tecnologia": {
-        "treino": 0,
-        "extra": 0
-      },
-      "vontade": {
-        "treino": 0,
-        "extra": 0
-      }
-    },
-    "skills": [],
-    "cards": [],
-    "ataques": [
-      {
-        "nome": "Nova Arma",
-        "ataque": "3d20+5",
-        "dano": "1d8",
-        "critico": "20/x2",
-        "alcance": "Curto",
-        "tipo": "Balístico"
-      }
-    ],
-    "poderesEscolhidos": [],
-    "poderesCustomizados": [],
-    "poderesParanormais": [],
-    "rituaisConhecidos": [],
-    "inventario": [],
-    "condicoesAtivas": [],
-    "history": "",
-    "tokenImage": "",
-    "backgroundImage": "",
-    "backgroundBlur": 0,
-    "backgroundZoom": 100,
-    "diceColor": "",
-    "themeColor": "#ffffff",
-    "viewMode": "cinematic",
-    "cinematicTokenX": 50,
-    "cinematicTokenY": 52,
-    "cinematicTokenScale": 100,
-    "cinematicOutlineSide": "left",
-    "cinematicOutlineIntensity": 0.5,
-    "cinematicOutlineWidth": 1.8,
-    "cinematicOutlineFade": 1.5,
-    "cinematicCollapsed": {
-      "abilities": false,
-      "combat": false,
-      "rituals": false,
-      "items": true,
-      "history": true
-    },
-    "id": "sheet-1791409120413-7oj8u",
-    "folderId": "folder-characters",
-    "favorite": false
-  },
-  {
-    "systemMode": "original",
-    "name": "AGENTE 10",
-    "jogador": "",
-    "origemId": "acadêmico",
-    "classeId": "sobrevivente",
-    "trilhaId": "durao",
-    "trilhaSecundariaId": "",
-    "trilhaTerciariaId": "",
-    "nivelTrilhaTerciaria": 1,
-    "versatilidadeRecusada": {},
-    "usaPD": true,
-    "aumentosAtributo": {},
-    "nex": 0,
-    "atributos": {
-      "for": 0,
-      "agi": 1,
-      "vig": 3,
-      "int": 3,
-      "pre": 1
-    },
-    "pv": 3,
-    "maxPv": 13,
-    "pvTemp": 0,
-    "pvMarcas": 0,
-    "pe": 8,
-    "maxPe": 8,
-    "peTemp": 0,
-    "san": 0,
-    "maxSan": 0,
-    "sanTemp": 0,
-    "sanMarcas": 0,
-    "defesaOutros": 0,
-    "deslocamento": "9m (6q)",
-    "pericias": {
-      "acrobacia": {
-        "treino": 0,
-        "extra": 0
-      },
-      "adestramento": {
-        "treino": 5,
-        "extra": 0
-      },
-      "artes": {
-        "treino": 0,
-        "extra": 0
-      },
-      "atletismo": {
-        "treino": 0,
-        "extra": 0
-      },
-      "atualidades": {
-        "treino": 0,
-        "extra": 0
-      },
-      "ciencias": {
-        "treino": 5,
-        "extra": 0
-      },
-      "crime": {
-        "treino": 5,
-        "extra": 0
-      },
-      "diplomacia": {
-        "treino": 0,
-        "extra": 0
-      },
-      "enganacao": {
-        "treino": 0,
-        "extra": 0
-      },
-      "fortitude": {
-        "treino": 0,
-        "extra": 0
-      },
-      "furtividade": {
-        "treino": 0,
-        "extra": 0
-      },
-      "iniciativa": {
-        "treino": 0,
-        "extra": 0
-      },
-      "intimidacao": {
-        "treino": 5,
-        "extra": 0
-      },
-      "intuicao": {
-        "treino": 0,
-        "extra": 0
-      },
-      "investigacao": {
-        "treino": 5,
-        "extra": 0
-      },
-      "luta": {
-        "treino": 0,
-        "extra": 0
-      },
-      "medicina": {
-        "treino": 0,
-        "extra": 0
-      },
-      "ocultismo": {
-        "treino": 5,
-        "extra": 0
-      },
-      "percepcao": {
-        "treino": 0,
-        "extra": 0
-      },
-      "pilotagem": {
-        "treino": 0,
-        "extra": 0
-      },
-      "pontaria": {
-        "treino": 5,
-        "extra": 0
-      },
-      "profissao": {
-        "treino": 0,
-        "extra": 0
-      },
-      "reflexos": {
-        "treino": 0,
-        "extra": 0
-      },
-      "religiao": {
-        "treino": 0,
-        "extra": 0
-      },
-      "sobrevivencia": {
-        "treino": 0,
-        "extra": 0
-      },
-      "tatica": {
-        "treino": 0,
-        "extra": 0
-      },
-      "tecnologia": {
-        "treino": 0,
-        "extra": 0
-      },
-      "vontade": {
-        "treino": 0,
-        "extra": 0
-      }
-    },
-    "skills": [],
-    "cards": [],
-    "ataques": [],
-    "poderesEscolhidos": [
-      {
-        "nome": "Determinação Aprimorada",
-        "descricao": "Habilidade inicial (escolha 1 entre as 3). Você recebe +3 PD iniciais.",
-        "preRequisito": null,
-        "origemTipo": "Poder de Sobrevivente",
-        "bonus": null
-      },
-      {
-        "nome": "Saque Rápido",
-        "descricao": "Você pode sacar ou guardar itens como uma ação livre (em vez de ação de movimento). Além disso, caso esteja usando a regra opcional de contagem de munição, uma vez por rodada pode recarregar uma arma de disparo como uma ação livre. Além do normal, também concede +2 em Iniciativa.",
-        "preRequisito": "Treinado em Iniciativa",
-        "origemTipo": "Poder Geral",
-        "bonus": "+2 em Iniciativa"
-      }
-    ],
-    "poderesCustomizados": [],
-    "poderesParanormais": [],
-    "rituaisConhecidos": [],
-    "inventario": [],
-    "condicoesAtivas": [],
-    "history": "",
-    "tokenImage": "",
-    "backgroundImage": "",
-    "backgroundBlur": 0,
-    "backgroundZoom": 100,
-    "diceColor": "",
-    "themeColor": "",
-    "viewMode": "cinematic",
-    "cinematicTokenX": 50,
-    "cinematicTokenY": 52,
-    "cinematicTokenScale": 100,
-    "cinematicOutlineSide": "left",
-    "cinematicOutlineIntensity": 0.5,
-    "cinematicOutlineWidth": 1.8,
-    "cinematicOutlineFade": 1.5,
-    "cinematicCollapsed": {
-      "abilities": false,
-      "combat": false,
-      "rituals": false,
-      "items": true,
-      "history": true
-    },
-    "id": "sheet-1791744539288-x7lra",
-    "folderId": "folder-characters",
-    "favorite": false
-  },
-  {
     "name": "ZUMBI DE SANGUE",
     "systemMode": "threat",
     "folderId": "folder-threats",
@@ -22898,5 +22506,209 @@
     "textColor": "",
     "bannerColor": "",
     "contrast": "auto"
+  },
+  {
+    "systemMode": "original",
+    "name": "AGENTE 9",
+    "jogador": "",
+    "origemId": "amnésico",
+    "classeId": "sobrevivente",
+    "trilhaId": "durao",
+    "trilhaSecundariaId": "",
+    "trilhaTerciariaId": "",
+    "nivelTrilhaTerciaria": 1,
+    "versatilidadeRecusada": {},
+    "usaPD": true,
+    "aumentosAtributo": {},
+    "elementoAfinidade": "",
+    "escolhasDePoderes": {},
+    "periciasTreinadasPorPoder": {},
+    "ignorarPendencias": {},
+    "veioDeSobrevivente": true,
+    "teveIniciado": false,
+    "nex": 0,
+    "atributos": {
+      "for": 1,
+      "agi": 1,
+      "vig": 1,
+      "int": 2,
+      "pre": 3
+    },
+    "pv": 22,
+    "maxPv": 11,
+    "pvTemp": 0,
+    "pvMarcas": 0,
+    "pe": 40,
+    "maxPe": 10,
+    "peTemp": 0,
+    "san": 0,
+    "maxSan": 0,
+    "sanTemp": 0,
+    "sanMarcas": 0,
+    "defesaOutros": 0,
+    "deslocamento": "9m (6q)",
+    "pericias": {
+      "acrobacia": {
+        "treino": 5,
+        "extra": 0
+      },
+      "adestramento": {
+        "treino": 5,
+        "extra": 0
+      },
+      "artes": {
+        "treino": 5,
+        "extra": 0
+      },
+      "atletismo": {
+        "treino": 0,
+        "extra": 0
+      },
+      "atualidades": {
+        "treino": 5,
+        "extra": 0
+      },
+      "ciencias": {
+        "treino": 5,
+        "extra": 0
+      },
+      "crime": {
+        "treino": 0,
+        "extra": 0
+      },
+      "diplomacia": {
+        "treino": 0,
+        "extra": 0
+      },
+      "enganacao": {
+        "treino": 0,
+        "extra": 0
+      },
+      "fortitude": {
+        "treino": 0,
+        "extra": 0
+      },
+      "furtividade": {
+        "treino": 0,
+        "extra": 0
+      },
+      "iniciativa": {
+        "treino": 0,
+        "extra": 0
+      },
+      "intimidacao": {
+        "treino": 0,
+        "extra": 0
+      },
+      "intuicao": {
+        "treino": 0,
+        "extra": 0
+      },
+      "investigacao": {
+        "treino": 0,
+        "extra": 0
+      },
+      "luta": {
+        "treino": 0,
+        "extra": 0
+      },
+      "medicina": {
+        "treino": 0,
+        "extra": 0
+      },
+      "ocultismo": {
+        "treino": 0,
+        "extra": 0
+      },
+      "percepcao": {
+        "treino": 0,
+        "extra": 0
+      },
+      "pilotagem": {
+        "treino": 0,
+        "extra": 0
+      },
+      "pontaria": {
+        "treino": 0,
+        "extra": 0
+      },
+      "profissao": {
+        "treino": 0,
+        "extra": 0
+      },
+      "reflexos": {
+        "treino": 0,
+        "extra": 0
+      },
+      "religiao": {
+        "treino": 0,
+        "extra": 0
+      },
+      "sobrevivencia": {
+        "treino": 0,
+        "extra": 0
+      },
+      "tatica": {
+        "treino": 0,
+        "extra": 0
+      },
+      "tecnologia": {
+        "treino": 0,
+        "extra": 0
+      },
+      "vontade": {
+        "treino": 0,
+        "extra": 0
+      }
+    },
+    "skills": [],
+    "cards": [],
+    "ataques": [],
+    "poderesEscolhidos": [
+      {
+        "nome": "Determinação Aprimorada",
+        "descricao": "Habilidade inicial (escolha 1 entre as 3). Você recebe +3 PD iniciais.",
+        "preRequisito": null,
+        "origemTipo": "Poder de Sobrevivente",
+        "bonus": null
+      },
+      {
+        "nome": "Ataque de Oportunidade",
+        "descricao": "Sempre que um ser sair voluntariamente de um espaço adjacente ao seu, você pode gastar uma reação e 1 PE para fazer um ataque corpo a corpo contra ele.",
+        "preRequisito": "",
+        "origemTipo": "Poder Geral",
+        "bonus": null
+      }
+    ],
+    "poderesCustomizados": [],
+    "poderesParanormais": [],
+    "rituaisConhecidos": [],
+    "inventario": [],
+    "condicoesAtivas": [],
+    "history": "",
+    "tokenImage": "",
+    "backgroundImage": "",
+    "backgroundBlur": 0,
+    "backgroundZoom": 100,
+    "diceColor": "",
+    "themeColor": "",
+    "viewMode": "traditional",
+    "cinematicTokenX": 50,
+    "cinematicTokenY": 52,
+    "cinematicTokenScale": 100,
+    "cinematicOutlineSide": "left",
+    "cinematicOutlineIntensity": 0.5,
+    "cinematicOutlineWidth": 1.8,
+    "cinematicOutlineFade": 1.5,
+    "cinematicCollapsed": {
+      "abilities": false,
+      "combat": false,
+      "rituals": false,
+      "items": true,
+      "history": true
+    },
+    "folderId": "folder-characters",
+    "id": "sheet-1793466638396-icc6w",
+    "favorite": false
   }
 ]

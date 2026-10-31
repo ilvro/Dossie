@@ -40,9 +40,25 @@ import {
   bonusPoderesPorPericia,
   bonusLabel,
   periciasTreinadasDaOrigem,
-  getIconeRecurso
+  getIconeRecurso,
+  atributoEfetivoDaPericia,
+  poderPodeSerEscolhido,
 } from './original-system.js';
 import { ELEMENT_COLORS } from './original-compendium.js';
+import {
+  ELEMENTOS_AFINIDADE,
+  PODERES_COM_ESCOLHA,
+  PODERES_TREINO_OU_MAIS_2,
+  calcularPendencias,
+  calcularPendenciaAtributos,
+  calcularCotaPericias,
+  calcularCotaRituais,
+  cotaPoderesDeClasse,
+  poderesContabilizadosNaCota,
+  circuloMaximoRitual,
+  avaliarPreRequisito,
+  contarTranscender,
+} from './original-progression.js';
 
 import { safe, rich } from './original-text.js';
 
@@ -64,6 +80,662 @@ function originalIcon(name, size = 16) {
     sparkles: '<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>',
   };
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || ''}</svg>`;
+}
+
+export function renderPainelPendencias(state, { compact = false } = {}) {
+  const pendencias = calcularPendencias(state);
+  if (!pendencias.length) return '';
+
+  return `
+    <section class="original-pendencias-bar ${compact ? 'is-compact' : ''}" aria-label="Escolhas de Progressão Pendentes">
+      <div class="pendencias-head">
+        <span class="pendencias-sigil">${originalIcon('sparkles', 15)}</span>
+        <div class="pendencias-head-text">
+          <strong>PROGRESSÃO & ESCOLHAS PENDENTES (${pendencias.length})</strong>
+          ${compact ? '' : `<small>Seu agente desbloqueou novos recursos neste nível de exposição</small>`}
+        </div>
+      </div>
+      <div class="pendencias-grid">
+        ${pendencias.map(p => `
+          <div class="pendencia-card pendencia-tipo-${safe(p.tipo)}">
+            <div class="pendencia-info">
+              <strong>${safe(p.titulo)}</strong>
+              <span>${safe(p.detalhe)}</span>
+            </div>
+            <div class="pendencia-actions">
+              <button type="button" class="btn-pendencia-resolve" data-pendencia-acao="${safe(p.id)}">${safe(p.acaoLabel)}</button>
+              <button type="button" class="btn-pendencia-dismiss" data-pendencia-ignorar="${safe(p.id)}" title="Ocultar este aviso">✕</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </section>
+  `;
+}
+
+function formatarValorSubEscolha(nomePoder, valor) {
+  if (!valor || (Array.isArray(valor) && !valor.length)) return '';
+  const meta = PODERES_COM_ESCOLHA[nomePoder];
+  if (Array.isArray(valor)) {
+    return valor.map(id => PERICIAS.find(p => p.id === id)?.nome || id).join(' + ');
+  }
+  if (meta?.tipo?.startsWith('pericia') || nomePoder === 'Aprimoramento de Origem') {
+    return PERICIAS.find(p => p.id === valor)?.nome || valor;
+  }
+  if (meta?.tipo === 'ritual_conhecido') {
+    return RITUAIS.find(r => r.id === valor)?.nome || valor;
+  }
+  return String(valor);
+}
+
+function renderBadgeSubEscolha(state, nomePoder) {
+  const meta = PODERES_COM_ESCOLHA[nomePoder];
+  if (!meta && nomePoder !== 'Aprimoramento de Origem') return '';
+  const valor = state.escolhasDePoderes?.[nomePoder];
+  const texto = formatarValorSubEscolha(nomePoder, valor);
+  const temValor = Boolean(texto);
+  return `
+    <button type="button" class="badge-subescolha ${temValor ? 'is-set' : 'is-pending'}" data-edit-subescolha="${safe(nomePoder)}" title="Clique para definir ou alterar a escolha deste poder">
+      ✦ ${temValor ? `Escolha: ${safe(texto)}` : 'Definir escolha...'}
+    </button>
+  `;
+}
+
+function renderBadgeTreinoAutomatico(state, nomePoder) {
+  const periciaId = PODERES_TREINO_OU_MAIS_2[nomePoder];
+  if (!periciaId) return '';
+  const per = PERICIAS.find(p => p.id === periciaId);
+  const nomePer = per ? per.nome : periciaId;
+  const foiTreinada = Array.isArray(state.periciasTreinadasPorPoder?.[nomePoder])
+    && state.periciasTreinadasPorPoder[nomePoder].includes(periciaId);
+  if (foiTreinada) {
+    return `<span class="badge-bonus">✦ Treinou ${safe(nomePer)} (+5)</span>`;
+  }
+  return `<span class="badge-bonus">✦ +2 em ${safe(nomePer)} (já treinada)</span>`;
+}
+
+function renderBarraPassosModal(state, pendenciaId) {
+  const pendencias = calcularPendencias(state);
+  if (pendencias.length <= 1) return '';
+  return `
+    <div class="prog-steps-nav" role="tablist" aria-label="Escolhas pendentes neste NEX">
+      ${pendencias.map((p, idx) => `
+        <button type="button" class="prog-step-pill ${p.id === pendenciaId ? 'active' : ''}" data-prog-switch-step="${safe(p.id)}">
+          <span class="prog-step-num">${idx + 1}</span>
+          <span>${safe(p.titulo)}</span>
+        </button>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderPrereqBadgeModal(p, state) {
+  const req = avaliarPreRequisito(p, state);
+  if (!req.texto) return '';
+  if (req.cumprido) {
+    return `<span class="card-meta card-prereq prereq-ok">✓ Pré-requisito cumprido: ${safe(req.texto)}</span>`;
+  }
+  const faltaTxt = req.faltando.length ? ` · Falta: ${req.faltando.join(', ')}` : '';
+  return `<span class="card-meta card-prereq prereq-missing">⚠ Requer: ${safe(req.texto)}${safe(faltaTxt)}</span>`;
+}
+
+export function renderModalPendenciaOriginal(state, pendenciaId, tempState = {}) {
+  const stepsBar = renderBarraPassosModal(state, pendenciaId);
+
+  if (pendenciaId === 'aumento_atributo') {
+    const info = calcularPendenciaAtributos(state);
+    const marcoAtual = tempState.marco || info.marcosPendentes[0] || 20;
+    return `
+      <div class="prog-modal">
+        <header class="wiz-head">
+          <small>PROGRESSÃO DE ATRIBUTO · ${safe(rotuloNivel(state, marcoAtual).toUpperCase())}</small>
+          <h2>Escolha qual atributo aumentar em +1</h2>
+          ${stepsBar}
+        </header>
+        <div class="wiz-body prog-modal-body">
+          <p class="prog-modal-lead">Em ${safe(rotuloNivel(state, marcoAtual))}, você aumenta um atributo à sua escolha em +1 (até um máximo de 5). Pontos de Vida (Vigor) e Esforço (Presença) aumentam a partir deste nível.</p>
+          ${info.marcosPendentes.length > 1 ? `
+            <div class="prog-marco-tabs">
+              ${info.marcosPendentes.map(m => `
+                <button type="button" class="oc-chip ${m === marcoAtual ? 'active' : ''}" data-select-marco-attr="${m}">${safe(rotuloNivel(state, m))}</button>
+              `).join('')}
+            </div>
+          ` : ''}
+          <div class="prog-attr-grid">
+            ${ATRIBUTOS.map(a => {
+              const atual = Number(state.atributos?.[a.id] ?? 1);
+              const noMaximo = atual >= 5;
+              const jaEscolhidoNesteMarco = state.aumentosAtributo?.[marcoAtual] === a.id;
+              return `
+                <button type="button" class="prog-attr-card ${jaEscolhidoNesteMarco ? 'selected' : ''}" data-confirm-aumento="${marcoAtual}:${a.id}" ${noMaximo && !jaEscolhidoNesteMarco ? 'disabled' : ''}>
+                  <span class="prog-attr-sigla">${safe(a.abrev)}</span>
+                  <strong>${safe(a.nome)}</strong>
+                  <div class="prog-attr-transition">
+                    <span>${atual}</span>
+                    <i>➔</i>
+                    <b>${noMaximo ? 'MÁX (5)' : atual + 1}</b>
+                  </div>
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+        <footer class="wiz-foot">
+          <span>${info.faltam} aumento(s) pendente(s)</span>
+          <button type="button" class="trilha-decisao-later" data-close-prog-modal>Escolher depois</button>
+        </footer>
+      </div>
+    `;
+  }
+
+  if (pendenciaId === 'poder_classe') {
+    const classe = classeAtual(state);
+    const cotaTotal = cotaPoderesDeClasse(state);
+    const pegosCota = poderesContabilizadosNaCota(state);
+    const faltam = Math.max(0, cotaTotal - pegosCota);
+    const escolhidos = new Set((state.poderesEscolhidos || []).map(p => p.nome));
+    const grupoAtivo = tempState.grupo || 'todos';
+    const apenasDisp = tempState.apenasDisponiveis !== false;
+    const busca = String(tempState.busca || '').trim().toLowerCase();
+
+    const grupos = [
+      {
+        id: 'classe',
+        label: `Poderes de ${classe.nome}`,
+        origem: `Poder de ${classe.nome}`,
+        poderes: (classe.poderes || []).filter(p => poderPodeSerEscolhido(p, state)),
+      },
+      {
+        id: 'gerais',
+        label: 'Poderes Gerais',
+        origem: 'Poder Geral',
+        poderes: PODERES_GERAIS,
+      },
+    ];
+
+    const itens = grupos
+      .filter(g => grupoAtivo === 'todos' || g.id === grupoAtivo)
+      .flatMap(g => g.poderes
+        .filter(p => {
+          if (!p.repetivel && escolhidos.has(p.nome)) return false;
+          if (busca && !p.nome.toLowerCase().includes(busca) && !String(p.descricao || '').toLowerCase().includes(busca)) return false;
+          if (apenasDisp && !avaliarPreRequisito(p, state).cumprido) return false;
+          return true;
+        })
+        .map(p => ({ p, g })));
+
+    return `
+      <div class="prog-modal prog-modal-wide">
+        <header class="wiz-head">
+          <small>${safe(rotuloNivel(state).toUpperCase())} · PODER DE ${safe(classe.nome.toUpperCase())}</small>
+          <h2>Escolha ${faltam === 1 ? '1 Poder' : `${faltam} Poderes`} (${pegosCota}/${cotaTotal} na ficha)</h2>
+          ${stepsBar}
+        </header>
+        <div class="wiz-body prog-modal-body">
+          <div class="oc-quota-banner has-pending" style="margin:0 0 10px 0;">
+            <span><strong>✦ Novo Poder Desbloqueado:</strong> Escolha um poder de ${safe(classe.nome)} ou um Poder Geral.</span>
+            <small>Dica: Escolha <b>Transcender</b> para despertar um Poder Paranormal (sem ganhar Sanidade neste NEX).</small>
+          </div>
+          <div class="prog-filter-bar">
+            <input type="search" class="original-input prog-search-input" data-prog-search value="${safe(tempState.busca || '')}" placeholder="Buscar poder por nome ou efeito...">
+            <div class="oc-chip-row">
+              <button type="button" class="oc-chip ${grupoAtivo === 'todos' ? 'active' : ''}" data-prog-filter-grupo="todos">Todos</button>
+              ${grupos.map(g => `<button type="button" class="oc-chip ${grupoAtivo === g.id ? 'active' : ''}" data-prog-filter-grupo="${g.id}">${safe(g.label)}</button>`).join('')}
+              <button type="button" class="oc-chip oc-chip-disp ${apenasDisp ? 'active' : ''}" data-prog-filter-disp="toggle">✓ Apenas com pré-requisito</button>
+            </div>
+          </div>
+          <div class="prog-cards-list">
+            ${itens.map(({ p, g }) => {
+              const req = avaliarPreRequisito(p, state);
+              const ehTranscender = p.nome === 'Transcender';
+              return `
+                <article class="original-card oc-card ${!req.cumprido ? 'prereq-locked' : ''} ${ehTranscender ? 'is-transcender-highlight' : ''}">
+                  <div class="card-head">
+                    <strong class="oc-title">${ehTranscender ? '✦ ' : ''}${safe(p.nome)}</strong>
+                    <button type="button" class="oc-add" data-prog-pick-poder="${safe(p.nome)}">+ ESCOLHER</button>
+                  </div>
+                  <span class="card-meta">${safe(g.origem)}</span>
+                  ${renderPrereqBadgeModal(p, state)}
+                  ${p.bonus ? `<span class="badge-bonus">✦ ${rich(bonusLabel(state, p.bonus))}</span>` : ''}
+                  <p class="card-desc">${rich(p.descricao)}</p>
+                </article>
+              `;
+            }).join('') || '<p class="empty-cards">Nenhum poder encontrado com esses filtros. Desmarque "✓ Apenas com pré-requisito" para ver todos.</p>'}
+          </div>
+        </div>
+        <footer class="wiz-foot">
+          <button type="button" class="btn-open-compendium" data-prog-open-compendium="poderes">Ver no Compêndio Completo</button>
+          <button type="button" class="trilha-decisao-later" data-close-prog-modal>Escolher depois</button>
+        </footer>
+      </div>
+    `;
+  }
+
+  if (pendenciaId === 'poder_paranormal') {
+    const transcInfo = contarTranscender(state);
+    const mapConhecidos = new Map((state.poderesParanormais || []).map(p => [p.nome, p]));
+    const elAtivo = tempState.elemento || 'todos';
+    const apenasDisp = tempState.apenasDisponiveis !== false;
+    const busca = String(tempState.busca || '').trim().toLowerCase();
+    const nex = Number(state.nex) || 0;
+
+    const itens = PODERES_PARANORMAIS.filter(p => {
+      if (elAtivo !== 'todos' && p.elemento !== elAtivo) return false;
+      if (busca && !p.nome.toLowerCase().includes(busca) && !String(p.descricao || '').toLowerCase().includes(busca)) return false;
+      const existing = mapConhecidos.get(p.nome);
+      const podeAfinidade = existing && !existing.comAfinidade && nex >= 50 && (!state.elementoAfinidade || state.elementoAfinidade === p.elemento);
+      if (existing && !podeAfinidade) return false;
+      if (apenasDisp && !avaliarPreRequisito(p, state).cumprido) return false;
+      return true;
+    });
+
+    return `
+      <div class="prog-modal prog-modal-wide">
+        <header class="wiz-head">
+          <small>TRANSCENDER · CONEXÃO COM O OUTRO LADO</small>
+          <h2>Escolha ${transcInfo.faltandoParanormais === 1 ? '1 Poder Paranormal' : `${transcInfo.faltandoParanormais} Poderes Paranormais`}</h2>
+          ${stepsBar}
+        </header>
+        <div class="wiz-body prog-modal-body">
+          <div class="oc-quota-banner has-pending" style="margin:0 0 10px 0;">
+            <span><strong>✦ Transcender Ativo:</strong> Escolha seu Poder Paranormal (${transcInfo.atuaisParanormais}/${transcInfo.esperadoParanormais}).</span>
+            ${nex >= 50 ? `<small>Em NEX 50%+, você também pode despertar <b>Afinidade</b> em um poder que já possui!</small>` : ''}
+          </div>
+          <div class="prog-filter-bar">
+            <input type="search" class="original-input prog-search-input" data-prog-search value="${safe(tempState.busca || '')}" placeholder="Buscar poder paranormal...">
+            <div class="oc-chip-row">
+              <button type="button" class="oc-chip ${elAtivo === 'todos' ? 'active' : ''}" data-prog-filter-el="todos">Todos</button>
+              ${ELEMENTOS_AFINIDADE.map(el => `<button type="button" class="oc-chip ${elAtivo === el ? 'active' : ''}" style="--chip:${ELEMENT_COLORS[el]}" data-prog-filter-el="${el}">${safe(el)}</button>`).join('')}
+              <button type="button" class="oc-chip oc-chip-disp ${apenasDisp ? 'active' : ''}" data-prog-filter-disp="toggle">✓ Apenas com pré-requisito</button>
+            </div>
+          </div>
+          <div class="prog-cards-list">
+            ${itens.map(p => {
+              const color = ELEMENT_COLORS[p.elemento] || '#e0150d';
+              const existing = mapConhecidos.get(p.nome);
+              const req = avaliarPreRequisito(p, state);
+              return `
+                <article class="original-card oc-card ${!req.cumprido ? 'prereq-locked' : ''}" style="--el:${color}">
+                  <div class="card-head">
+                    <div class="ritual-title-group">
+                      <span class="oc-element">${safe(p.elemento)}</span>
+                      <strong class="oc-title">${safe(p.nome)}</strong>
+                    </div>
+                    ${existing
+                      ? `<button type="button" class="oc-add oc-add-affinity" data-prog-pick-afinidade-poder="${safe(p.nome)}">✦ DESPERTAR AFINIDADE</button>`
+                      : `<button type="button" class="oc-add" data-prog-pick-paranormal="${safe(p.nome)}">+ ESCOLHER</button>`}
+                  </div>
+                  ${renderPrereqBadgeModal(p, state)}
+                  ${p.bonus ? `<span class="badge-bonus">✦ ${rich(bonusLabel(state, p.bonus))}</span>` : ''}
+                  <p class="card-desc">${rich(p.descricao)}</p>
+                </article>
+              `;
+            }).join('') || '<p class="empty-cards">Nenhum poder paranormal disponível com esses filtros.</p>'}
+          </div>
+        </div>
+        <footer class="wiz-foot">
+          <button type="button" class="btn-open-compendium" data-prog-open-compendium="paranormais">Ver no Compêndio Completo</button>
+          <button type="button" class="trilha-decisao-later" data-close-prog-modal>Escolher depois</button>
+        </footer>
+      </div>
+    `;
+  }
+
+  if (pendenciaId === 'rituais') {
+    const cotaRituais = calcularCotaRituais(state);
+    const circMax = cotaRituais.circuloMax;
+    const conhecidos = new Set(state.rituaisConhecidos || []);
+    const elAtivo = tempState.elemento || 'todos';
+    const circFiltro = tempState.circulo || 'ate_meu';
+    const busca = String(tempState.busca || '').trim().toLowerCase();
+    const fixo = cotaRituais.rituaisFixosSugeridos[0] || null;
+
+    const itens = RITUAIS
+      .filter(r => {
+        if (conhecidos.has(r.id)) return false;
+        if (fixo) {
+          if (fixo.idPrefix && r.id.startsWith(fixo.idPrefix)) return true;
+          if (fixo.id && r.id === fixo.id) return true;
+        }
+        if (elAtivo !== 'todos' && r.elemento !== elAtivo && r.elementoSecundario !== elAtivo) return false;
+        if (circFiltro === 'ate_meu' && r.circulo > circMax) return false;
+        if (typeof circFiltro === 'number' && r.circulo !== circFiltro) return false;
+        if (busca && !r.nome.toLowerCase().includes(busca) && !String(r.descricao || '').toLowerCase().includes(busca)) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (fixo) {
+          const aFixo = (fixo.idPrefix && a.id.startsWith(fixo.idPrefix)) || (fixo.id && a.id === fixo.id);
+          const bFixo = (fixo.idPrefix && b.id.startsWith(fixo.idPrefix)) || (fixo.id && b.id === fixo.id);
+          if (aFixo !== bFixo) return aFixo ? -1 : 1;
+        }
+        return b.circulo - a.circulo || a.nome.localeCompare(b.nome);
+      });
+
+    return `
+      <div class="prog-modal prog-modal-wide">
+        <header class="wiz-head">
+          <small>${safe(rotuloNivel(state).toUpperCase())} · GRIMÓRIO & RITUAIS (ATÉ ${circMax}º CÍRCULO)</small>
+          <h2>Aprenda ${cotaRituais.faltam === 1 ? '1 Ritual' : `${cotaRituais.faltam} Rituais`} (${cotaRituais.atuais}/${cotaRituais.totalEsperado} na ficha)</h2>
+          ${stepsBar}
+        </header>
+        <div class="wiz-body prog-modal-body">
+          <div class="oc-quota-banner has-pending" style="margin:0 0 10px 0;">
+            <span><strong>✦ Rituais Desbloqueados:</strong> Faltam <b>${cotaRituais.faltam}</b> ritual(is) de até <b>${circMax}º Círculo</b>.</span>
+            <small>Fontes: ${safe(cotaRituais.fontes.join(' · '))}</small>
+          </div>
+          <div class="prog-filter-bar">
+            <input type="search" class="original-input prog-search-input" data-prog-search value="${safe(tempState.busca || '')}" placeholder="Buscar ritual por nome ou descrição...">
+            <div class="oc-chip-row">
+              <button type="button" class="oc-chip ${elAtivo === 'todos' ? 'active' : ''}" data-prog-filter-el="todos">Todos</button>
+              ${['Sangue', 'Morte', 'Conhecimento', 'Energia', 'Medo'].map(el => `<button type="button" class="oc-chip ${elAtivo === el ? 'active' : ''}" style="--chip:${ELEMENT_COLORS[el]}" data-prog-filter-el="${el}">${safe(el)}</button>`).join('')}
+            </div>
+            <div class="oc-chip-row">
+              <button type="button" class="oc-chip oc-chip-disp ${circFiltro === 'ate_meu' ? 'active' : ''}" data-prog-filter-circ="ate_meu">✓ Até meu círculo (${circMax}º)</button>
+              ${[1, 2, 3, 4].filter(n => n <= circMax).map(n => `<button type="button" class="oc-chip ${circFiltro === n ? 'active' : ''}" data-prog-filter-circ="${n}">${n}º Círculo</button>`).join('')}
+              <button type="button" class="oc-chip ${circFiltro === 'todos' ? 'active' : ''}" data-prog-filter-circ="todos">Todos os círculos</button>
+            </div>
+          </div>
+          <div class="prog-cards-list">
+            ${itens.map(r => {
+              const color = ELEMENT_COLORS[r.elemento] || '#e0150d';
+              const ehFixo = fixo && ((fixo.idPrefix && r.id.startsWith(fixo.idPrefix)) || (fixo.id && r.id === fixo.id));
+              const discCusto = r.discente?.custoPE ?? r.adicionalPEDiscente;
+              const discDesc = r.discente?.descricao ?? r.descricaoDiscente;
+              const verdCusto = r.verdadeiro?.custoPE ?? r.adicionalPEVerdadeiro;
+              const verdDesc = r.verdadeiro?.descricao ?? r.descricaoPEVerdadeiro;
+              return `
+                <article class="original-card oc-card ${ehFixo ? 'is-transcender-highlight' : ''}" style="--el:${color}">
+                  <div class="card-head">
+                    <div class="ritual-title-group">
+                      <span class="oc-element">${safe(r.elementoSecundario ? `${r.elemento} / ${r.elementoSecundario}` : r.elemento)} · ${r.circulo}º CÍRCULO</span>
+                      <strong class="oc-title">${ehFixo ? '✦ [TRILHA] ' : ''}${safe(r.nome)}</strong>
+                      ${r.custoPE ? `<span class="ritual-element-tag">${safe(r.custoPE)} PE</span>` : ''}
+                    </div>
+                    <button type="button" class="oc-add" data-prog-pick-ritual="${safe(r.id)}">+ APRENDER</button>
+                  </div>
+                  <p class="card-desc">${rich(r.descricao)}</p>
+                  ${discDesc ? `<p class="oc-upgrade"><b>Discente (+${rich(discCusto)} PE):</b> ${rich(discDesc)}</p>` : ''}
+                  ${verdDesc ? `<p class="oc-upgrade"><b>Verdadeiro (+${rich(verdCusto)} PE):</b> ${rich(verdDesc)}</p>` : ''}
+                </article>
+              `;
+            }).join('') || '<p class="empty-cards">Nenhum ritual encontrado com esses filtros.</p>'}
+          </div>
+        </div>
+        <footer class="wiz-foot">
+          <button type="button" class="btn-open-compendium" data-prog-open-compendium="rituais">Ver no Compêndio Completo</button>
+          <button type="button" class="trilha-decisao-later" data-close-prog-modal>Escolher depois</button>
+        </footer>
+      </div>
+    `;
+  }
+
+  if (pendenciaId === 'afinidade') {
+    const elMonstruoso = state.escolhasDePoderes?.['Ser Amaldiçoado'] || '';
+    const descElemento = {
+      Sangue: 'Sentimentos extremos, dor, paixão, fome e brutalidade física.',
+      Morte: 'Espiral do tempo, entropia, apatia, ossos e lodo negro.',
+      Conhecimento: 'Razão absoluta, sigilos do Outro Lado, mente e sussurros.',
+      Energia: 'Caos inevitável, transformação, tecnologia, fogo e eletricidade.',
+    };
+    return `
+      <div class="prog-modal">
+        <header class="wiz-head">
+          <small>NEX 50%+ · CONEXÃO COM O OUTRO LADO</small>
+          <h2>Escolha seu Elemento de Afinidade</h2>
+          ${stepsBar}
+        </header>
+        <div class="wiz-body prog-modal-body">
+          <p class="prog-modal-lead">A partir de NEX 50%, você se conecta a um elemento paranormal (+2 dados em rituais desse elemento, sem precisar de componentes ritualísticos, e acesso à versão com Afinidade dos Poderes Paranormais).</p>
+          <div class="prog-element-grid">
+            ${ELEMENTOS_AFINIDADE.map(el => {
+              const color = ELEMENT_COLORS[el] || '#e0150d';
+              const bloqueado = elMonstruoso && elMonstruoso !== el;
+              const ativo = state.elementoAfinidade === el;
+              return `
+                <button type="button" class="prog-element-card ${ativo ? 'selected' : ''}" style="--el:${color}" data-confirm-afinidade="${safe(el)}" ${bloqueado ? 'disabled' : ''}>
+                  <strong style="color:${color}">✦ ${safe(el.toUpperCase())}</strong>
+                  <p>${safe(descElemento[el] || '')}</p>
+                  ${bloqueado ? `<small class="prereq-missing">Bloqueado por Ser Amaldiçoado (${safe(elMonstruoso)})</small>` : ''}
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+        <footer class="wiz-foot">
+          <span>${state.elementoAfinidade ? `Atual: ${safe(state.elementoAfinidade)}` : 'Nenhuma afinidade selecionada'}</span>
+          <button type="button" class="trilha-decisao-later" data-close-prog-modal>Fechar</button>
+        </footer>
+      </div>
+    `;
+  }
+
+  if (pendenciaId === 'pericias_classe') {
+    const cota = calcularCotaPericias(state);
+    const origemTreinadas = periciasTreinadasDaOrigem(state);
+    return `
+      <div class="prog-modal">
+        <header class="wiz-head">
+          <small>PERÍCIAS INICIAIS · ${safe(classeAtual(state).nome.toUpperCase())}</small>
+          <h2>Selecione suas Perícias Treinadas (+5)</h2>
+          ${stepsBar}
+        </header>
+        <div class="wiz-body prog-modal-body">
+          ${cota.escolhasObrigatoriasFaltando.length ? `
+            <div class="prog-section">
+              <h4>1. Perícias Obrigatórias da Classe</h4>
+              <div class="prog-pairs-row">
+                ${cota.escolhasObrigatoriasFaltando.map((item, idx) => `
+                  <div class="prog-pair-box">
+                    <small>Obrigatória (${idx + 1}) — ${safe(item.label)}:</small>
+                    <div class="prog-pair-btns">
+                      ${item.grupo.map(pid => {
+                        const per = PERICIAS.find(p => p.id === pid);
+                        const treinada = Number(state.pericias?.[pid]?.treino || 0) >= 5;
+                        return `<button type="button" class="oc-chip ${treinada ? 'active' : ''}" data-toggle-pericia-treino="${safe(pid)}">${safe(per ? per.nome : pid)} ${treinada ? '✓' : ''}</button>`;
+                      }).join('')}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+          <div class="prog-section">
+            <h4>2. Perícias Livres (Intelecto + Classe) — <b>${cota.atuaisTreinadas} / ${cota.totalEsperadoTreinadas} treinadas</b></h4>
+            <div class="prog-skills-grid">
+              ${PERICIAS.map(p => {
+                const treino = Number(state.pericias?.[p.id]?.treino || 0);
+                const treinada = treino >= 5;
+                const deOrigem = origemTreinadas.includes(p.id);
+                return `
+                  <button type="button" class="prog-skill-chip ${treinada ? 'active' : ''} ${deOrigem ? 'is-origin' : ''}" data-toggle-pericia-treino="${safe(p.id)}">
+                    <span>${safe(p.nome)} <small>(${safe(p.atributo.toUpperCase())})</small></span>
+                    <b>${deOrigem ? 'ORIGEM' : (treinada ? '+5 ✓' : '+0')}</b>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+        <footer class="wiz-foot">
+          <span>${cota.faltamTreinadas > 0 ? `Faltam ${cota.faltamTreinadas} perícia(s)` : '✓ Todas as perícias iniciais escolhidas!'}</span>
+          <button type="button" class="wiz-next" data-close-prog-modal>CONCLUIR</button>
+        </footer>
+      </div>
+    `;
+  }
+
+  if (pendenciaId === 'grau_treinamento') {
+    const cota = calcularCotaPericias(state);
+    const nex = Number(state.nex) || 0;
+    const treinadas = PERICIAS.filter(p => Number(state.pericias?.[p.id]?.treino || 0) >= 5);
+    return `
+      <div class="prog-modal">
+        <header class="wiz-head">
+          <small>GRAU DE TREINAMENTO · NEX ${nex}%</small>
+          <h2>Aprimore suas Perícias (Veterano / Expert)</h2>
+          ${stepsBar}
+        </header>
+        <div class="wiz-body prog-modal-body">
+          <div class="prog-section">
+            <h4>Veterano (+10) — <b>${cota.atuaisVeterano} / ${cota.cotaVeterano} escolhidas</b></h4>
+            <p class="prog-modal-lead">Clique nas perícias treinadas para alternar entre Treinado (+5) e Veterano (+10).</p>
+            <div class="prog-skills-grid">
+              ${treinadas.map(p => {
+                const treino = Number(state.pericias?.[p.id]?.treino || 0);
+                const isVet = treino >= 10;
+                return `
+                  <button type="button" class="prog-skill-chip ${isVet ? 'active' : ''}" data-set-pericia-grau="${safe(p.id)}:${isVet ? 5 : 10}">
+                    <span>${safe(p.nome)}</span>
+                    <b>${treino === 15 ? 'EXPERT (+15)' : (isVet ? 'VETERANO (+10) ✓' : 'TREINADO (+5)')}</b>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+          ${nex >= 70 ? `
+            <div class="prog-section" style="margin-top:16px;">
+              <h4>Expert (+15) — <b>${cota.atuaisExpert} / ${cota.cotaExpert} escolhidas</b></h4>
+              <p class="prog-modal-lead">Clique nas perícias Veteranas para alternar entre Veterano (+10) e Expert (+15).</p>
+              <div class="prog-skills-grid">
+                ${treinadas.filter(p => Number(state.pericias?.[p.id]?.treino || 0) >= 10).map(p => {
+                  const treino = Number(state.pericias?.[p.id]?.treino || 0);
+                  const isExp = treino >= 15;
+                  return `
+                    <button type="button" class="prog-skill-chip ${isExp ? 'active' : ''}" data-set-pericia-grau="${safe(p.id)}:${isExp ? 10 : 15}">
+                      <span>${safe(p.nome)}</span>
+                      <b>${isExp ? 'EXPERT (+15) ✓' : 'VETERANO (+10)'}</b>
+                    </button>
+                  `;
+                }).join('') || '<p class="empty-cards">Promova perícias a Veterano (+10) primeiro.</p>'}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+        <footer class="wiz-foot">
+          <span>Veterano: ${cota.atuaisVeterano}/${cota.cotaVeterano}${nex >= 70 ? ` · Expert: ${cota.atuaisExpert}/${cota.cotaExpert}` : ''}</span>
+          <button type="button" class="wiz-next" data-close-prog-modal>CONCLUIR</button>
+        </footer>
+      </div>
+    `;
+  }
+
+  if (pendenciaId.startsWith('sub_escolha:')) {
+    const nomePoder = pendenciaId.slice('sub_escolha:'.length);
+    const meta = nomePoder === 'Aprimoramento de Origem'
+      ? { tipo: 'pericia', treinar: true, titulo: 'Escolha a perícia treinada pelo Aprimoramento de Origem' }
+      : PODERES_COM_ESCOLHA[nomePoder];
+    if (!meta) return '';
+    const valorAtual = state.escolhasDePoderes?.[nomePoder];
+
+    let corpoHtml = '';
+    if (meta.tipo === 'elemento') {
+      corpoHtml = `
+        <div class="prog-element-grid">
+          ${ELEMENTOS_AFINIDADE.map(el => {
+            const color = ELEMENT_COLORS[el] || '#e0150d';
+            return `
+              <button type="button" class="prog-element-card ${valorAtual === el ? 'selected' : ''}" style="--el:${color}" data-save-subescolha="${safe(nomePoder)}:${safe(el)}">
+                <strong style="color:${color}">✦ ${safe(el.toUpperCase())}</strong>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      `;
+    } else if (meta.tipo === 'ritual_conhecido') {
+      const rituais = (state.rituaisConhecidos || []).map(id => RITUAIS.find(r => r.id === id)).filter(Boolean);
+      corpoHtml = rituais.length ? `
+        <div class="prog-skills-grid">
+          ${rituais.map(r => `
+            <button type="button" class="prog-skill-chip ${valorAtual === r.id ? 'active' : ''}" data-save-subescolha="${safe(nomePoder)}:${safe(r.id)}">
+              <span>${safe(r.nome)}</span>
+              <b>${r.circulo}º Círculo</b>
+            </button>
+          `).join('')}
+        </div>
+      ` : '<p class="empty-cards">Aprenda pelo menos um ritual antes de definir o seu Ritual Predileto.</p>';
+    } else if (meta.tipo === 'texto' || meta.tipo === 'texto_opcoes') {
+      const opcoes = meta.opcoes || [];
+      corpoHtml = `
+        ${opcoes.length ? `
+          <div class="prog-pairs-row" style="margin-bottom:12px;">
+            ${opcoes.map(op => `
+              <button type="button" class="oc-chip ${valorAtual === op ? 'active' : ''}" data-save-subescolha="${safe(nomePoder)}:${safe(op)}">${safe(op)}</button>
+            `).join('')}
+          </div>
+        ` : ''}
+        <div class="prog-text-input-row">
+          <input type="text" class="original-input" id="prog-subescolha-input" value="${safe(valorAtual || '')}" placeholder="${safe(meta.placeholder || 'Digite sua escolha...')}">
+          <button type="button" class="wiz-next" data-save-subescolha-input="${safe(nomePoder)}">SALVAR</button>
+        </div>
+      `;
+    } else if (meta.tipo === 'pericias_duplas') {
+      const selecionadas = Array.isArray(tempState.duplas)
+        ? tempState.duplas
+        : (Array.isArray(valorAtual) ? [...valorAtual] : []);
+      const candidatas = PERICIAS.filter(p => {
+        if (meta.exceto?.includes(p.id)) return false;
+        if (meta.apenasTreinadas && Number(state.pericias?.[p.id]?.treino || 0) < 5) return false;
+        return true;
+      });
+      corpoHtml = `
+        <p class="prog-modal-lead">Selecione 2 perícias (${selecionadas.length}/2 selecionadas):</p>
+        <div class="prog-skills-grid">
+          ${candidatas.map(p => {
+            const sel = selecionadas.includes(p.id);
+            const treino = Number(state.pericias?.[p.id]?.treino || 0);
+            return `
+              <button type="button" class="prog-skill-chip ${sel ? 'active' : ''}" data-toggle-subescolha-dupla="${safe(nomePoder)}:${safe(p.id)}">
+                <span>${safe(p.nome)}</span>
+                <b>${sel ? '✓ ESCOLHIDA' : `+${treino}`}</b>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      `;
+    } else {
+      // pericia, pericia_opcoes, pericia_atributo, pericia_atributos
+      const candidatas = PERICIAS.filter(p => {
+        if (meta.opcoes && !meta.opcoes.includes(p.id)) return false;
+        if (meta.exceto?.includes(p.id)) return false;
+        if (meta.apenasTreinadas && Number(state.pericias?.[p.id]?.treino || 0) < 5) return false;
+        if (meta.atributo && p.atributo !== meta.atributo) return false;
+        if (meta.atributos && !meta.atributos.includes(p.atributo)) return false;
+        return true;
+      });
+      corpoHtml = `
+        <div class="prog-skills-grid">
+          ${candidatas.map(p => {
+            const treino = Number(state.pericias?.[p.id]?.treino || 0);
+            return `
+              <button type="button" class="prog-skill-chip ${valorAtual === p.id ? 'active' : ''}" data-save-subescolha="${safe(nomePoder)}:${safe(p.id)}">
+                <span>${safe(p.nome)} <small>(${safe(p.atributo.toUpperCase())})</small></span>
+                <b>+${treino} ${valorAtual === p.id ? '✓' : ''}</b>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    return `
+      <div class="prog-modal">
+        <header class="wiz-head">
+          <small>CONFIGURAR HABILIDADE · ${safe(nomePoder.toUpperCase())}</small>
+          <h2>${safe(meta.titulo)}</h2>
+        </header>
+        <div class="wiz-body prog-modal-body">
+          ${corpoHtml}
+        </div>
+        <footer class="wiz-foot">
+          <span>${valorAtual ? `Atual: ${safe(formatarValorSubEscolha(nomePoder, valorAtual))}` : ''}</span>
+          <button type="button" class="trilha-decisao-later" data-close-prog-modal>Fechar</button>
+        </footer>
+      </div>
+    `;
+  }
+
+  return '';
 }
 
 export function renderTraditionalOriginal(state, editMode, options = {}) {
@@ -291,6 +963,8 @@ export function renderTraditionalOriginal(state, editMode, options = {}) {
         </div>
       </header>
 
+      ${renderPainelPendencias(state)}
+
       <!-- CORPO PRINCIPAL -->
       <div class="dossier-body original-body">
         <section class="dossier-main-col">
@@ -380,7 +1054,8 @@ export function renderTraditionalOriginal(state, editMode, options = {}) {
                   .map(p => {
                     const st = state.pericias?.[p.id] || { treino: 0, extra: 0 };
                     const treinoValor = Number(st.treino || 0);
-                    const attrVal = Number(state.atributos?.[p.atributo] ?? 1);
+                    const attrEfetivo = atributoEfetivoDaPericia(state, p);
+                    const attrVal = Number(state.atributos?.[attrEfetivo] ?? 1);
                     const bonusPoder = bonusPoderes[p.id] || 0;
                     const total = treinoValor + Number(st.extra || 0) + bonusPoder;
                     const isOrigem = treinadasOrigem.includes(p.id);
@@ -416,7 +1091,7 @@ export function renderTraditionalOriginal(state, editMode, options = {}) {
                         </div>
 
                         <div class="col-attr">
-                          <span class="attr-ref-tag">${p.atributo.toUpperCase()} (${attrVal}d20)</span>
+                          <span class="attr-ref-tag">${attrEfetivo.toUpperCase()} (${attrVal}d20)</span>
                         </div>
 
                         <div class="col-extra">
@@ -462,6 +1137,7 @@ export function renderTraditionalOriginal(state, editMode, options = {}) {
                   <strong>${safe(origem.poder?.nome || 'Habilidade de Origem')}</strong>
                   ${origem.poder?.bonus ? `<span class="badge-bonus">✦ ${rich(bonusLabel(state, origem.poder.bonus))}</span>` : ''}
                 </div>
+                ${renderBadgeSubEscolha(state, origem.poder?.nome)}
                 <p class="card-desc">${rich(origem.poder?.descricao || origem.descricao || '')}</p>
               </div>
               ${originExtraCards(state, origem)}
@@ -472,19 +1148,33 @@ export function renderTraditionalOriginal(state, editMode, options = {}) {
               <h3 style="margin-top:16px;">TRILHAS</h3>
               ${renderTrilhas(state, editMode)}
 
-              <h3 style="margin-top:16px;">PODERES ESCOLHIDOS</h3>
+              <h3 style="margin-top:16px;">PODERES ESCOLHIDOS (${poderesContabilizadosNaCota(state)}/${cotaPoderesDeClasse(state)})</h3>
               <div class="card-list">
                 ${chosenPowerCards(state, true, '<p class="empty-cards">Nenhum poder escolhido ainda.</p>')}
               </div>
               ${pickerButton('poderes', 'ADICIONAR PODER')}
 
-              <h3 style="margin-top:16px;">PODERES PARANORMAIS</h3>
+              <div class="powers-header-row" style="margin-top:16px;">
+                <h3 style="margin:0;">PODERES PARANORMAIS</h3>
+                ${nex >= 50 && !mundana ? `
+                  <button type="button" class="badge-afinidade-pill ${state.elementoAfinidade ? 'has-element' : ''}" style="${state.elementoAfinidade ? `--el:${ELEMENT_COLORS[state.elementoAfinidade] || '#e0150d'}` : ''}" data-pendencia-acao="afinidade">
+                    ✦ Afinidade: <b>${safe(state.elementoAfinidade || 'Escolher...')}</b>
+                  </button>
+                ` : ''}
+              </div>
               <div class="card-list">
                 ${(state.poderesParanormais || []).map((p, i) => `
-                  <div class="original-card paranormal-card" style="border-left: 3px solid ${ELEMENT_COLORS[p.elemento] || '#e0150d'}">
+                  <div class="original-card paranormal-card ${p.comAfinidade ? 'has-affinity' : ''}" style="border-left: 3px solid ${ELEMENT_COLORS[p.elemento] || '#e0150d'}">
                     <div class="card-head">
                       <strong>${safe(p.nome)} <small>(${safe(p.elemento)})</small></strong>
-                      <button type="button" class="btn-remove-item" data-remove-paranormal="${i}">${originalIcon('trash', 13)}</button>
+                      <div style="display:flex;align-items:center;gap:6px;">
+                        ${nex >= 50 && editMode ? `
+                          <button type="button" class="btn-toggle-afinidade ${p.comAfinidade ? 'active' : ''}" data-toggle-afinidade-poder="${i}" title="Alternar versão com Afinidade deste poder">
+                            ${p.comAfinidade ? '✦ AFINIDADE ATIVA' : '+ AFINIDADE'}
+                          </button>
+                        ` : (p.comAfinidade ? `<span class="badge-afinidade-ativa">✦ AFINIDADE ATIVA</span>` : '')}
+                        <button type="button" class="btn-remove-item" data-remove-paranormal="${i}">${originalIcon('trash', 13)}</button>
+                      </div>
                     </div>
                     <p class="card-desc">${rich(p.descricao)}</p>
                   </div>
@@ -499,12 +1189,12 @@ export function renderTraditionalOriginal(state, editMode, options = {}) {
             <div class="original-section-group">
               <div class="rituals-header-bar">
                 <div class="rituals-dt-pill">
-                  <small>DT DE RESISTÊNCIA</small>
+                  <small>DT DE RESISTÊNCIA · ATÉ ${circuloMaximoRitual(state)}º CÍRCULO</small>
                   <b>${dtRituais}</b>
                 </div>
                 <div class="rituals-header-actions">
                   <button type="button" class="btn-learn-ritual btn-ghost" data-open-compendium="rituais">COMPÊNDIO</button>
-                  <button type="button" class="btn-learn-ritual" data-open-compendium="rituais" data-compendium-pick>+ APRENDER RITUAL</button>
+                  <button type="button" class="btn-learn-ritual" data-open-compendium="rituais" data-compendium-pick data-compendium-ate-circulo>+ APRENDER RITUAL</button>
                 </div>
               </div>
 
@@ -709,6 +1399,8 @@ function chosenPowerCards(state, canRemove, emptyNote) {
       ${p.origemTipo ? `<span class="card-meta">${safe(p.origemTipo)}</span>` : ''}
       ${p.preRequisito ? `<span class="card-meta card-prereq">Pré-requisito: ${safe(p.preRequisito)}</span>` : ''}
       ${p.bonus ? `<span class="badge-bonus">✦ ${rich(bonusLabel(state, p.bonus))}</span>` : ''}
+      ${renderBadgeTreinoAutomatico(state, p.nome)}
+      ${renderBadgeSubEscolha(state, p.nome)}
       <p class="card-desc">${rich(p.descricao)}</p>
     </div>
   `).join('') || emptyNote;
@@ -728,14 +1420,17 @@ function originExtraCards(state, origem) {
   `).join('');
   const ap = aprimoramentoDeOrigemAtual(state);
   if (!ap) return extras;
-  const per = PERICIAS.find(p => p.id === ap.pericia);
+  const periciaEscolhida = state.escolhasDePoderes?.['Aprimoramento de Origem'] || ap.pericia;
+  const per = PERICIAS.find(p => p.id === periciaEscolhida);
   return extras + `
     <div class="original-card origin-card" style="margin-top:8px;">
       <div class="card-head">
         <strong>${safe(ap.poder?.nome || 'Aprimoramento de Origem')}</strong>
-        <span class="badge-bonus">✦ Perícia: ${safe(per ? per.nome : ap.pericia)}</span>
+        <button type="button" class="badge-subescolha is-set" data-edit-subescolha="Aprimoramento de Origem" title="Clique para alterar a perícia caso já fosse treinado">
+          ✦ Perícia: ${safe(per ? per.nome : periciaEscolhida)}
+        </button>
       </div>
-      <span class="card-meta">Aprimoramento de Origem — se já for treinado na perícia, escolha outra</span>
+      <span class="card-meta">Aprimoramento de Origem — se já for treinado na perícia, clique acima para escolher outra</span>
       ${ap.poder ? `<p class="card-desc">${rich(ap.poder.descricao)}</p>` : ''}
     </div>
   `;
@@ -840,6 +1535,8 @@ function renderTrilhas(state, editMode) {
         <strong>${safe(i.poder.nome)}</strong>
       </div>
       <span class="card-meta">${safe(i.trilhaObj.nome)}</span>
+      ${renderBadgeTreinoAutomatico(state, i.poder.nome)}
+      ${renderBadgeSubEscolha(state, i.poder.nome)}
       <p class="card-desc">${rich(i.poder.descricao)}</p>
     </div>
   `).join('');
@@ -947,11 +1644,15 @@ export function renderCinematicOriginal(state, editMode, options = {}) {
               <i></i>
               ${classeEhMundana(classe) ? `
               <em>ESTÁGIO</em>
+              <button type="button" class="nex-step-btn" data-nex-step="-1" title="Descer um estágio">−</button>
               <input type="number" data-original-field="estagio" value="${estagioAtual(state)}" min="1" max="${ESTAGIO_MAX}" step="1" inputmode="numeric">
+              <button type="button" class="nex-step-btn" data-nex-step="1" title="Subir um estágio">+</button>
               ` : `
               <em>NEX</em>
+              <button type="button" class="nex-step-btn" data-nex-step="-1" title="Descer NEX">−</button>
               <input type="number" data-original-field="nex" value="${nex}" min="5" max="99" step="5" inputmode="numeric">
-              <em>%</em>`}
+              <em>%</em>
+              <button type="button" class="nex-step-btn" data-nex-step="1" title="Subir NEX">+</button>`}
             </div>
           ` : `
             <div class="cinematic-identity-read ocin-identity">
@@ -992,14 +1693,15 @@ export function renderCinematicOriginal(state, editMode, options = {}) {
             <div class="ocin-skills-grid" style="--ocin-skill-rows:${Math.ceil(PERICIAS.length / 2)}">
               ${PERICIAS.map(p => {
                 const st = state.pericias?.[p.id] || { treino: 0, extra: 0 };
-                const attrVal = Number(state.atributos?.[p.atributo] ?? 1);
+                const attrEfetivo = atributoEfetivoDaPericia(state, p);
+                const attrVal = Number(state.atributos?.[attrEfetivo] ?? 1);
                 const treinoValor = Number(st.treino || 0);
                 const total = treinoValor + Number(st.extra || 0) + (bonusPoderes[p.id] || 0);
                 const treinoClass = treinoValor === 15 ? 'expert' : (treinoValor === 10 ? 'veterano' : (treinoValor === 5 ? 'treinado' : 'destreinado'));
                 return `
                   <div class="ocin-skill treino-${treinoClass}" data-roll-skill="${p.id}" role="button" tabindex="0" title="${safe(p.nome)} · ${attrVal > 0 ? `${attrVal}d20` : '2d20 (menor)'} ${total >= 0 ? '+' : '−'}${Math.abs(total)}">
                     <span class="ocin-skill-name">${safe(p.nome)}</span>
-                    <em class="ocin-skill-dice ${attrVal > 0 ? '' : 'pior'}"><small>${p.atributo.toUpperCase()}</small><span>${attrVal > OCIN_DADOS_MAX ? `${die(20, 'ocin-skill-die')}<i class="vezes">×${attrVal}</i>` : die(20, 'ocin-skill-die').repeat(attrVal > 0 ? attrVal : 2)}${attrVal > 0 ? '' : '<i>▾</i>'}</span></em>
+                    <em class="ocin-skill-dice ${attrVal > 0 ? '' : 'pior'}"><small>${attrEfetivo.toUpperCase()}</small><span>${attrVal > OCIN_DADOS_MAX ? `${die(20, 'ocin-skill-die')}<i class="vezes">×${attrVal}</i>` : die(20, 'ocin-skill-die').repeat(attrVal > 0 ? attrVal : 2)}${attrVal > 0 ? '' : '<i>▾</i>'}</span></em>
                     <b>${total >= 0 ? '+' : '−'}${Math.abs(total)}</b>
                   </div>
                 `;
@@ -1098,6 +1800,8 @@ export function renderCinematicOriginal(state, editMode, options = {}) {
           </div>
 
           <div class="cinematic-scroll">
+            ${presentationMode ? '' : renderPainelPendencias(state, { compact: true })}
+
             <!-- COMBATE & ARMAS -->
             <section class="cinematic-section-group ${isCollapsed('combat') ? 'collapsed' : ''}" data-section-key="combat">
               <div class="cinematic-section-heading">
@@ -1150,6 +1854,7 @@ export function renderCinematicOriginal(state, editMode, options = {}) {
                       <div class="card-head">
                         <strong>${safe(origem.poder.nome || 'Habilidade de Origem')} <small>(${safe(origem.nome)})</small></strong>
                       </div>
+                      ${renderBadgeSubEscolha(state, origem.poder.nome)}
                       <p class="card-desc" style="font-size:11px;">${rich(origem.poder.descricao || '')}</p>
                     </div>
                   ` : ''}
@@ -1162,10 +1867,17 @@ export function renderCinematicOriginal(state, editMode, options = {}) {
                   ${editMode ? pickerButton('poderes', 'ADICIONAR PODER') : ''}
 
                   ${(state.poderesParanormais || []).map((p, i) => `
-                    <div class="original-card paranormal-card" style="border-left: 3px solid ${ELEMENT_COLORS[p.elemento] || '#e0150d'};margin-bottom:8px;">
+                    <div class="original-card paranormal-card ${p.comAfinidade ? 'has-affinity' : ''}" style="border-left: 3px solid ${ELEMENT_COLORS[p.elemento] || '#e0150d'};margin-bottom:8px;">
                       <div class="card-head">
                         <strong style="color:${ELEMENT_COLORS[p.elemento] || '#e0150d'}">${safe(p.nome)} <small>(${safe(p.elemento)})</small></strong>
-                        ${editMode ? `<button type="button" class="btn-remove-item" data-remove-paranormal="${i}">${originalIcon('trash', 13)}</button>` : ''}
+                        <div style="display:flex;align-items:center;gap:6px;">
+                          ${nex >= 50 && editMode ? `
+                            <button type="button" class="btn-toggle-afinidade ${p.comAfinidade ? 'active' : ''}" data-toggle-afinidade-poder="${i}">
+                              ${p.comAfinidade ? '✦ AFINIDADE' : '+ AFINIDADE'}
+                            </button>
+                          ` : (p.comAfinidade ? `<span class="badge-afinidade-ativa">✦ AFINIDADE</span>` : '')}
+                          ${editMode ? `<button type="button" class="btn-remove-item" data-remove-paranormal="${i}">${originalIcon('trash', 13)}</button>` : ''}
+                        </div>
                       </div>
                       <p class="card-desc" style="font-size:11px;">${rich(p.descricao)}</p>
                     </div>

@@ -3325,3 +3325,102 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 .wiz-option-tag{align-self:flex-start;padding:2px 6px;border-radius:3px;background:#22253a;font:800 8px "Hanken Grotesk";font-style:normal;letter-spacing:.14em;color:#9a9db3}
 .wiz-option.selected .wiz-option-tag{background:color-mix(in srgb,var(--red),#0f101b 55%);color:#fff}
 .wiz-steps[hidden]{display:none}
+
+/* ── Central de Pendências & Progressão Inteligente (Ordem 1) ─────────────── */
+.original-pendencias-bar{margin:0 0 18px;padding:12px 16px;border-radius:6px;background:linear-gradient(135deg,rgba(229,161,28,.12),rgba(19,20,31,.94) 55%);border:1px solid rgba(229,161,28,.38);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.original-pendencias-bar.is-compact{margin-bottom:10px;padding:10px 12px}
+.pendencias-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pendencias-sigil{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:5px;background:rgba(229,161,28,.18);color:#f5b82e}
+.pendencias-head-text{display:flex;flex-direction:column;gap:1px}
+.pendencias-head-text strong{font:800 11px "Hanken Grotesk",sans-serif;letter-spacing:.14em;color:#f5b82e}
+.pendencias-head-text small{font-size:11px;color:#9c9fb8}
+.pendencias-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:8px}
+.original-pendencias-bar.is-compact .pendencias-grid{grid-template-columns:1fr}
+.pendencia-card{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-radius:5px;background:rgba(15,16,26,.85);border:1px solid #2b2e44;transition:border-color .15s,background .15s}
+.pendencia-card:hover{border-color:rgba(229,161,28,.5);background:rgba(22,24,38,.95)}
+.pendencia-info{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pendencia-info strong{font:700 12px "Hanken Grotesk",sans-serif;color:#ececf2}
+.pendencia-info span{font-size:11px;color:#9a9db3;line-height:1.35}
+.pendencia-actions{display:flex;align-items:center;gap:6px;flex:none}
+.btn-pendencia-resolve{height:28px;padding:0 11px;border-radius:4px;border:1px solid rgba(229,161,28,.55);background:rgba(229,161,28,.16);color:#f7c548;font:800 9px "Hanken Grotesk",sans-serif;letter-spacing:.12em;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
+.btn-pendencia-resolve:hover{background:#e5a11c;border-color:#e5a11c;color:#11121c}
+.btn-pendencia-dismiss{width:24px;height:24px;border-radius:4px;border:1px solid transparent;background:transparent;color:#6c708a;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.btn-pendencia-dismiss:hover{border-color:#3a3e58;color:#d2d5e8;background:rgba(255,255,255,.04)}
+
+/* ── Sub-escolhas, Afinidade & Pré-requisitos no Compêndio ───────────────── */
+.badge-subescolha{display:inline-flex;align-items:center;gap:5px;margin:4px 0 2px;padding:3px 9px;border-radius:4px;font:700 10px "Hanken Grotesk",sans-serif;letter-spacing:.06em;cursor:pointer;transition:filter .15s,border-color .15s}
+.badge-subescolha.is-set{border:1px solid rgba(56,189,248,.45);background:rgba(2,132,199,.15);color:#7dd3fc}
+.badge-subescolha.is-pending{border:1px dashed rgba(229,161,28,.65);background:rgba(229,161,28,.14);color:#f7c548}
+.badge-subescolha:hover{filter:brightness(1.18)}
+.badge-afinidade-pill{height:26px;padding:0 10px;border-radius:4px;border:1px solid color-mix(in srgb,var(--el,#e5a11c) 55%,#2b2e44);background:color-mix(in srgb,var(--el,#e5a11c) 16%,#12131f);color:#ececf2;font:700 10px "Hanken Grotesk",sans-serif;letter-spacing:.08em;cursor:pointer}
+.badge-afinidade-pill b{color:var(--el,#f7c548)}
+.badge-afinidade-ativa{display:inline-flex;align-items:center;padding:2px 7px;border-radius:3px;background:rgba(229,161,28,.18);border:1px solid rgba(229,161,28,.45);color:#f7c548;font:800 9px "Hanken Grotesk",sans-serif;letter-spacing:.1em}
+.btn-toggle-afinidade{height:23px;padding:0 8px;border-radius:3px;border:1px solid #353852;background:#181a29;color:#9a9db3;font:800 9px "Hanken Grotesk",sans-serif;letter-spacing:.1em;cursor:pointer;transition:all .15s}
+.btn-toggle-afinidade.active{border-color:rgba(229,161,28,.6);background:rgba(229,161,28,.18);color:#f7c548}
+.btn-toggle-afinidade:hover{border-color:#6a6e8c;color:#fff}
+
+.card-prereq.prereq-ok{color:#4ade80!important}
+.card-prereq.prereq-missing{color:#fbbf24!important}
+.oc-card.prereq-locked{border-color:rgba(251,191,36,.22)}
+.oc-chip-disp.active{border-color:#4ade80!important;background:rgba(74,222,128,.14)!important;color:#86efac!important}
+.oc-add-affinity{border-color:rgba(229,161,28,.65)!important;background:rgba(229,161,28,.18)!important;color:#f7c548!important}
+.oc-add-affinity:hover{background:#e5a11c!important;color:#11121c!important}
+.oc-quota-banner{display:flex;flex-direction:column;gap:3px;padding:10px 13px;margin-bottom:8px;border-radius:5px;border:1px solid rgba(229,161,28,.45);background:rgba(229,161,28,.1);color:#ececf2;font-size:12px}
+.oc-quota-banner.is-complete{border-color:rgba(74,222,128,.4);background:rgba(74,222,128,.08)}
+.oc-quota-banner strong{color:#f7c548}
+.oc-quota-banner.is-complete strong{color:#4ade80}
+.oc-quota-banner small{color:#a2a5bc;font-size:11px}
+
+/* ── Modal Interativo de Progressão (Atributos, Poderes, Rituais, Perícias) ─ */
+.modal.original-prog-modal section{width:min(820px,calc(100vw - 24px));max-height:min(740px,calc(100vh - 32px));padding:0;display:flex;flex-direction:column;overflow:hidden;background:#13141f;border:1px solid #383b52;animation:wiz-open .24s cubic-bezier(.2,.8,.25,1) both}
+.prog-modal{display:flex;flex-direction:column;flex:1;min-height:0}
+.prog-modal-body{flex:1;overflow-y:auto;padding:16px 24px;display:flex;flex-direction:column;gap:14px}
+.prog-modal-lead{margin:0;font-size:12px;line-height:1.5;color:#a8abc2}
+.prog-marco-tabs{display:flex;flex-wrap:wrap;gap:6px}
+.prog-steps-nav{display:flex;flex-wrap:wrap;gap:6px;padding:10px 24px;background:#0e0f18;border-bottom:1px solid #26283b}
+.prog-step-pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:14px;border:1px solid #2d3047;background:#181a28;color:#a0a3bc;font:700 11px "Hanken Grotesk",sans-serif;cursor:pointer;transition:all .15s}
+.prog-step-pill:hover{border-color:#52567a;color:#fff}
+.prog-step-pill.active{border-color:var(--red);background:rgba(224,21,13,.16);color:#fff}
+.prog-step-num{color:var(--red);font-weight:800}
+.prog-filter-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.prog-search-input{flex:1;min-width:200px;height:34px;padding:0 12px;border-radius:5px;border:1px solid #2f324a;background:#181a28;color:#ececf2;font-size:12px}
+.prog-search-input:focus{outline:none;border-color:var(--red)}
+.prog-cards-list{display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto;padding-right:4px}
+.oc-card.is-transcender-highlight{border-color:rgba(168,85,247,.55);background:linear-gradient(135deg,rgba(168,85,247,.14),rgba(24,26,40,.95))}
+.ocin-identity-edit .nex-step-btn{width:28px;height:30px;padding:0;border-radius:4px;border:1px solid #353852;background:#191b2b;color:#e6e7f2;font:800 15px "Hanken Grotesk",sans-serif;cursor:pointer}
+.ocin-identity-edit .nex-step-btn:hover{border-color:var(--red);background:#251822;color:#fff}
+.prog-attr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:10px}
+.prog-attr-card{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 10px;border-radius:6px;border:1px solid #2d3047;background:#181a28;color:#ececf2;cursor:pointer;transition:border-color .15s,background .15s,transform .1s}
+.prog-attr-card:hover:not(:disabled){border-color:var(--red);background:#1f2235;transform:translateY(-1px)}
+.prog-attr-card.selected{border-color:#4ade80;background:rgba(74,222,128,.1)}
+.prog-attr-card:disabled{opacity:.45;cursor:not-allowed}
+.prog-attr-sigla{font:800 10px "Hanken Grotesk",sans-serif;letter-spacing:.16em;color:#8e92ab}
+.prog-attr-card strong{font-size:13px}
+.prog-attr-transition{display:flex;align-items:center;gap:6px;font:800 16px "Hanken Grotesk",sans-serif}
+.prog-attr-transition span{color:#8e92ab}
+.prog-attr-transition i{font-style:normal;font-size:12px;color:#6c708a}
+.prog-attr-transition b{color:#4ade80}
+
+.prog-element-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.prog-element-card{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:14px;border-radius:6px;border:1px solid #2d3047;background:#181a28;color:#ececf2;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
+.prog-element-card:hover:not(:disabled){border-color:var(--el,#e0150d);background:color-mix(in srgb,var(--el,#e0150d) 12%,#181a28)}
+.prog-element-card.selected{border-color:var(--el,#e0150d);background:color-mix(in srgb,var(--el,#e0150d) 18%,#181a28)}
+.prog-element-card p{margin:0;font-size:11px;line-height:1.45;color:#a8abc2}
+
+.prog-section{display:flex;flex-direction:column;gap:8px}
+.prog-section h4{margin:0;font:800 11px "Hanken Grotesk",sans-serif;letter-spacing:.12em;color:#d5d7e6;text-transform:uppercase}
+.prog-pairs-row{display:flex;flex-wrap:wrap;gap:10px}
+.prog-pair-box{display:flex;flex-direction:column;gap:5px;padding:8px 10px;border-radius:5px;background:#181a28;border:1px solid #2b2e44}
+.prog-pair-box small{font-size:10px;color:#8e92ab}
+.prog-pair-btns{display:flex;gap:6px}
+.prog-skills-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:6px}
+.prog-skill-chip{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:4px;border:1px solid #2b2e44;background:#181a28;color:#c5c8dc;font:600 11px "Hanken Grotesk",sans-serif;cursor:pointer;transition:all .14s}
+.prog-skill-chip:hover{border-color:#52567a;color:#fff}
+.prog-skill-chip.active{border-color:rgba(74,222,128,.55);background:rgba(74,222,128,.12);color:#fff}
+.prog-skill-chip.active b{color:#4ade80}
+.prog-skill-chip.is-origin{border-color:rgba(229,184,57,.45);background:rgba(229,184,57,.08)}
+.prog-skill-chip.is-origin b{color:#e5b839;font-size:9px}
+.prog-skill-chip small{color:#7e8198;font-size:9px}
+.prog-text-input-row{display:flex;gap:8px}
+.prog-text-input-row .original-input{flex:1;height:36px;padding:0 12px;border-radius:4px;border:1px solid #353852;background:#181a28;color:#fff;font-size:13px}
+@media (max-width:640px){.prog-element-grid{grid-template-columns:1fr}.prog-skills-grid{grid-template-columns:1fr 1fr}}
