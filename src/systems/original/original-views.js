@@ -1378,7 +1378,7 @@ function renderNexTrack(state, editMode) {
           }).join('')}
         </div>
         <p class="nex-next">${proximo === undefined
-          ? 'NÍVEL MÁXIMO'
+          ? (mundana ? 'ESTÁGIO MÁXIMO — Selecione uma Classe acima para ingressar em <b>NEX 5%</b>' : 'NÍVEL MÁXIMO')
           : `PRÓXIMO <b>${safe(rotuloNivel(state, proximo).toUpperCase())}</b> ${rich(ganho(proximo))}`}</p>
       </div>
     </div>`;

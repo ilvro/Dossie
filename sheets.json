@@ -22511,13 +22511,15 @@
     "systemMode": "original",
     "name": "AGENTE 9",
     "jogador": "",
-    "origemId": "amnésico",
-    "classeId": "sobrevivente",
-    "trilhaId": "durao",
-    "trilhaSecundariaId": "",
+    "origemId": "acadêmico",
+    "classeId": "ocultista",
+    "trilhaId": "criptologista",
+    "trilhaSecundariaId": "conduite",
     "trilhaTerciariaId": "",
     "nivelTrilhaTerciaria": 1,
-    "versatilidadeRecusada": {},
+    "versatilidadeRecusada": {
+      "40": true
+    },
     "usaPD": true,
     "aumentosAtributo": {},
     "elementoAfinidade": "",
@@ -22526,7 +22528,7 @@
     "ignorarPendencias": {},
     "veioDeSobrevivente": true,
     "teveIniciado": false,
-    "nex": 0,
+    "nex": 55,
     "atributos": {
       "for": 1,
       "agi": 1,
@@ -22534,12 +22536,12 @@
       "int": 2,
       "pre": 3
     },
-    "pv": 22,
-    "maxPv": 11,
+    "pv": 43,
+    "maxPv": 43,
     "pvTemp": 0,
     "pvMarcas": 0,
-    "pe": 40,
-    "maxPe": 10,
+    "pe": 96,
+    "maxPe": 96,
     "peTemp": 0,
     "san": 0,
     "maxSan": 0,
@@ -22549,7 +22551,7 @@
     "deslocamento": "9m (6q)",
     "pericias": {
       "acrobacia": {
-        "treino": 5,
+        "treino": 0,
         "extra": 0
       },
       "adestramento": {
@@ -22565,7 +22567,7 @@
         "extra": 0
       },
       "atualidades": {
-        "treino": 5,
+        "treino": 0,
         "extra": 0
       },
       "ciencias": {
@@ -22581,7 +22583,7 @@
         "extra": 0
       },
       "enganacao": {
-        "treino": 0,
+        "treino": 5,
         "extra": 0
       },
       "fortitude": {
@@ -22593,7 +22595,7 @@
         "extra": 0
       },
       "iniciativa": {
-        "treino": 0,
+        "treino": 5,
         "extra": 0
       },
       "intimidacao": {
@@ -22605,7 +22607,7 @@
         "extra": 0
       },
       "investigacao": {
-        "treino": 0,
+        "treino": 5,
         "extra": 0
       },
       "luta": {
@@ -22673,10 +22675,17 @@
         "bonus": null
       },
       {
-        "nome": "Ataque de Oportunidade",
-        "descricao": "Sempre que um ser sair voluntariamente de um espaço adjacente ao seu, você pode gastar uma reação e 1 PE para fazer um ataque corpo a corpo contra ele.",
+        "nome": "Artista Marcial",
+        "descricao": "Seus ataques desarmados causam 1d6 pontos de dano, podem causar dano letal e se tornam ágeis (veja p. 59). Em NEX 35%, o dano aumenta para 1d8 e, em NEX 70%, para 1d10.",
         "preRequisito": "",
         "origemTipo": "Poder Geral",
+        "bonus": null
+      },
+      {
+        "nome": "Versatilidade",
+        "descricao": "Você recebe a primeira habilidade de uma segunda trilha da sua classe. Você pode escolher este poder novamente para receber a habilidade seguinte dessa trilha, desde que possua as anteriores. Um personagem só pode ter duas trilhas — esse limite aumenta com o poder paranormal Versatilidade Amplificada. Na ficha: escolha a trilha secundária em Habilidades → Trilhas.",
+        "preRequisito": null,
+        "origemTipo": "Poder de Ocultista",
         "bonus": null
       }
     ],
@@ -22708,7 +22717,7 @@
       "history": true
     },
     "folderId": "folder-characters",
-    "id": "sheet-1793466638396-icc6w",
+    "id": "sheet-1793325457531-wvad8",
     "favorite": false
   }
 ]

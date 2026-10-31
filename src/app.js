@@ -1144,25 +1144,13 @@ function collectActiveInputs(){
    state.pericias[rawId].extra=Number(el.value)||0;
   }
  });
- document.querySelectorAll('[data-skill-treino]').forEach(el=>{
-  if(el.closest('.cinematic-ghost-exit')) return;
-  const rawId=el.dataset.skillTreino;
-  if(!state.pericias) state.pericias={};
-  if(!state.pericias[rawId]) state.pericias[rawId]={treino:0,extra:0};
-  state.pericias[rawId].treino=Number(el.value)||0;
- });
  document.querySelectorAll('[data-original-field]').forEach(el=>{
   if(el.closest('.cinematic-ghost-exit')) return;
   const key=el.dataset.originalField;
   if(key&&el.value!==undefined){
-   if(key==='nex'){
-    state.nex=snapNex(el.value);
-    ajustarNexDaClasse(state);
-   }else if(key==='estagio'){
-    state.nex=nexDoEstagio(el.value);
-   }else if(['defesaOutros','pvTemp','peTemp','sanTemp'].includes(key)){
+   if(['defesaOutros','pvTemp','peTemp','sanTemp'].includes(key)){
     state[key]=Number(el.value)||0;
-   }else{
+   }else if(['name','deslocamento','history'].includes(key)){
     state[key]=el.value;
    }
   }
@@ -4665,20 +4653,21 @@ function bind(){
      mudarNexOriginal(()=>{state.nex=snapNex(e.target.value);ajustarNexDaClasse(state);});
     }else if(key==='estagio'){
      mudarNexOriginal(()=>{state.nex=nexDoEstagio(e.target.value);});
-    }else if(['defesaOutros','pvTemp','peTemp','sanTemp'].includes(key)){
-     state[key]=Number(e.target.value)||0;
-    }else{
-     state[key]=e.target.value;
-    }
-    if(key==='classeId'){
+    }else if(key==='classeId'){
+     const novaClasse=e.target.value;
      sincronizarAoMudarNex(state,()=>{
-      aplicarTransicaoDeClasse(state,classeAnterior,state.classeId);
+      aplicarTransicaoDeClasse(state,classeAnterior,novaClasse);
+      state.classeId=novaClasse;
       const cls=classeAtual(state);
       state.trilhaId=cls.trilhas?.[0]?.id||'';
       state.trilhaSecundariaId='';
       state.trilhaTerciariaId='';
       ajustarNexDaClasse(state);
      });
+    }else if(['defesaOutros','pvTemp','peTemp','sanTemp'].includes(key)){
+     state[key]=Number(e.target.value)||0;
+    }else{
+     state[key]=e.target.value;
     }
     if(key==='trilhaId'){
      if(state.trilhaSecundariaId===state.trilhaId) state.trilhaSecundariaId='';

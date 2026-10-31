@@ -823,6 +823,13 @@ export function aplicarTransicaoDeClasse(sheet, classeAnteriorId, novaClasseId) 
     if (sheet.trilhaId === 'esoterico' && (Number(sheet.nex) || 0) >= 15) {
       sheet.teveIniciado = true;
     }
+    // Preserva o aumento de atributo do Estágio 3 sem conflitar com os marcos de NEX da classe
+    if (sheet.aumentosAtributo?.[10]) {
+      sheet.aumentosAtributo.sobrevivente = sheet.aumentosAtributo[10];
+      delete sheet.aumentosAtributo[10];
+    }
+    // Ao subir de Sobrevivente (ex: Estágio 5) para uma classe, o NEX base começa em 5% (não 20%)
+    sheet.nex = 5;
     // Se era Ocultista, já treina Ocultismo e Vontade automaticamente
     if (novaClasseId === 'ocultista') {
       ['ocultismo', 'vontade'].forEach(pid => {
@@ -892,11 +899,12 @@ export function sincronizarAoMudarNex(sheet, aplicarMudanca) {
   aplicarMudanca();
 
   const nexDepois = Number(sheet.nex) || 0;
-  // Se o NEX diminuiu, desfaz aumentos de atributo de marcos acima do NEX atual
-  if (nexDepois < nexAntes && sheet.aumentosAtributo) {
+  // Se o NEX diminuiu dentro da mesma classe, desfaz aumentos de atributo de marcos acima do NEX atual
+  if (sheet.classeId === classeAntes && nexDepois < nexAntes && sheet.aumentosAtributo) {
     Object.keys(sheet.aumentosAtributo).forEach(m => {
-      if (Number(m) > nexDepois) {
-        definirAumentoAtributo(sheet, Number(m), '');
+      const mNum = Number(m);
+      if (!isNaN(mNum) && mNum > nexDepois) {
+        definirAumentoAtributo(sheet, mNum, '');
       }
     });
   }
@@ -913,7 +921,9 @@ export function sincronizarAoMudarNex(sheet, aplicarMudanca) {
       const pendDepois = calcularPendencias(sheet);
       let recemDestravada = null;
       if (sheet.classeId !== classeAntes) {
-        recemDestravada = 'pericias_classe';
+        recemDestravada = pendDepois.some(p => p.id === 'pericias_classe')
+          ? 'pericias_classe'
+          : (pendDepois.some(p => p.id === 'rituais') ? 'rituais' : null);
       } else {
         const prioridadeNex = ['aumento_atributo', 'poder_classe', 'afinidade', 'rituais', 'grau_treinamento'];
         recemDestravada = prioridadeNex.find(id => {
