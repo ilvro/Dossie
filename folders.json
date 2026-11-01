@@ -20,5 +20,16 @@
     "collapsed": false,
     "order": 1,
     "system": true
+  },
+  {
+    "id": "fld-mvxb7120-5p5gg",
+    "name": "Ídolo de Pedra",
+    "kind": "custom",
+    "parentId": null,
+    "color": "#3187ff",
+    "icon": "folder",
+    "collapsed": true,
+    "order": 2,
+    "system": false
   }
 ]

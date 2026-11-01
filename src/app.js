@@ -224,15 +224,15 @@ const skillSeed=[
  ['PONTARIA','DESTREINADO',4,'Físico'],['SOBREVIVÊNCIA','DESTREINADO',4,'Mente'],['TECNOLOGIA','TREINADO',6,'Mente'],['VIGOR','DESTREINADO',4,'Físico']];
 const defaultSkills=skillSeed.map(([name,training,skillDie,attribute])=>({name,training,skillDie,attribute,extra:0}));
 const defaultCards=[
-  {id:'impeto',profileAbility:'Executor',themeLinked:true,schema:'abilities',title:'ÍMPETO',type:'Recurso',content:'Você possui uma barra de [color=#e0150d]**Ímpeto**[/color] com três espaços. Sempre que falha em um teste, você preenche um espaço nessa barra.\n\nVocê pode apagar espaços preenchidos para:\n- 1 Receber +4 em um teste\n- 3 Aumentar um atributo em um passo até o final da cena',accent:'#e0150d',icon:'◆',markers:[{id:'impeto-m',type:'pips',displayStyle:'rectangles',label:'Ímpeto',current:0,maxFormula:'3'}],actions:[]},
+  {id:'impeto',profileAbility:'Executor',themeLinked:true,schema:'abilities',title:'ÍMPETO',type:'Habilidade de Perfil',content:'Você possui uma [color=#e0150d]**barra de ímpeto, com cinco espaços**[/color]. Sempre que **faz um teste e falha**, você preenche um espaço na **barra de ímpeto**. Como uma ação livre, você pode gastar espaços da barra de ímpeto para receber benefícios.\n- **1 espaço.** Você recebe +1d4 em um teste.\n- **3 espaços.** Você **aumenta um atributo em um passo** até o fim da cena.\n- **3 espaços.** Em cenas de conflito, você **faz uma ação extra**.\n\nNo fim da cena, sua barra de ímpeto esvazia.',accent:'#e0150d',icon:'◆',markers:[{id:'impeto-m',type:'pips',displayStyle:'rectangles',label:'Ímpeto',current:0,maxFormula:'5'}],actions:[]},
   {id:'foco-mental',themeLinked:true,schema:'abilities',title:'FOCO MENTAL',type:'Habilidade',content:'Quando faz um teste mental, você pode gastar 2 PD para receber +4 no teste.',accent:'#e91d25',icon:'◈',markers:[],actions:[{id:'foco-a',name:'Teste mental',expression:'1d8'}]},
   {id:'kit',themeLinked:true,schema:'items',title:'KIT DE INVESTIGAÇÃO',type:'Equipamento',content:'Ferramentas para analisar cenas, coletar amostras e registrar pistas.',accent:'#e91d25',icon:'⌕',markers:[{id:'kit-m',type:'pips',label:'Usos',current:3,maxFormula:'3'}],actions:[]},
   {id:'pistola',themeLinked:true,schema:'items',title:'PISTOLA',type:'Arma',content:'Uma arma de serviço compacta. Dano 1d8.',accent:'#e91d25',icon:'†',markers:[{id:'pistola-m',type:'pips',displayStyle:'rectangles',label:'Munição',current:6,maxFormula:'6'}],actions:[{id:'pistola-a',name:'Ataque de pistola',expression:'1d8'}]}
 ];
 const PROFILE_ABILITIES={
   Executor:defaultCards[0],
-  Vigilante:{id:'prontidao',profileAbility:'Vigilante',themeLinked:true,schema:'abilities',title:'PRONTIDÃO',type:'Habilidade de Perfil',content:'Você possui uma [color=#2d863f]**barra de prontidão**[/color] com 3 espaços. No início de cada cena, role 3d8 e anote cada valor nos espaços da barra (qualquer espaço já preenchido é substituído). Você também pode gastar [color=#2d863f]**2 PD**[/color] para preencher um espaço da barra.\n\nQuando você ou um aliado próximo faz um teste, você pode gastar um valor da barra para substituir um dado rolado pelo valor gasto.\nAlternativamente, você também pode gastar dois espaços da barra para, em qualquer ação ou conflito, [color=#2d863f]**agir antes de todos**[/color].',accent:'#2d863f',icon:'◆',markers:[{id:'prontidao-m',type:'slots',displayStyle:'rectangles',label:'Prontidão',current:0,maxFormula:'3',slots:[null,null,null],fillCostResource:'pd',fillCostAmount:2}],actions:[{id:'prontidao-a',name:'Rolar Prontidão',expression:'3d8',targetMarker:'prontidao-m'}]},
-  Analista:{id:'avaliacao',profileAbility:'Analista',themeLinked:true,schema:'abilities',title:'AVALIAÇÃO',type:'Habilidade de Perfil',content:'Você pode gastar uma ação e [color=#2162ff]**2 PD**[/color] para observar um ser ou ambiente. Você recebe 2d4 que pode usar em testes relativos àquele ser ou ambiente. Você pode usá-los como quiser, recebendo +2d4 em um teste ou +1d4 em dois testes.\n\nVocê não pode acumular mais do que dois dados bônus por esta habilidade.',accent:'#2162ff',icon:'◈',markers:[{id:'avaliacao-dados',type:'pips',label:'Dados bônus',current:0,maxFormula:'2'}],actions:[]}
+  Vigilante:{id:'prontidao',profileAbility:'Vigilante',themeLinked:true,schema:'abilities',title:'PRONTIDÃO',type:'Habilidade de Perfil',cost:'2 PD',content:'**Uma vez por rodada**, quando você ou outro ser em **alcance curto** faz um teste, você pode [color=#2d863f]**gastar 2 PD**[/color] para **rolar novamente**, ou para fazer o outro ser rolar novamente, **um dos dados do teste** cujo resultado **não tenha sido 1**.\n\nAlém disso, em **combates**, você pode fazer sua ação **na fase dela ou em fases posteriores**, e após qualquer ação daquela fase **já ter sido rolada**.',accent:'#2d863f',icon:'◆',markers:[],actions:[]},
+  Analista:{id:'analise',profileAbility:'Analista',themeLinked:true,schema:'abilities',title:'ANÁLISE',type:'Habilidade de Perfil',content:'Você pode **gastar uma ação** para receber [color=#2162ff]**2 marcadores de análise**[/color].\n- Quando faz um teste, **pode gastar quantos marcadores quiser após rolar os dados**. Para cada marcador gasto, pode mudar o resultado de um dado **em +1 ou –1** (até o máximo do dado).\n- Você pode acumular **no máximo 4 marcadores de análise** e, no fim da cena, **perde** quaisquer marcadores não usados.',accent:'#2162ff',icon:'◈',markers:[{id:'analise-m',type:'pips',displayStyle:'rectangles',label:'Marcadores de Análise',current:0,maxFormula:'4'}],actions:[]}
 };
 const defaults={name:'ALAN',occupation:'Cientista',profile:'Executor',level:2,pv:10,maxPv:12,pvTemp:0,pd:16,maxPd:18,pdTemp:0,history:'',tokenImage:'',backgroundImage:'',backgroundBlur:0,backgroundZoom:100,diceColor:'',themeColor:'',viewMode:'traditional',cinematicTokenX:50,cinematicTokenY:52,cinematicTokenScale:100,cinematicOutlineSide:'left',cinematicOutlineIntensity:0.5,cinematicOutlineWidth:1.8,cinematicOutlineFade:1.5,cinematicCollapsed:{abilities:false,items:true,history:true},attributes:{Físico:6,Mente:8,Emoção:8},skills:defaultSkills,cards:defaultCards};
 
@@ -249,24 +249,35 @@ const clone=value=>structuredClone(value);
 const makeId=prefix=>`${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
 
 function normalizeCard(card){
+ const titleUp=String(card.title||'').toUpperCase();
+ if(card.id==='impeto'||card.profileAbility==='Executor'||titleUp==='ÍMPETO'){
+  if(typeof card.content==='string'&&(card.content.includes('três espaços')||card.content.includes('Receber +4 em um teste'))){
+   const prevCurrent=Number(card.markers?.[0]?.current)||0;
+   const tpl=clone(PROFILE_ABILITIES.Executor);
+   tpl.markers[0].current=Math.min(5,prevCurrent);
+   card={...card,...tpl};
+  }
+ }
+ if(card.id==='avaliacao'||card.id==='analise'||card.profileAbility==='Analista'||titleUp==='AVALIAÇÃO'||titleUp==='ANÁLISE'){
+  if(titleUp==='AVALIAÇÃO'||(typeof card.content==='string'&&card.content.includes('observar um ser ou ambiente'))){
+   const prevCurrent=Number(card.markers?.[0]?.current)||0;
+   const tpl=clone(PROFILE_ABILITIES.Analista);
+   tpl.markers[0].current=Math.min(4,prevCurrent);
+   card={...card,...tpl};
+  }
+ }
+ if(card.id==='prontidao'||card.profileAbility==='Vigilante'||titleUp==='PRONTIDÃO'){
+  if(typeof card.content==='string'&&card.content.includes('barra de prontidão')){
+   const tpl=clone(PROFILE_ABILITIES.Vigilante);
+   card={...card,...tpl};
+  }
+ }
  const migratedMarkers=Number(card.markerMax)>0?[{id:makeId('marker'),type:'pips',label:card.markerLabel||'Marcador',current:Number(card.markerCurrent)||0,maxFormula:String(card.markerMax)}]:[];
  const migratedActions=Number(card.rollSides)>0?[{id:makeId('action'),name:card.rollName||'Rolar',expression:`1d${card.rollSides}`}]:[];
  const knownProfile=Object.entries(PROFILE_ABILITIES).find(([,template])=>String(template.title).toUpperCase()===String(card.title).toUpperCase());
  const markers=(Array.isArray(card.markers)?card.markers:migratedMarkers).map(marker=>({...marker,displayStyle:marker.displayStyle||'default'}));
- if(card.id==='impeto'||card.id==='pistola')markers.forEach(marker=>{if(marker.type==='pips'&&marker.displayStyle==='default')marker.displayStyle='rectangles'});
- if(card.id==='prontidao'||(card.profileAbility==='Vigilante'&&String(card.title).toUpperCase()==='PRONTIDÃO')){
-  markers.forEach(marker=>{marker.displayStyle='rectangles';if(marker.type==='pips'||marker.type==='counter'){marker.type='slots';marker.fillCostResource=marker.fillCostResource||'pd';marker.fillCostAmount=marker.fillCostAmount??2;if(!Array.isArray(marker.slots))marker.slots=[null,null,null]}});
-  if(typeof card.content==='string'&&card.content.includes('role 3d6'))card.content=card.content.replace('role 3d6','role 3d8');
- }
+ if(card.id==='impeto'||card.id==='analise'||card.id==='pistola')markers.forEach(marker=>{if(marker.type==='pips'&&marker.displayStyle==='default')marker.displayStyle='rectangles'});
  const actions=(Array.isArray(card.actions)?card.actions:migratedActions).map(action=>({...action}));
- if(card.id==='prontidao'||(card.profileAbility==='Vigilante'&&String(card.title).toUpperCase()==='PRONTIDÃO')){
-  actions.forEach(action=>{
-   if(action.name==='Rolar Prontidão'){
-    if(!action.targetMarker)action.targetMarker='prontidao-m';
-    if(action.expression==='3d6')action.expression='3d8';
-   }
-  });
- }
  return {...card,profileAbility:card.profileAbility||knownProfile?.[0],themeLinked:card.themeLinked!==false,markers,actions};
 }
 function ensureProfileAbility(sheet,profile=sheet.profile){const template=PROFILE_ABILITIES[profile];if(!template)return;const expected=String(template.title).toUpperCase(),existing=sheet.cards?.find(card=>card.profileAbility===profile||String(card.title).toUpperCase()===expected);if(existing){existing.profileAbility=profile;return}sheet.cards.push(normalizeCard(clone(template)))}
