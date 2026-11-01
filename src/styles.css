@@ -3527,9 +3527,9 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   position: relative;
   z-index: 5;
   width: 100%;
-  max-width: 1540px;
+  max-width: 1560px;
   margin: 0 auto;
-  padding: 30px 48px;
+  padding: 20px 36px 40px;
   box-sizing: border-box;
 }
 
@@ -3551,7 +3551,7 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 }
 
 .vigilia-title-name .first-name {
-  font-size: 44px;
+  font-size: 46px;
   font-weight: 900;
   color: #ffffff;
   letter-spacing: 0.03em;
@@ -3559,7 +3559,7 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 }
 
 .vigilia-title-name .last-name {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 600;
   color: #ccd8d2;
   letter-spacing: 0.04em;
@@ -3655,14 +3655,15 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 /* Grade de Colunas */
 .vigilia-body-columns {
   display: grid;
-  grid-template-columns: 290px 1fr 340px;
-  gap: 28px;
+  grid-template-columns: 270px 1fr 420px;
+  gap: 24px;
   min-height: 850px;
+  position: relative;
 }
 
 /* Coluna 1: Atributos & Perícias */
 .vigilia-attributes-section {
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
 
 .banner-atributos-wrap,
@@ -3671,14 +3672,18 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 32px;
-  padding: 0 16px;
-  margin-bottom: 10px;
+  padding: 0 18px;
+  margin-bottom: 12px;
 }
 
 .banner-atributos-wrap {
+  height: 38px;
   transform: rotate(3deg);
-  margin-left: 8px;
+  margin-left: 0;
+}
+
+.banner-pericias-wrap {
+  height: 36px;
 }
 
 .banner-atributos-img,
@@ -3691,14 +3696,24 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   z-index: 1;
 }
 
-.banner-atributos-wrap .banner-text,
+.banner-atributos-wrap .banner-text {
+  position: relative;
+  z-index: 2;
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #ffffff;
+  text-shadow: 0 2px 4px #000;
+}
+
 .banner-pericias-wrap .banner-text {
   position: relative;
   z-index: 2;
   font-family: 'Cinzel', serif;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
+  font-size: 14.5px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
   color: #ffffff;
   text-shadow: 0 2px 4px #000;
 }
@@ -3706,36 +3721,33 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 .vigilia-attributes-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-left: 24px;
+  gap: 10px;
 }
 
 .vigilia-attr-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 200px;
-  padding: 4px 8px;
-  border-radius: 4px;
+  gap: 10px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: transform 0.12s;
+  width: fit-content;
 }
-
-.vigilia-attr-row.attr-fisico { margin-left: 14px; }
-.vigilia-attr-row.attr-mente { margin-left: 0px; }
-.vigilia-attr-row.attr-emocao { margin-left: 22px; }
 
 .vigilia-attr-row:hover {
-  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(3px);
 }
+
+.vigilia-attr-row.attr-fisico { margin-left: 20px; }
+.vigilia-attr-row.attr-mente { margin-left: 0px; }
+.vigilia-attr-row.attr-emocao { margin-left: 32px; }
 
 .vigilia-attr-row .attr-name {
   font-family: 'Cinzel', serif;
-  font-size: 18px;
-  font-weight: 800;
+  font-size: 28px;
+  font-weight: 900;
   color: #ffffff;
-  letter-spacing: 0.05em;
-  text-shadow: 0 2px 4px #000;
+  letter-spacing: 0.06em;
+  text-shadow: 0 3px 6px rgba(0, 0, 0, 0.95);
 }
 
 /* Dados em polígonos fiéis ao PDF */
@@ -3756,7 +3768,10 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 }
 
 .vigilia-die-badge.attr-die {
-  background: #738079;
+  background: #808d86;
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
 }
 
 .vigilia-die-badge.die-4 {
@@ -3795,14 +3810,17 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 .vigilia-skills-table {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  width: 255px;
 }
 
 .vigilia-skill-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 102px 24px 8px 24px 44px;
   align-items: center;
-  justify-content: space-between;
-  padding: 2.5px 6px;
+  gap: 3px;
+  height: 22px;
+  padding: 1px 4px;
   border-radius: 3px;
   cursor: pointer;
   transition: background 0.12s;
@@ -3813,59 +3831,65 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 }
 
 .vigilia-skill-row .skill-name {
+  text-align: right;
   font-family: 'Cinzel', Georgia, serif;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   color: #ffffff;
   text-shadow: 0 1px 3px #000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.skill-dice-block {
+.vigilia-skill-row .skill-die-col,
+.vigilia-skill-row .skill-attr-die-col {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
 }
 
-.skill-dice-block .plus-sign {
+.vigilia-skill-row .skill-plus-col {
+  text-align: center;
   color: #6e7d75;
   font-weight: 800;
-  font-size: 12px;
+  font-size: 11px;
 }
 
-.skill-attr-name {
-  font-size: 9px;
+.vigilia-skill-row .skill-attr-name {
+  font-size: 8.5px;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   color: #6e7d75;
-  width: 48px;
+  text-transform: uppercase;
   text-align: left;
 }
 
 /* Coluna 2: PV/PD, Habilidades e Equipamento */
 .vigilia-resources-bar {
   display: flex;
-  gap: 24px;
-  margin-bottom: 20px;
+  gap: 32px;
+  margin-bottom: 24px;
+  align-items: center;
 }
 
 .vigilia-resource-block {
   display: flex;
   align-items: center;
-  gap: 14px;
-  background: rgba(8, 20, 16, 0.7);
-  padding: 8px 14px;
-  border: 1px solid #2a3a32;
-  border-radius: 6px;
+  gap: 16px;
+  background: transparent;
+  padding: 0;
+  border: none;
 }
 
 .resource-badge-group {
   position: relative;
-  width: 68px;
-  height: 42px;
+  width: 106px;
+  height: 65px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  flex-shrink: 0;
 }
 
 .badge-res-img {
@@ -3877,32 +3901,51 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   z-index: 1;
 }
 
-.resource-badge-group .res-num {
-  position: relative;
+.resource-badge-group .res-tag {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 2;
   font-family: 'Cinzel', serif;
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 900;
   color: #ffffff;
-  text-shadow: 0 2px 6px #000;
+  letter-spacing: 0.05em;
+  text-shadow: 0 2px 4px #000;
+}
+
+.resource-badge-group .res-num {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 38px;
+  text-align: center;
+  z-index: 2;
+  font-family: 'Cinzel', serif;
+  font-size: 21px;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 2px 4px #000;
 }
 
 .vigilia-pips-grid {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .vigilia-pips-row {
   display: flex;
-  gap: 3px;
+  gap: 4px;
 }
 
 .vigilia-pip {
-  width: 13px;
-  height: 10px;
+  width: 14px;
+  height: 11px;
   transform: skewX(-14deg);
-  background: rgba(10, 22, 17, 0.85);
+  background: rgba(8, 18, 14, 0.85);
   border: 1.5px solid #7d8983;
   border-radius: 1px;
   cursor: pointer;
@@ -3912,13 +3955,13 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 
 .vigilia-pip:hover {
   border-color: #ffffff;
-  transform: skewX(-14deg) scale(1.1);
+  transform: skewX(-14deg) scale(1.15);
 }
 
 .vigilia-pip.filled {
   background: #ffffff !important;
   border-color: #ffffff !important;
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.7);
 }
 
 /* Cards de Habilidade */
@@ -3937,9 +3980,9 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   position: relative;
   display: inline-flex;
   align-items: center;
-  height: 32px;
-  padding: 0 16px;
-  margin-bottom: 6px;
+  height: 42px;
+  padding: 0 24px;
+  margin-bottom: 8px;
 }
 
 .power-banner-img {
@@ -3955,17 +3998,17 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   position: relative;
   z-index: 2;
   font-family: 'Cinzel', Georgia, serif;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
   color: #ffffff;
   text-shadow: 0 2px 4px #000;
-  margin-right: 10px;
+  margin-right: 14px;
 }
 
 .power-content,
 .equipment-content {
-  font-size: 13px;
+  font-size: 13.5px;
   line-height: 1.55;
   color: #d8e2dd;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
@@ -3983,16 +4026,16 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   position: relative;
   z-index: 2;
   display: flex;
-  gap: 3.5px;
+  gap: 4px;
   align-items: center;
 }
 
 .impeto-slot-pip,
 .analise-slot-pip {
-  width: 14px;
-  height: 11px;
+  width: 15px;
+  height: 12px;
   transform: skewX(-14deg);
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.7);
   border: 1.5px solid #9aa49e;
   border-radius: 1px;
   cursor: pointer;
@@ -4003,13 +4046,14 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 .impeto-slot-pip:hover,
 .analise-slot-pip:hover {
   border-color: #ffffff;
+  transform: skewX(-14deg) scale(1.15);
 }
 
 .impeto-slot-pip.filled,
 .analise-slot-pip.filled {
   background: #ffffff !important;
   border-color: #ffffff !important;
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 7px rgba(255, 255, 255, 0.9);
 }
 
 .btn-vigilia-prontidao {
@@ -4019,10 +4063,10 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   border: 1px solid #4a6657;
   color: #ffffff;
   font-family: 'Cinzel', serif;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 3px;
+  padding: 4px 10px;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -4062,21 +4106,35 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 }
 
 /* Coluna 3: Retrato */
-.vigilia-portrait-container {
-  width: 100%;
-  height: 100%;
-  min-height: 750px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.vigilia-col-right {
   position: relative;
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+  overflow: visible;
+}
+
+.vigilia-portrait-container {
+  position: absolute;
+  top: -20px;
+  right: -30px;
+  bottom: -15px;
+  width: 530px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .vigilia-character-portrait {
   width: 100%;
-  max-height: 850px;
+  height: 100%;
+  max-width: none;
+  max-height: none;
   object-fit: contain;
-  filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.9));
+  object-position: right top;
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.95));
   pointer-events: none;
 }
 

@@ -245,12 +245,10 @@ function renderVigiliaFront(sheet, editMode, options) {
                        data-roll="${safe(rollStr)}" 
                        title="Rolar ${safe(sk.name)} (d${sk.skillDie} + d${attrDie}${sk.extra ? `+${sk.extra}` : ''})">
                     <span class="skill-name">${safe(sk.name)}</span>
-                    <span class="skill-dice-block">
-                      ${renderVigiliaDie(sk.skillDie, false)}
-                      <span class="plus-sign">+</span>
-                      ${renderVigiliaDie(attrDie, true)}
-                      <span class="skill-attr-name">${safe(sk.attribute.toUpperCase())}</span>
-                    </span>
+                    <span class="skill-die-col">${renderVigiliaDie(sk.skillDie, false)}</span>
+                    <span class="skill-plus-col">+</span>
+                    <span class="skill-attr-die-col">${renderVigiliaDie(attrDie, true)}</span>
+                    <span class="skill-attr-name">${safe(sk.attribute.toUpperCase())}</span>
                   </div>
                 `;
               }).join('')}
@@ -268,6 +266,7 @@ function renderVigiliaFront(sheet, editMode, options) {
             <div class="vigilia-resource-block resource-pv" data-resource-key="pv">
               <div class="resource-badge-group">
                 <img src="./assets/vigilia/badge-pv.png" alt="PV" class="badge-res-img" draggable="false">
+                <span class="res-tag">PV</span>
                 <span class="res-num">${sheet.pv}</span>
               </div>
               <div class="resource-track-group">
@@ -286,6 +285,7 @@ function renderVigiliaFront(sheet, editMode, options) {
             <div class="vigilia-resource-block resource-pd" data-resource-key="pd">
               <div class="resource-badge-group">
                 <img src="./assets/vigilia/badge-pd.png" alt="PD" class="badge-res-img" draggable="false">
+                <span class="res-tag">PD</span>
                 <span class="res-num">${sheet.pd}</span>
               </div>
               <div class="resource-track-group">
@@ -312,24 +312,24 @@ function renderVigiliaFront(sheet, editMode, options) {
               if (isImpeto && impetoCard) {
                 // 5 paralelogramos de ímpeto exibidos ao lado do título
                 extraBannerControl = `
-                  <div class="impeto-slots-row">
+                  <div class="impeto-slots-row" role="group" aria-label="Espaços de Ímpeto">
                     ${[1, 2, 3, 4, 5].map(i => `
                       <button type="button" 
                         class="impeto-slot-pip ${i <= impetoCurrent ? 'filled' : ''}" 
-                        data-card-marker-set="impeto:impeto-m:${i <= impetoCurrent && i === impetoCurrent ? i - 1 : i}" 
-                        title="Espaço de Ímpeto ${i}">
+                        data-vigilia-slot="impeto:${i}" 
+                        title="Espaço de Ímpeto ${i} (${i <= impetoCurrent ? 'Preenchido - clique para desmarcar' : 'Vazio - clique para marcar'})">
                       </button>
                     `).join('')}
                   </div>
                 `;
               } else if (isAnalise && analiseCard) {
                 extraBannerControl = `
-                  <div class="analise-slots-row">
+                  <div class="analise-slots-row" role="group" aria-label="Marcadores de Análise">
                     ${[1, 2, 3, 4].map(i => `
                       <button type="button" 
                         class="analise-slot-pip ${i <= analiseCurrent ? 'filled' : ''}" 
-                        data-card-marker-set="analise:analise-m:${i <= analiseCurrent && i === analiseCurrent ? i - 1 : i}" 
-                        title="Marcador de Análise ${i}">
+                        data-vigilia-slot="analise:${i}" 
+                        title="Marcador de Análise ${i} (${i <= analiseCurrent ? 'Preenchido - clique para desmarcar' : 'Vazio - clique para marcar'})">
                       </button>
                     `).join('')}
                   </div>
