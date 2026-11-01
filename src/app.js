@@ -238,11 +238,12 @@ const defaults={name:'ALAN',occupation:'Cientista',profile:'Executor',level:2,pv
 
 const safe=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const blobUrlCache=new Map();
-/* Imagens base64 grandes viram blob: URLs (decodificadas uma única vez). Evita regex/parsing de MBs de texto a cada render. */
+const decodedBitmapHolders=[];
+/* Imagens base64 grandes viram blob: URLs (decodificadas uma única vez e mantidas em cache de bitmap). */
 function dataUrlToBlobUrl(value){
  const cached=blobUrlCache.get(value);if(cached)return cached;
  const head=/^data:(image\/[a-z0-9.+-]+);base64,/i.exec(value.slice(0,80));if(!head)return null;
- try{const bin=atob(value.slice(head[0].length)),bytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);const url=URL.createObjectURL(new Blob([bytes],{type:head[1]}));blobUrlCache.set(value,url);return url}catch{return null}
+ try{const bin=atob(value.slice(head[0].length)),bytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);const url=URL.createObjectURL(new Blob([bytes],{type:head[1]}));blobUrlCache.set(value,url);const holder=new Image();holder.decoding='sync';holder.src=url;decodedBitmapHolders.push(holder);return url}catch{return null}
 }
 const safeUrl=value=>{let s=String(value||'');if(!/^(https?:\/\/|data:image\/|data:video\/|blob:|\/|\.\/)/i.test(s))return'';if(s.startsWith('/assets/'))s='.'+s;if(s.length>8192&&s.charCodeAt(5)===105){const blob=dataUrlToBlobUrl(s);if(blob)return blob}return safe(s)};
 const clone=value=>structuredClone(value);
@@ -477,7 +478,7 @@ function dossierResourceEditor(key,badge,title){const maxKey=`max${key[0].toUppe
 function renderTraditional(trainingOptions,bgIsVideo,aptidaoOptions,aptidaoCount){return `<main class="page traditional-dossier-page ${editTransitionMode?`edit-trans-${editTransitionMode}`:''} mobile-tab-${mobileTab} ${modeJustChanged?'mode-enter':''}${bgIsVideo?' has-video-bg':''}" style="--bg-blur:${state.backgroundBlur??0}px;--bg-zoom:${(state.backgroundZoom??100)/100};">${renderBackgroundLayer(bgIsVideo,false)}<header class="dossier-hero"><div class="dossier-photo-col"><div class="dossier-photo-card ${state.tokenImage?'has-token':''}"><div class="dossier-photo-inner" ${state.tokenImage?`style="background-image:url('${safeUrl(state.tokenImage)}')"`:''}>${state.tokenImage?'':`<div class="dossier-photo-ph">${icon('user',42)}<span>FOTO DO AGENTE</span></div>`}</div>${editMode?`<label class="dossier-upload-btn">${icon('image',14)} TROCAR FOTO<input id="token-upload" type="file" accept="image/*"></label>`:''}</div></div><div class="dossier-info-col"><div class="dossier-meta-row"><span class="dossier-profile-pill profile-${state.profile?.toLowerCase()}">${safe(state.profile||'Executor')}</span></div><div class="dossier-name-row">${editMode?`<input class="dossier-name-input" data-field="name" value="${safe(state.name)}" placeholder="NOME DO AGENTE" aria-label="Nome do agente">`:`<h1 class="dossier-name-display">${safe(state.name||'AGENTE SEM NOME')}</h1>`}</div><div class="dossier-creds-row"><div class="dossier-field"><small>OCUPAÇÃO</small><input data-field="occupation" value="${safe(state.occupation)}" placeholder="Ocupação..." ${editMode?'':'readonly'}></div><div class="dossier-field"><small>PERFIL</small>${customSelect({value:state.profile,options:['Executor','Analista','Vigilante'].map(v=>({value:v,label:v})),id:'profile',className:'profile-select dossier-profile-select',disabled:!editMode})}</div><div class="dossier-field field-level"><small>NÍVEL</small><div class="dossier-level-val"><input class="center" data-field="level" value="${state.level}" inputmode="numeric" ${editMode?'':'readonly'}></div></div></div>${editMode?`<div class="dossier-visual-bar"><label class="dossier-chip">${icon('image',13)} FUNDO<input id="background-upload" type="file" accept="image/*,video/mp4,video/webm"></label>${state.backgroundImage?'<button type="button" class="dossier-chip-btn" data-reset-background>PADRÃO</button>':''}<label class="dossier-chip" title="Cor tema da ficha">TEMA<input type="color" data-theme-color value="${safe(getSheetAccent(state))}"></label>${state.themeColor?'<button type="button" class="dossier-chip-btn" data-reset-theme-color title="Voltar à cor do perfil">PERFIL</button>':''}<label class="dossier-chip" title="Cor dos dados">${icon('dice',13)} DADOS<input id="dice-color" type="color" value="${safe(state.diceColor||getSheetAccent(state))}"></label>${state.diceColor?'<button type="button" class="dossier-chip-btn" data-reset-dice-color>PERFIL</button>':''}<label class="dossier-chip range-chip" title="Desfoque da imagem de fundo"><span>BLUR</span><input type="range" min="0" max="30" step="1" value="${state.backgroundBlur??0}" data-cinematic-bg-blur><span class="slider-val-hint" id="val-hint-blur">${state.backgroundBlur??0}px</span></label><label class="dossier-chip range-chip" title="Zoom da imagem de fundo"><span>ZOOM</span><input type="range" min="30" max="250" step="5" value="${state.backgroundZoom??100}" data-cinematic-bg-zoom><span class="slider-val-hint" id="val-hint-zoom">${state.backgroundZoom??100}%</span></label>${(state.backgroundBlur>0||(state.backgroundZoom&&state.backgroundZoom!==100))?'<button type="button" class="dossier-chip-btn" data-reset-bg-effects>RESET BG</button>':''}</div>`:''}</div><div class="dossier-vitals-col"><div class="dossier-vitals-header"><span>MONITORES VITAIS</span><i class="vitals-pulse"></i></div><div class="dossier-vitals-grid">${dossierResourceEditor('pv','PV','PONTOS DE VIDA')}${dossierResourceEditor('pd','PD','DETERMINAÇÃO')}</div></div></header><div class="dossier-body"><section class="dossier-main-col"><div class="dossier-block dossier-attr-block"><div class="dossier-block-header"><span class="block-tag">SEÇÃO I</span><h2>ATRIBUTOS PRINCIPAIS</h2></div><div class="dossier-attr-grid">${Object.entries(state.attributes).map(([name,value])=>`<article class="dossier-attr-card"><div class="dossier-attr-head"><span>${name}</span></div><button type="button" class="attribute-die dossier-die-btn" data-roll="${name}|${value}" title="Clique para rolar ${name} (d${value})">${die(value)}</button>${editMode?attributeStepper(name,value):''}</article>`).join('')}</div></div><div class="dossier-block dossier-skills-block"><div class="dossier-block-header"><span class="block-tag">SEÇÃO II</span><h2>REGISTRO DE PERÍCIAS</h2>${editMode?`<button type="button" class="btn-dossier-add-aptidao" data-add-aptidao title="Adicionar especialização de Aptidão">+ APTIDÃO</button>`:''}</div><div class="dossier-skills-table"><header class="dossier-skills-table-head"><span class="col-name">PERÍCIA ↕</span><span class="col-training">TREINAMENTO ↕</span><span class="col-attr">ATRIBUTO BASE ↕</span><span class="col-extra">EXTRA ↕</span></header><div class="dossier-skills-table-body">${state.skills.map((skill,index)=>{const trained=skill.skillDie>4,attrDie=state.attributes[skill.attribute]||4,isAptidao=skill.name.startsWith('APTIDÃO'),aptidaoField=isAptidao?(skill.name.match(/\(([^)]+)\)/)?.[1]||'HUMANAS'):'',nameCol=editMode&&isAptidao?`<span class="skill-name skill-name-aptidao"><span>APTIDÃO</span>${customSelect({value:aptidaoField,options:aptidaoOptions,id:`aptidao-field:${index}`,className:'aptidao-select'})}<button class="skill-info-button" data-skill-info="${index}" aria-label="Informações sobre ${safe(skill.name)}">${icon('info',14)}</button>${aptidaoCount>1?`<button type="button" class="btn-remove-aptidao" data-remove-aptidao="${index}" title="Remover">${icon('trash',13)}</button>`:''}</span>`:`<span class="skill-name">${safe(skill.name)} <button class="skill-info-button" data-skill-info="${index}" aria-label="Informações sobre ${safe(skill.name)}">${icon('info',14)}</button></span>`;return `<div class="skill-row dossier-skill-row grade-d${skill.skillDie} ${trained?'trained is-trained':'is-untrained'}" data-roll="${safe(skill.name)}|${skill.skillDie},${attrDie}|${skill.extra||0}">${nameCol}<span class="training">${die(skill.skillDie,'small',trained)}${customSelect({value:skill.training,options:trainingOptions,id:`skill-training:${index}`,className:'skill-select training-select',disabled:!editMode})}</span><span class="attribute-ref">${die(attrDie,'small gem',trained)}${customSelect({value:skill.attribute,options:['Físico','Mente','Emoção'].map(v=>({value:v,label:v})),id:`skill-attribute:${index}`,className:'skill-select attribute-select',disabled:!editMode})}</span><span class="extra">${editMode?`<input data-skill-extra="${index}" type="number" value="${skill.extra||0}">`:`${Number(skill.extra)>=0?'+':''}${skill.extra||0}`}</span></div>`}).join('')}</div></div></div></section><aside class="dossier-side-col"><div class="dossier-tabs-nav right-tabs"><button type="button" class="dossier-tab-btn ${currentRight==='abilities'?'active':''}" data-right="abilities">HABILIDADES</button><button type="button" class="dossier-tab-btn ${currentRight==='items'?'active':''}" data-right="items">ITENS</button><button type="button" class="dossier-tab-btn ${currentRight==='history'?'active':''}" data-right="history">HISTÓRIA</button></div><div class="dossier-tools right-tools"><div class="dossier-search-wrap">${icon('search',14)}<input id="filter" placeholder="Filtrar registros..."></div><button type="button" class="dossier-add-btn add" title="Criar card">${icon('plus',15)}<span>CRIAR CARD</span></button></div><section id="abilities" class="right-content ${currentRight==='abilities'?'active':''}">${visibleCards('abilities').map(renderResourceCard).join('')||'<p class="empty-cards">Nenhuma habilidade registrada. Clique em CRIAR CARD para adicionar.</p>'}</section><section id="items" class="right-content ${currentRight==='items'?'active':''}">${visibleCards('items').map(renderResourceCard).join('')||'<p class="empty-cards">Nenhum item registrado. Clique em CRIAR CARD para adicionar.</p>'}</section><section id="history" class="right-content ${currentRight==='history'?'active':''}"><div class="dossier-history-card"><div class="dossier-history-head"><span>RELATÓRIO DE ANTECEDENTES & MOTIVAÇÕES</span></div><textarea data-field="history" placeholder="Escreva aqui a história, investigações anteriores, vínculos e anotações do agente..." ${editMode?'':'readonly'}>${safe(state.history||'')}</textarea></div></section></aside></div></main>`}
 function resourceEditor(key,label){const maxKey=`max${key[0].toUpperCase()}${key.slice(1)}`,tempKey=`${key}Temp`;return `<div class="resource-row" data-resource-key="${key}"><strong class="mini-torn">${label}</strong><b>${state[key]}${state[tempKey]?`<button type="button" class="temp-badge-btn" data-consume-temp="${key}:1" title="Clique para extinguir 1 ${key.toUpperCase()} temporário (Botão direito para extinguir todos)"><em>+${state[tempKey]}</em></button>`:''}</b><div class="pips">${pips(state[key],state[maxKey],key,state[tempKey])}</div>${editMode?`<div class="resource-config"><span>MÁX <button data-resource-adjust="${maxKey}:-1">−</button><i>${state[maxKey]}</i><button data-resource-adjust="${maxKey}:1">+</button></span><span>TEMP <button data-resource-adjust="${tempKey}:-1">−</button><i>${state[tempKey]}</i><button data-resource-adjust="${tempKey}:1">+</button></span></div>`:''}</div>`}
 function attributeStepper(name,value){return `<div class="attribute-stepper"><button data-attribute-step="${name}:-1">−</button><b>d${value}</b><button data-attribute-step="${name}:1">+</button></div>`}
-function syncTokenOutlineFilter(){const flood=document.querySelector('#token-outline-flood'),morph=document.querySelector('#token-outline-morph'),offset=document.querySelector('#token-outline-offset'),blur=document.querySelector('#token-outline-blur'),color=state.diceColor||getSheetAccent(state);const side=state.cinematicOutlineSide||'left',intensity=side==='none'?0:Number(state.cinematicOutlineIntensity??0.5),width=Number(state.cinematicOutlineWidth??1.8),fade=Number(state.cinematicOutlineFade??1.5);let dx=0;if(side==='left')dx=-2.5;else if(side==='right')dx=2.5;if(flood){flood.setAttribute('flood-color',color);flood.setAttribute('flood-opacity',String(intensity))}if(morph)morph.setAttribute('radius',String(width));if(offset){offset.setAttribute('dx',String(dx));offset.setAttribute('dy','0')}if(blur)blur.setAttribute('stdDeviation',String(fade));const tokenImg=document.querySelector('.cinematic-character>img');if(tokenImg)tokenImg.classList.toggle('no-outline',side==='none'||intensity<=0||width<=0)}
+function syncTokenOutlineFilter(){const flood=document.querySelector('#token-outline-flood'),morph=document.querySelector('#token-outline-morph'),offset=document.querySelector('#token-outline-offset'),blur=document.querySelector('#token-outline-blur'),color=state.diceColor||getSheetAccent(state);const side=state.cinematicOutlineSide||'left',intensity=side==='none'?0:Number(state.cinematicOutlineIntensity??0.5),width=Number(state.cinematicOutlineWidth??1.8),fade=Number(state.cinematicOutlineFade??1.5);let dx=0;if(side==='left')dx=-2.5;else if(side==='right')dx=2.5;if(flood){flood.setAttribute('flood-color',color);flood.setAttribute('flood-opacity',String(intensity))}if(morph){morph.setAttribute('stdDeviation',String(width));morph.setAttribute('radius',String(width))}if(offset){offset.setAttribute('dx',String(dx));offset.setAttribute('dy','0')}if(blur)blur.setAttribute('stdDeviation',String(fade));const tokenImg=document.querySelector('.cinematic-character>img');if(tokenImg)tokenImg.classList.toggle('no-outline',side==='none'||intensity<=0||width<=0)}
 const ORIGINAL_CLASS_COLORS = {
   combatente: '#e0150d',
   especialista: '#2162ff',
@@ -1278,16 +1279,22 @@ function syncUnsavedBar(){
 }
 window.addEventListener('beforeunload',event=>{if(dirtySheets.size){event.preventDefault();event.returnValue=''}});
 
-/* Persistência (JSON de vários MB) é adiada e agrupada: cliques rápidos em PV/PD não travam mais a thread principal. */
+/* Persistência (JSON de vários MB) é adiada e agrupada: cliques rápidos em PV/PD e transições de ficha não travam a thread principal. */
 let persistTimer=0;
-function persistSheetsNow(){
+function persistSheetsNow(forceSync=false){
+ if(_glitchActive&&!forceSync){
+  schedulePersist(280);
+  return;
+ }
  clearTimeout(persistTimer);persistTimer=0;
  const out=sheets.map(persistedSheet);
+ let fullJson='';
  try{
+  fullJson=JSON.stringify(out);
   fetch('/api/sheets',{
    method:'POST',
    headers:{'Content-Type':'application/json'},
-   body:JSON.stringify(out)
+   body:fullJson
   }).catch(()=>{});
  }catch{}
 
@@ -1302,21 +1309,22 @@ function persistSheetsNow(){
 
  try{
   localStorage.setItem('ordem-ii-active-sheet',state.id);
-  localStorage.setItem(SHEETS_KEY,JSON.stringify(out));
- }catch{
-  try{
+  if(fullJson&&fullJson.length<4500000){
+   localStorage.setItem(SHEETS_KEY,fullJson);
+  }else{
    const light=out.map(s=>({
     ...s,
     tokenImage:(s.tokenImage&&s.tokenImage.length>20000)?'':s.tokenImage,
     backgroundImage:(s.backgroundImage&&s.backgroundImage.length>20000)?'':s.backgroundImage
    }));
-   localStorage.setItem(SHEETS_KEY,JSON.stringify(light));
-  }catch{}
- }
+   const lightJson=JSON.stringify(light);
+   if(lightJson.length<4500000)localStorage.setItem(SHEETS_KEY,lightJson);
+  }
+ }catch{}
 }
-function schedulePersist(){clearTimeout(persistTimer);persistTimer=setTimeout(persistSheetsNow,300)}
-window.addEventListener('pagehide',()=>{if(persistTimer)persistSheetsNow()});
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&persistTimer)persistSheetsNow()});
+function schedulePersist(delay=350){clearTimeout(persistTimer);persistTimer=setTimeout(()=>persistSheetsNow(false),delay)}
+window.addEventListener('pagehide',()=>{if(persistTimer)persistSheetsNow(true)});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&persistTimer)persistSheetsNow(true)});
 // commit=true (botão SALVAR) grava também o rascunho de edição da ficha atual.
 function save(showToast=true,toastMsg='SALVO',commit=false){
  collectActiveInputs();
@@ -3004,11 +3012,19 @@ function switchToSheet(targetId) {
   saveAppSettings();
  }
  if (targetId === state.id) { render(); return; }
- save(false);
+ if (editMode || dirtySheets.has(state.id)) {
+  save(false);
+ } else {
+  collectActiveInputs();
+ }
  editMode = false;
  const doSwitch = () => {
   state = sheets.find(sheet => sheet.id === targetId) || state;
   activeSheetId = state.id;
+  try {
+   localStorage.setItem('ordem-ii-active-sheet', state.id);
+   idbSet('activeSheetId', state.id);
+  } catch {}
   if (presentationMode) {
    if (state.systemMode === 'threat') {
     presentationMode = false;

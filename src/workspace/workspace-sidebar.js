@@ -393,6 +393,10 @@ export function renderWorkspaceNavigator(folders = [], sheets = [], activeSheetI
     safeUrl = s => s
   } = options;
 
+  if (!open && !pinned) {
+    return `<aside class="workspace-navigator" id="workspace-navigator" aria-label="Navegador de fichas e pastas" aria-hidden="true"></aside>`;
+  }
+
   const totalSheets = sheets.length;
   const charsCount = sheets.filter(isCharacterSheet).length;
   const threatsCount = sheets.filter(isThreatSheet).length;

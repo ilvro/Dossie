@@ -16,15 +16,18 @@
   <body>
     <svg id="token-svg-defs" class="token-svg-defs" style="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;" aria-hidden="true">
       <defs>
-        <filter id="token-controlled-outline" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+        <filter id="token-controlled-outline" x="-12%" y="-12%" width="124%" height="124%" color-interpolation-filters="sRGB">
           <!-- Ambient depth shadow underneath -->
-          <feGaussianBlur in="SourceAlpha" stdDeviation="12" result="ambientBlur" />
-          <feOffset in="ambientBlur" dx="0" dy="16" result="ambientOffset" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="10" result="ambientBlur" />
+          <feOffset in="ambientBlur" dx="0" dy="14" result="ambientOffset" />
           <feFlood flood-color="#000000" flood-opacity="0.8" result="shadowColor" />
           <feComposite in="shadowColor" in2="ambientOffset" operator="in" result="ambientShadow" />
 
-          <!-- Directional rim lighting with subtle fade -->
-          <feMorphology id="token-outline-morph" in="SourceAlpha" operator="dilate" radius="1.8" result="dilated" />
+          <!-- Directional rim lighting with subtle fade (100% GPU-accelerated in Firefox WebRender & Chromium) -->
+          <feGaussianBlur id="token-outline-morph" in="SourceAlpha" stdDeviation="1.8" result="dilatedBlur" />
+          <feComponentTransfer in="dilatedBlur" result="dilated">
+            <feFuncA type="linear" slope="5.5" intercept="0" />
+          </feComponentTransfer>
           <feOffset id="token-outline-offset" in="dilated" dx="-2.5" dy="0" result="shiftedDilated" />
           <feGaussianBlur id="token-outline-blur" in="shiftedDilated" stdDeviation="1.5" result="fadedOutline" />
           <feComposite in="fadedOutline" in2="SourceAlpha" operator="out" result="outerRim" />
