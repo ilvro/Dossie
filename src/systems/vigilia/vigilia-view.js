@@ -180,127 +180,128 @@ function renderVigiliaFront(sheet, editMode, options) {
 
       <div class="vigilia-header-divider"></div>
 
-      <!-- CORPO PRINCIPAL EM 3 COLUNAS -->
-      <div class="vigilia-body-columns">
-        
-        <!-- COLUNA 1: ATRIBUTOS E PERÍCIAS -->
-        <div class="vigilia-col-left">
-          
-          <!-- Bloco Atributos -->
-          <div class="vigilia-attributes-section">
-            <div class="banner-atributos-wrap">
-              <img src="./assets/vigilia/banner-atributos.png" alt="ATRIBUTOS" class="banner-atributos-img" draggable="false">
-              <span class="banner-text">ATRIBUTOS</span>
-            </div>
-
-            <div class="vigilia-attributes-list">
-              <div class="vigilia-attr-row attr-fisico" data-roll="Físico|${attrs.Físico || 6}">
-                <span class="attr-name">FÍSICO</span>
-                ${renderVigiliaDie(attrs.Físico || 6, true)}
-                ${editMode ? `
-                  <div class="attr-step-btns">
-                    <button type="button" data-attribute-step="Físico:-2">−</button>
-                    <button type="button" data-attribute-step="Físico:2">+</button>
-                  </div>
-                ` : ''}
-              </div>
-
-              <div class="vigilia-attr-row attr-mente" data-roll="Mente|${attrs.Mente || 6}">
-                <span class="attr-name">MENTE</span>
-                ${renderVigiliaDie(attrs.Mente || 6, true)}
-                ${editMode ? `
-                  <div class="attr-step-btns">
-                    <button type="button" data-attribute-step="Mente:-2">−</button>
-                    <button type="button" data-attribute-step="Mente:2">+</button>
-                  </div>
-                ` : ''}
-              </div>
-
-              <div class="vigilia-attr-row attr-emocao" data-roll="Emoção|${attrs.Emoção || 6}">
-                <span class="attr-name">EMOÇÃO</span>
-                ${renderVigiliaDie(attrs.Emoção || 6, true)}
-                ${editMode ? `
-                  <div class="attr-step-btns">
-                    <button type="button" data-attribute-step="Emoção:-2">−</button>
-                    <button type="button" data-attribute-step="Emoção:2">+</button>
-                  </div>
-                ` : ''}
-              </div>
-            </div>
+      <!-- SEÇÃO SUPERIOR: ATRIBUTOS À ESQUERDA, PV/PD À DIREITA -->
+      <div class="vigilia-top-row">
+        <!-- Bloco Atributos com Raio Refletido em Espelho -->
+        <div class="vigilia-attributes-block">
+          <div class="banner-atributos-wrap">
+            <img src="./assets/vigilia/banner-atributos.png" alt="ATRIBUTOS" class="banner-atributos-img" draggable="false">
+            <span class="banner-text">ATRIBUTOS</span>
           </div>
 
-          <!-- Bloco Perícias -->
-          <div class="vigilia-skills-section">
-            <div class="banner-pericias-wrap">
-              <img src="./assets/vigilia/banner-pericias.png" alt="PERÍCIAS" class="banner-pericias-img" draggable="false">
-              <span class="banner-text">PERÍCIAS</span>
+          <svg class="atributos-chevron-ray" viewBox="0 0 28 110" fill="none" aria-hidden="true">
+            <polyline points="24,8 4,55 24,102" stroke="#abb6af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+
+          <div class="vigilia-attributes-list">
+            <div class="vigilia-attr-row attr-fisico" data-roll="Físico|${attrs.Físico || 6}">
+              <span class="attr-name">FÍSICO</span>
+              ${renderVigiliaDie(attrs.Físico || 6, true)}
+              ${editMode ? `
+                <div class="attr-step-btns">
+                  <button type="button" data-attribute-step="Físico:-2">−</button>
+                  <button type="button" data-attribute-step="Físico:2">+</button>
+                </div>
+              ` : ''}
             </div>
 
-            <div class="vigilia-skills-table">
-              ${skills.map((sk, idx) => {
-                const attrDie = attrs[sk.attribute] || 4;
-                const rollStr = `${sk.name}|${sk.skillDie},${attrDie}|${sk.extra || 0}`;
-                return `
-                  <div class="vigilia-skill-row ${sk.skillDie > 4 ? 'is-trained' : ''}" 
-                       data-roll="${safe(rollStr)}" 
-                       title="Rolar ${safe(sk.name)} (d${sk.skillDie} + d${attrDie}${sk.extra ? `+${sk.extra}` : ''})">
-                    <span class="skill-name">${safe(sk.name)}</span>
-                    <span class="skill-die-col">${renderVigiliaDie(sk.skillDie, false)}</span>
-                    <span class="skill-plus-col">+</span>
-                    <span class="skill-attr-die-col">${renderVigiliaDie(attrDie, true)}</span>
-                    <span class="skill-attr-name">${safe(sk.attribute.toUpperCase())}</span>
-                  </div>
-                `;
-              }).join('')}
+            <div class="vigilia-attr-row attr-mente" data-roll="Mente|${attrs.Mente || 6}">
+              <span class="attr-name">MENTE</span>
+              ${renderVigiliaDie(attrs.Mente || 6, true)}
+              ${editMode ? `
+                <div class="attr-step-btns">
+                  <button type="button" data-attribute-step="Mente:-2">−</button>
+                  <button type="button" data-attribute-step="Mente:2">+</button>
+                </div>
+              ` : ''}
+            </div>
+
+            <div class="vigilia-attr-row attr-emocao" data-roll="Emoção|${attrs.Emoção || 6}">
+              <span class="attr-name">EMOÇÃO</span>
+              ${renderVigiliaDie(attrs.Emoção || 6, true)}
+              ${editMode ? `
+                <div class="attr-step-btns">
+                  <button type="button" data-attribute-step="Emoção:-2">−</button>
+                  <button type="button" data-attribute-step="Emoção:2">+</button>
+                </div>
+              ` : ''}
             </div>
           </div>
-
         </div>
 
-        <!-- COLUNA 2: PV/PD, HABILIDADES E EQUIPAMENTO -->
-        <div class="vigilia-col-center">
-          
-          <!-- Monitores de PV e PD -->
-          <div class="vigilia-resources-bar">
-            <!-- PV -->
-            <div class="vigilia-resource-block resource-pv" data-resource-key="pv">
-              <div class="resource-badge-group">
-                <img src="./assets/vigilia/badge-pv.png" alt="PV" class="badge-res-img" draggable="false">
-                <span class="res-tag">PV</span>
-                <span class="res-num">${sheet.pv}</span>
-              </div>
-              <div class="resource-track-group">
-                ${renderVigiliaPips(sheet.pv, sheet.maxPv, 'pv', sheet.pvTemp)}
-              </div>
-              ${editMode ? `
-                <div class="res-edit-controls">
-                  <button type="button" data-resource-adjust="maxPv:-1">−</button>
-                  <small>MÁX ${sheet.maxPv}</small>
-                  <button type="button" data-resource-adjust="maxPv:1">+</button>
-                </div>
-              ` : ''}
+        <!-- Monitores de PV e PD alinhados horizontalmente com os atributos -->
+        <div class="vigilia-resources-bar">
+          <!-- PV -->
+          <div class="vigilia-resource-block resource-pv" data-resource-key="pv">
+            <div class="resource-badge-group" title="Clique para definir PV atual">
+              <img src="./assets/vigilia/badge-pv.png" alt="PV" class="badge-res-img" draggable="false">
+              <span class="res-tag">PV</span>
+              <span class="res-num">${sheet.pv}</span>
             </div>
-
-            <!-- PD -->
-            <div class="vigilia-resource-block resource-pd" data-resource-key="pd">
-              <div class="resource-badge-group">
-                <img src="./assets/vigilia/badge-pd.png" alt="PD" class="badge-res-img" draggable="false">
-                <span class="res-tag">PD</span>
-                <span class="res-num">${sheet.pd}</span>
-              </div>
-              <div class="resource-track-group">
-                ${renderVigiliaPips(sheet.pd, sheet.maxPd, 'pd', sheet.pdTemp)}
-              </div>
-              ${editMode ? `
-                <div class="res-edit-controls">
-                  <button type="button" data-resource-adjust="maxPd:-1">−</button>
-                  <small>MÁX ${sheet.maxPd}</small>
-                  <button type="button" data-resource-adjust="maxPd:1">+</button>
-                </div>
-              ` : ''}
+            <div class="resource-track-group">
+              ${renderVigiliaPips(sheet.pv, sheet.maxPv, 'pv', sheet.pvTemp)}
             </div>
+            ${editMode ? `
+              <div class="res-edit-controls">
+                <button type="button" data-resource-adjust="maxPv:-1">−</button>
+                <small>MÁX ${sheet.maxPv}</small>
+                <button type="button" data-resource-adjust="maxPv:1">+</button>
+              </div>
+            ` : ''}
           </div>
 
+          <!-- PD -->
+          <div class="vigilia-resource-block resource-pd" data-resource-key="pd">
+            <div class="resource-badge-group" title="Clique para definir PD atual">
+              <img src="./assets/vigilia/badge-pd.png" alt="PD" class="badge-res-img" draggable="false">
+              <span class="res-tag">PD</span>
+              <span class="res-num">${sheet.pd}</span>
+            </div>
+            <div class="resource-track-group">
+              ${renderVigiliaPips(sheet.pd, sheet.maxPd, 'pd', sheet.pdTemp)}
+            </div>
+            ${editMode ? `
+              <div class="res-edit-controls">
+                <button type="button" data-resource-adjust="maxPd:-1">−</button>
+                <small>MÁX ${sheet.maxPd}</small>
+                <button type="button" data-resource-adjust="maxPd:1">+</button>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+
+      <!-- CORPO PRINCIPAL EM 3 COLUNAS: PERÍCIAS À ESQUERDA, HABILIDADES NO CENTRO, RETRATO À DIREITA -->
+      <div class="vigilia-body-columns">
+        
+        <!-- COLUNA 1: PERÍCIAS (20 perícias ocupando verticalmente a altura) -->
+        <div class="vigilia-col-skills">
+          <div class="banner-pericias-wrap">
+            <img src="./assets/vigilia/banner-pericias.png" alt="PERÍCIAS" class="banner-pericias-img" draggable="false">
+            <span class="banner-text">PERÍCIAS</span>
+          </div>
+
+          <div class="vigilia-skills-table">
+            ${skills.map((sk) => {
+              const attrDie = attrs[sk.attribute] || 4;
+              const rollStr = `${sk.name}|${sk.skillDie},${attrDie}|${sk.extra || 0}`;
+              return `
+                <div class="vigilia-skill-row ${sk.skillDie > 4 ? 'is-trained' : ''}" 
+                     data-roll="${safe(rollStr)}" 
+                     title="Rolar ${safe(sk.name)} (d${sk.skillDie} + d${attrDie}${sk.extra ? `+${sk.extra}` : ''})">
+                  <span class="skill-name">${safe(sk.name)}</span>
+                  <span class="skill-die-col">${renderVigiliaDie(sk.skillDie, false)}</span>
+                  <span class="skill-plus-col">+</span>
+                  <span class="skill-attr-die-col">${renderVigiliaDie(attrDie, true)}</span>
+                  <span class="skill-attr-name">${safe(sk.attribute.toUpperCase())}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- COLUNA 2: HABILIDADES E EQUIPAMENTO -->
+        <div class="vigilia-col-powers">
           <!-- Cards de Habilidades -->
           <div class="vigilia-abilities-list">
             ${abilities.map(card => {

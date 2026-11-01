@@ -3527,9 +3527,9 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   position: relative;
   z-index: 5;
   width: 100%;
-  max-width: 1560px;
+  max-width: 1260px;
   margin: 0 auto;
-  padding: 20px 36px 40px;
+  padding: 16px 32px 36px;
   box-sizing: border-box;
 }
 
@@ -3545,32 +3545,34 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 
 .vigilia-title-name {
   margin: 0;
-  font-family: 'Cinzel', Georgia, serif;
+  font-family: 'Cinzel Decorative', 'Cinzel', serif;
   text-shadow: 0 3px 8px rgba(0, 0, 0, 0.9);
   line-height: 1;
 }
 
 .vigilia-title-name .first-name {
-  font-size: 46px;
+  font-family: 'Cinzel Decorative', 'Cinzel', serif;
+  font-size: 58px;
   font-weight: 900;
   color: #ffffff;
-  letter-spacing: 0.03em;
-  margin-right: 12px;
+  letter-spacing: 0.04em;
+  margin-right: 14px;
 }
 
 .vigilia-title-name .last-name {
-  font-size: 26px;
-  font-weight: 600;
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  font-weight: 700;
   color: #ccd8d2;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .vigilia-identity-badge {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   font-family: 'Cinzel', serif;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: #ffffff;
   text-shadow: 0 2px 6px #000;
@@ -3581,8 +3583,8 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 36px;
-  padding: 0 20px;
+  height: 42px;
+  padding: 0 22px;
 }
 
 .profile-banner-img {
@@ -3597,7 +3599,9 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 .profile-text {
   position: relative;
   z-index: 2;
-  font-size: 14px;
+  font-family: 'Cinzel', serif;
+  font-size: 17px;
+  font-weight: 900;
   letter-spacing: 0.12em;
   color: #ffffff;
   text-shadow: 0 2px 4px #000;
@@ -3605,24 +3609,29 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 
 .vigilia-identity-badge .id-dot {
   color: #8c9791;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .vigilia-identity-badge .occupation-text {
+  font-family: 'Cinzel', serif;
+  font-size: 17px;
+  font-weight: 700;
   letter-spacing: 0.06em;
   color: #e2ede8;
 }
 
 .vigilia-identity-badge .level-label {
-  font-size: 13px;
-  color: #8c9791;
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #9aa49e;
   letter-spacing: 0.08em;
 }
 
 .level-badge-wrap {
   position: relative;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3640,7 +3649,8 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 .level-badge-wrap .level-num {
   position: relative;
   z-index: 2;
-  font-size: 22px;
+  font-family: 'Cinzel', serif;
+  font-size: 24px;
   font-weight: 900;
   color: #ffffff;
 }
@@ -3649,45 +3659,39 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   width: 100%;
   height: 2px;
   background: linear-gradient(90deg, rgba(154, 164, 158, 0.2) 0%, rgba(255, 255, 255, 0.9) 30%, rgba(154, 164, 158, 0.4) 100%);
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
-/* Grade de Colunas */
-.vigilia-body-columns {
-  display: grid;
-  grid-template-columns: 270px 1fr 420px;
-  gap: 24px;
-  min-height: 850px;
-  position: relative;
+/* ─── SEÇÃO SUPERIOR: ATRIBUTOS + PV/PD ALINHADOS ─────────────────────────── */
+
+.vigilia-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 18px;
+  gap: 40px;
 }
 
-/* Coluna 1: Atributos & Perícias */
-.vigilia-attributes-section {
-  margin-bottom: 22px;
+.vigilia-attributes-block {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
 }
 
-.banner-atributos-wrap,
-.banner-pericias-wrap {
+.banner-atributos-wrap {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 18px;
-  margin-bottom: 12px;
-}
-
-.banner-atributos-wrap {
-  height: 38px;
+  height: 44px;
+  padding: 0 24px;
   transform: rotate(3deg);
   margin-left: 0;
+  flex-shrink: 0;
 }
 
-.banner-pericias-wrap {
-  height: 36px;
-}
-
-.banner-atributos-img,
-.banner-pericias-img {
+.banner-atributos-img {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -3700,28 +3704,24 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   position: relative;
   z-index: 2;
   font-family: 'Cinzel', serif;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 900;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   color: #ffffff;
   text-shadow: 0 2px 4px #000;
 }
 
-.banner-pericias-wrap .banner-text {
-  position: relative;
-  z-index: 2;
-  font-family: 'Cinzel', serif;
-  font-size: 14.5px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  color: #ffffff;
-  text-shadow: 0 2px 4px #000;
+.atributos-chevron-ray {
+  width: 24px;
+  height: 104px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.25));
 }
 
 .vigilia-attributes-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .vigilia-attr-row {
@@ -3737,13 +3737,13 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   transform: translateX(3px);
 }
 
-.vigilia-attr-row.attr-fisico { margin-left: 20px; }
-.vigilia-attr-row.attr-mente { margin-left: 0px; }
-.vigilia-attr-row.attr-emocao { margin-left: 32px; }
+.vigilia-attr-row.attr-fisico { transform: translateX(14px); }
+.vigilia-attr-row.attr-mente { transform: translateX(0px); }
+.vigilia-attr-row.attr-emocao { transform: translateX(22px); }
 
 .vigilia-attr-row .attr-name {
   font-family: 'Cinzel', serif;
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 900;
   color: #ffffff;
   letter-spacing: 0.06em;
@@ -3757,21 +3757,22 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   justify-content: center;
   width: 26px;
   height: 26px;
-  background: #8c9791;
+  background: #dce2de;
   color: #0b1410;
   font-family: 'Hanken Grotesk', sans-serif;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 900;
   line-height: 1;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
   flex-shrink: 0;
 }
 
 .vigilia-die-badge.attr-die {
-  background: #808d86;
-  width: 32px;
-  height: 32px;
-  font-size: 16px;
+  background: #eef3f0;
+  color: #070e0a;
+  width: 34px;
+  height: 34px;
+  font-size: 17px;
 }
 
 .vigilia-die-badge.die-4 {
@@ -3806,21 +3807,169 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   height: 26px;
 }
 
+/* Monitores de PV e PD (empilhados verticalmente como no PDF - Tamanho Grandioso) */
+.vigilia-resources-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.vigilia-resource-block {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  background: transparent;
+  padding: 0;
+  border: none;
+}
+
+.resource-badge-group {
+  position: relative;
+  width: 138px;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+
+.resource-badge-group:hover {
+  transform: scale(1.03);
+}
+
+.badge-res-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 1;
+}
+
+.resource-badge-group .res-tag {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  font-family: 'Cinzel', serif;
+  font-size: 25px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+  text-shadow: 0 2px 4px #000;
+}
+
+.resource-badge-group .res-num {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  text-align: center;
+  z-index: 2;
+  font-family: 'Cinzel', serif;
+  font-size: 29px;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 2px 4px #000;
+}
+
+.vigilia-pips-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.vigilia-pips-row {
+  display: flex;
+  gap: 5px;
+}
+
+.vigilia-pip {
+  width: 18px;
+  height: 14px;
+  transform: skewX(-14deg);
+  background: rgba(8, 18, 14, 0.85);
+  border: 1.5px solid #8e9a93;
+  border-radius: 1px;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.12s ease;
+}
+
+.vigilia-pip:hover {
+  border-color: #ffffff;
+  transform: skewX(-14deg) scale(1.15);
+}
+
+.vigilia-pip.filled {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.7);
+}
+
+/* ─── CORPO PRINCIPAL EM 3 COLUNAS ───────────────────────────────────────── */
+
+.vigilia-body-columns {
+  display: grid;
+  grid-template-columns: 295px 1fr 400px;
+  gap: 20px;
+  min-height: 750px;
+  position: relative;
+}
+
+/* Coluna 1: Perícias */
+.vigilia-col-skills {
+  margin-bottom: 20px;
+}
+
+.banner-pericias-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 20px;
+  margin-bottom: 12px;
+}
+
+.banner-pericias-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  z-index: 1;
+}
+
+.banner-pericias-wrap .banner-text {
+  position: relative;
+  z-index: 2;
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: #ffffff;
+  text-shadow: 0 2px 4px #000;
+}
+
 /* Tabela de Perícias */
 .vigilia-skills-table {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  width: 255px;
+  gap: 6px;
+  width: 290px;
 }
 
 .vigilia-skill-row {
   display: grid;
-  grid-template-columns: 102px 24px 8px 24px 44px;
+  grid-template-columns: 126px 26px 10px 26px 48px;
   align-items: center;
-  gap: 3px;
-  height: 22px;
-  padding: 1px 4px;
+  gap: 4px;
+  height: 25px;
+  padding: 2px 4px;
   border-radius: 3px;
   cursor: pointer;
   transition: background 0.12s;
@@ -3832,8 +3981,8 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 
 .vigilia-skill-row .skill-name {
   text-align: right;
-  font-family: 'Cinzel', Georgia, serif;
-  font-size: 10.5px;
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.03em;
   color: #ffffff;
@@ -3852,116 +4001,18 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 
 .vigilia-skill-row .skill-plus-col {
   text-align: center;
-  color: #6e7d75;
+  color: #8c9791;
   font-weight: 800;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .vigilia-skill-row .skill-attr-name {
-  font-size: 8.5px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: #6e7d75;
+  color: #8c9791;
   text-transform: uppercase;
   text-align: left;
-}
-
-/* Coluna 2: PV/PD, Habilidades e Equipamento */
-.vigilia-resources-bar {
-  display: flex;
-  gap: 32px;
-  margin-bottom: 24px;
-  align-items: center;
-}
-
-.vigilia-resource-block {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  background: transparent;
-  padding: 0;
-  border: none;
-}
-
-.resource-badge-group {
-  position: relative;
-  width: 106px;
-  height: 65px;
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.badge-res-img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  z-index: 1;
-}
-
-.resource-badge-group .res-tag {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 2;
-  font-family: 'Cinzel', serif;
-  font-size: 19px;
-  font-weight: 900;
-  color: #ffffff;
-  letter-spacing: 0.05em;
-  text-shadow: 0 2px 4px #000;
-}
-
-.resource-badge-group .res-num {
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 38px;
-  text-align: center;
-  z-index: 2;
-  font-family: 'Cinzel', serif;
-  font-size: 21px;
-  font-weight: 900;
-  color: #ffffff;
-  text-shadow: 0 2px 4px #000;
-}
-
-.vigilia-pips-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.vigilia-pips-row {
-  display: flex;
-  gap: 4px;
-}
-
-.vigilia-pip {
-  width: 14px;
-  height: 11px;
-  transform: skewX(-14deg);
-  background: rgba(8, 18, 14, 0.85);
-  border: 1.5px solid #7d8983;
-  border-radius: 1px;
-  cursor: pointer;
-  padding: 0;
-  transition: all 0.12s ease;
-}
-
-.vigilia-pip:hover {
-  border-color: #ffffff;
-  transform: skewX(-14deg) scale(1.15);
-}
-
-.vigilia-pip.filled {
-  background: #ffffff !important;
-  border-color: #ffffff !important;
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.7);
 }
 
 /* Cards de Habilidade */
@@ -3980,8 +4031,9 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   position: relative;
   display: inline-flex;
   align-items: center;
-  height: 42px;
-  padding: 0 24px;
+  height: 40px;
+  padding: 0 20px 0 12px;
+  margin-left: -10px;
   margin-bottom: 8px;
 }
 
@@ -3997,13 +4049,13 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 .power-title {
   position: relative;
   z-index: 2;
-  font-family: 'Cinzel', Georgia, serif;
-  font-size: 18px;
+  font-family: 'Cinzel', serif;
+  font-size: 17.5px;
   font-weight: 900;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: #ffffff;
   text-shadow: 0 2px 4px #000;
-  margin-right: 14px;
+  margin-right: 12px;
 }
 
 .power-content,
@@ -4116,10 +4168,10 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 
 .vigilia-portrait-container {
   position: absolute;
-  top: -20px;
+  top: -140px;
   right: -30px;
-  bottom: -15px;
-  width: 530px;
+  bottom: -20px;
+  width: 580px;
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
@@ -4134,7 +4186,7 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   max-height: none;
   object-fit: contain;
   object-position: right top;
-  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.95));
+  filter: drop-shadow(0 18px 32px rgba(0, 0, 0, 0.95));
   pointer-events: none;
 }
 
