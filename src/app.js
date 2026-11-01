@@ -57,6 +57,7 @@ import { die } from './dice-icon.js';
 import { enhanceSelects } from './custom-select.js';
 import { abrirTutorial, fecharTutorial } from './systems/original/original-wizard.js';
 import { icon } from './icons.js';
+import { renderVigiliaSheet, setVigiliaSide, getVigiliaSide } from './systems/vigilia/vigilia-view.js';
 
 // Pop-ups de trilha da ficha de Ordem 1: escolha da trilha ao liberá-la e a
 // pergunta de Versatilidade a cada NEX de habilidade de trilha.
@@ -299,7 +300,7 @@ function normalizeSheet(raw={}){
  sheet.cards=(Array.isArray(raw.cards)?raw.cards:clone(defaultCards)).map(normalizeCard);
  ensureProfileAbility(sheet);
  ['pv','maxPv','pvTemp','pd','maxPd','pdTemp','level'].forEach(key=>sheet[key]=Math.max(0,Number(sheet[key])||0));
- sheet.viewMode=sheet.viewMode==='cinematic'?'cinematic':'traditional';sheet.cinematicTokenX=Math.max(0,Math.min(100,Number(sheet.cinematicTokenX)||50));sheet.cinematicTokenY=Math.max(0,Math.min(100,Number(sheet.cinematicTokenY)||52));sheet.cinematicTokenScale=Math.max(45,Math.min(220,Number(sheet.cinematicTokenScale)||100));
+ sheet.viewMode=['cinematic','traditional','vigilia'].includes(sheet.viewMode)?sheet.viewMode:'traditional';sheet.cinematicTokenX=Math.max(0,Math.min(100,Number(sheet.cinematicTokenX)||50));sheet.cinematicTokenY=Math.max(0,Math.min(100,Number(sheet.cinematicTokenY)||52));sheet.cinematicTokenScale=Math.max(45,Math.min(220,Number(sheet.cinematicTokenScale)||100));
  sheet.cinematicOutlineSide=['left','right','both','none'].includes(raw.cinematicOutlineSide)?raw.cinematicOutlineSide:(raw.profile==='Executor'?'right':'left');
  sheet.cinematicOutlineIntensity=Math.max(0,Math.min(1,Number(raw.cinematicOutlineIntensity??0.5)));
  sheet.cinematicOutlineWidth=Math.max(0,Math.min(10,Number(raw.cinematicOutlineWidth??1.8)));sheet.cinematicOutlineFade=Math.max(0,Math.min(10,Number(raw.cinematicOutlineFade??1.5)));
@@ -1114,11 +1115,13 @@ function render(){syncDraftBaseline();syncUnsavedBar();document.querySelectorAll
     ? renderThreatBook(state, editMode, { safeUrl, renderBackgroundLayer })
     : (state.systemMode==='original'
         ? (isCinematic?renderCinematicOriginal(state,editMode,{safeUrl,renderBackgroundLayer,presentationMode,renderPresentationDock,die,accent:getSheetAccent(state),resourceShift:currentResourceShift,pageClass:`cinematic-tab-${cinematicMobileTab} ${presentationMode?'presentation-active':''} ${presentationLockingIn?'presentation-locking-in':''} ${presentationEntering?'presentation-entering':''} ${editTransitionMode?`edit-trans-${editTransitionMode}`:''} ${modeJustChanged?'mode-enter':''}`}):renderTraditionalOriginal(state,editMode,{accent:getSheetAccent(state),currentRight:currentOriginalTab,filterQuery:originalSkillsFilter,safeUrl,renderBackgroundLayer}))
-        : (isCinematic?renderCinematic(trainingOptions,bgIsVideo):renderTraditional(trainingOptions,bgIsVideo,aptidaoOptions,aptidaoCount))
+        : (state.viewMode==='vigilia'
+            ? renderVigiliaSheet(state, editMode, { safeUrl, renderBackgroundLayer })
+            : (isCinematic?renderCinematic(trainingOptions,bgIsVideo):renderTraditional(trainingOptions,bgIsVideo,aptidaoOptions,aptidaoCount)))
     )
   }
 	 ${isCinematic?renderCriticalAtmosphere():''}
-	 ${state.systemMode==='threat'?'':`<div class="view-mode-switch ${viewSwitchCollapsed?'collapsed':'expanded'}">${viewSwitchCollapsed?`<button type="button" class="view-mode-trigger" data-toggle-view-switch title="Alternar modo de exibição (Clique para expandir)">${isCinematic?icon('film',14):icon('grid',14)}<span>${isCinematic?'CINEMA':'PADRÃO'}</span><i class="switch-arrow">▾</i></button>`:`<button type="button" class="${!isCinematic?'active':''}" data-display-mode="traditional">${icon('grid',14)}<span>TRADICIONAL</span></button><button type="button" class="${isCinematic&&!presentationMode?'active':''}" data-display-mode="cinematic">${icon('film',14)}<span>CINEMATOGRÁFICO</span></button><button type="button" class="${presentationMode?'active':''}" data-open-presentation title="Modo de Apresentação">${icon('presentation',14)}<span>APRESENTAÇÃO</span></button><button type="button" class="btn-collapse-switch" data-toggle-view-switch title="Recolher menu">${icon('chevron',12)}</button>`}</div>`}
+	 ${state.systemMode==='threat'?'':`<div class="view-mode-switch ${viewSwitchCollapsed?'collapsed':'expanded'}">${viewSwitchCollapsed?`<button type="button" class="view-mode-trigger" data-toggle-view-switch title="Alternar modo de exibição (Clique para expandir)">${state.viewMode==='vigilia'?icon('shield',14):(isCinematic?icon('film',14):icon('grid',14))}<span>${state.viewMode==='vigilia'?'VIGÍLIA':(isCinematic?'CINEMA':'PADRÃO')}</span><i class="switch-arrow">▾</i></button>`:`<button type="button" class="${state.viewMode==='traditional'&&!presentationMode?'active':''}" data-display-mode="traditional">${icon('grid',14)}<span>TRADICIONAL</span></button><button type="button" class="${isCinematic&&!presentationMode?'active':''}" data-display-mode="cinematic">${icon('film',14)}<span>CINEMATOGRÁFICO</span></button><button type="button" class="${state.viewMode==='vigilia'?'active':''}" data-display-mode="vigilia">${icon('shield',14)}<span>A VIGÍLIA</span></button><button type="button" class="${presentationMode?'active':''}" data-open-presentation title="Modo de Apresentação">${icon('presentation',14)}<span>APRESENTAÇÃO</span></button><button type="button" class="btn-collapse-switch" data-toggle-view-switch title="Recolher menu">${icon('chevron',12)}</button>`}</div>`}
   ${editMode?`<div class="edit-status active"><span></span>MODO DE EDIÇÃO — TEMA ÂMBAR</div>`:''}<div class="floating"><button class="${editMode?'active':''}" data-toggle-edit title="${editMode?'Fechar edição':'Editar ficha'}">${editMode?icon('close'):icon('edit')}</button></div><div class="save-toast" id="save-toast">SALVO</div>
 
   <div id="dice-stage"><canvas id="dice-canvas"></canvas><div id="dice-stage-result"></div></div>
@@ -3347,6 +3350,65 @@ function bindQuickSwitcherItemEvents() {
  });
 }
 
+function bindVigiliaEvents() {
+ if (state.viewMode !== 'vigilia') return;
+
+ document.querySelectorAll('[data-vigilia-side]').forEach(btn => {
+  btn.onclick = () => {
+   setVigiliaSide(btn.dataset.vigiliaSide);
+   render();
+  };
+ });
+
+ document.querySelectorAll('[data-set-relation]').forEach(btn => {
+  btn.onclick = (e) => {
+   e.stopPropagation();
+   const [target, degStr] = btn.dataset.setRelation.split(':');
+   const degree = Number(degStr) || 0;
+   if (!Array.isArray(state.relations)) state.relations = [];
+   let rel = state.relations.find(r => r.target === target);
+   if (!rel) {
+    rel = { target, degree, feeling: 'NEUTRO', note: '' };
+    state.relations.push(rel);
+   } else {
+    rel.degree = degree;
+   }
+   save(false);
+   render();
+  };
+ });
+
+ document.querySelectorAll('[data-invoke-relation]').forEach(btn => {
+  btn.onclick = (e) => {
+   e.stopPropagation();
+   const [target, degStr] = btn.dataset.invokeRelation.split(':');
+   const deg = Number(degStr) || 1;
+   const d = deg === 1 ? '1d6' : deg === 2 ? '1d8' : '1d12';
+   roll(`Invocação de Relação (${target})`, d, 0);
+  };
+ });
+
+ document.querySelectorAll('[data-spend-prontidao]').forEach(btn => {
+  btn.onclick = (e) => {
+   e.stopPropagation();
+   if (state.pd >= 2) {
+    state.pd -= 2;
+    updateResourceUi('pd');
+    save(false);
+    render();
+    const toast = document.querySelector('#save-toast');
+    if (toast) {
+     toast.textContent = 'PRONTIDÃO ATIVADA (-2 PD)';
+     toast.classList.add('show');
+     setTimeout(() => { toast.classList.remove('show'); toast.textContent = 'SALVO'; }, 1800);
+    }
+   } else {
+    alert('Pontos de Determinação insuficientes (Necessário 2 PD).');
+   }
+  };
+ });
+}
+
 function bindBestiaryLicenseEvents() {
   document.querySelectorAll('[data-open-bestiary-unlock]').forEach(el => {
     el.onclick = (e) => {
@@ -4365,13 +4427,13 @@ function bind(){
     document.querySelectorAll('#json-file-input').forEach(input=>{input.onchange=()=>{if(input.files[0])importJsonSheet(input.files[0]);input.value=''}});
     document.querySelectorAll('[data-compendium]').forEach(el=>el.onclick=()=>{const toast=document.querySelector('#save-toast');if(toast){toast.textContent='COMPÊNDIO — EM BREVE';toast.classList.add('show');setTimeout(()=>{toast.classList.remove('show');toast.textContent='SALVO'},1300)}});
 
-  document.querySelectorAll('[data-display-mode]').forEach(el=>el.onclick=()=>{if(el.dataset.displayMode===state.viewMode)return;state.viewMode=el.dataset.displayMode;if(state.viewMode==='cinematic')viewSwitchCollapsed=true;if(state.viewMode==='traditional')presentationMode=false;modeJustChanged=true;render()});
+  document.querySelectorAll('[data-display-mode]').forEach(el=>el.onclick=()=>{if(el.dataset.displayMode===state.viewMode)return;state.viewMode=el.dataset.displayMode;if(state.viewMode==='cinematic')viewSwitchCollapsed=true;if(state.viewMode==='traditional'||state.viewMode==='vigilia')presentationMode=false;modeJustChanged=true;render()});
   document.querySelectorAll('[data-toggle-view-switch]').forEach(el=>el.onclick=e=>{e.stopPropagation();viewSwitchCollapsed=!viewSwitchCollapsed;render()});
 
   // ── Modo de Apresentação (Dossiês de Agentes) ───────────────────────────────
   bindPresentationEvents();
 
-  bindCinematicToken();bindSheetInteractions();bindWorkspaceSidebarEvents();bindThreatBookEvents();bindBestiaryLicenseEvents();
+  bindCinematicToken();bindSheetInteractions();bindWorkspaceSidebarEvents();bindThreatBookEvents();bindBestiaryLicenseEvents();bindVigiliaEvents();
 
   // ── Interações do Sistema Original (d20) ───────────────────────────────────
   document.querySelectorAll('[data-original-tab]').forEach(btn=>{
@@ -4766,7 +4828,7 @@ function bind(){
  });
  bindRollLogItemEvents();
 }
-document.addEventListener('click',e=>{closeSheetContextMenu();closeFolderContextMenu();if(!viewSwitchCollapsed&&!e.target.closest('.view-mode-switch')){viewSwitchCollapsed=true;const sw=document.querySelector('.view-mode-switch');if(sw){sw.className='view-mode-switch collapsed';sw.innerHTML=`<button type="button" class="view-mode-trigger" data-toggle-view-switch title="Alternar modo de exibição (Clique para expandir)">${state.viewMode==='cinematic'?icon('film',14):icon('grid',14)}<span>${state.viewMode==='cinematic'?'CINEMA':'PADRÃO'}</span><i class="switch-arrow">▾</i></button>`;const trig=sw.querySelector('[data-toggle-view-switch]');if(trig)trig.onclick=ev=>{ev.stopPropagation();viewSwitchCollapsed=!viewSwitchCollapsed;render()}}}});
+document.addEventListener('click',e=>{closeSheetContextMenu();closeFolderContextMenu();if(!viewSwitchCollapsed&&!e.target.closest('.view-mode-switch')){viewSwitchCollapsed=true;const sw=document.querySelector('.view-mode-switch');if(sw){sw.className='view-mode-switch collapsed';sw.innerHTML=`<button type="button" class="view-mode-trigger" data-toggle-view-switch title="Alternar modo de exibição (Clique para expandir)">${state.viewMode==='vigilia'?icon('shield',14):(state.viewMode==='cinematic'?icon('film',14):icon('grid',14))}<span>${state.viewMode==='vigilia'?'VIGÍLIA':(state.viewMode==='cinematic'?'CINEMA':'PADRÃO')}</span><i class="switch-arrow">▾</i></button>`;const trig=sw.querySelector('[data-toggle-view-switch]');if(trig)trig.onclick=ev=>{ev.stopPropagation();viewSwitchCollapsed=!viewSwitchCollapsed;render()}}}});
 
 document.addEventListener('keydown',e=>{
  if((e.ctrlKey||e.metaKey)&&(e.key==='k'||e.key==='K')){

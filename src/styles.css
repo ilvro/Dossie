@@ -3429,3 +3429,880 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 .prog-text-input-row{display:flex;gap:8px}
 .prog-text-input-row .original-input{flex:1;height:36px;padding:0 12px;border-radius:4px;border:1px solid #353852;background:#181a28;color:#fff;font-size:13px}
 @media (max-width:640px){.prog-element-grid{grid-template-columns:1fr}.prog-skills-grid{grid-template-columns:1fr 1fr}}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LAYOUT OFICIAL "A VIGÍLIA" (Ordem Paranormal II • Playtest Beta)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.vigilia-page {
+  position: relative;
+  width: 100%;
+  max-width: 1624px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background-color: #07120e;
+  color: #e6ece9;
+  font-family: Georgia, 'Times New Roman', serif;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  padding-bottom: 60px;
+}
+
+.vigilia-bg-layer {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.98;
+}
+
+.vigilia-frame-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.vigilia-frame-img {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
+
+.vigilia-toolbar {
+  position: sticky;
+  top: 10px;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+  pointer-events: auto;
+}
+
+.vigilia-side-switch {
+  display: flex;
+  background: rgba(7, 18, 14, 0.92);
+  border: 1px solid #37473f;
+  border-radius: 8px;
+  padding: 4px;
+  gap: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+}
+
+.vigilia-side-switch .side-btn {
+  background: transparent;
+  border: 0;
+  color: #9aa49e;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.vigilia-side-switch .side-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.vigilia-side-switch .side-btn.active {
+  background: #1e3328;
+  color: #ffffff;
+  border: 1px solid #4a6356;
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.25);
+}
+
+.vigilia-content-viewport {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  max-width: 1540px;
+  margin: 0 auto;
+  padding: 30px 48px;
+  box-sizing: border-box;
+}
+
+/* ─── FRENTE DA FICHA ───────────────────────────────────────────────────── */
+
+.vigilia-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  padding-right: 32px;
+}
+
+.vigilia-title-name {
+  margin: 0;
+  font-family: 'Cinzel', Georgia, serif;
+  text-shadow: 0 3px 8px rgba(0, 0, 0, 0.9);
+  line-height: 1;
+}
+
+.vigilia-title-name .first-name {
+  font-size: 44px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.03em;
+  margin-right: 12px;
+}
+
+.vigilia-title-name .last-name {
+  font-size: 24px;
+  font-weight: 600;
+  color: #ccd8d2;
+  letter-spacing: 0.04em;
+}
+
+.vigilia-identity-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 2px 6px #000;
+}
+
+.profile-banner-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 20px;
+}
+
+.profile-banner-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  z-index: 1;
+}
+
+.profile-text {
+  position: relative;
+  z-index: 2;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  color: #ffffff;
+  text-shadow: 0 2px 4px #000;
+}
+
+.vigilia-identity-badge .id-dot {
+  color: #8c9791;
+  font-size: 16px;
+}
+
+.vigilia-identity-badge .occupation-text {
+  letter-spacing: 0.06em;
+  color: #e2ede8;
+}
+
+.vigilia-identity-badge .level-label {
+  font-size: 13px;
+  color: #8c9791;
+  letter-spacing: 0.08em;
+}
+
+.level-badge-wrap {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.level-badge-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 1;
+}
+
+.level-badge-wrap .level-num {
+  position: relative;
+  z-index: 2;
+  font-size: 22px;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.vigilia-header-divider {
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(154, 164, 158, 0.2) 0%, rgba(255, 255, 255, 0.9) 30%, rgba(154, 164, 158, 0.4) 100%);
+  margin-bottom: 20px;
+}
+
+/* Grade de Colunas */
+.vigilia-body-columns {
+  display: grid;
+  grid-template-columns: 290px 1fr 340px;
+  gap: 28px;
+  min-height: 850px;
+}
+
+/* Coluna 1: Atributos & Perícias */
+.vigilia-attributes-section {
+  margin-bottom: 20px;
+}
+
+.banner-atributos-wrap,
+.banner-pericias-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 16px;
+  margin-bottom: 10px;
+}
+
+.banner-atributos-wrap {
+  transform: rotate(3deg);
+  margin-left: 8px;
+}
+
+.banner-atributos-img,
+.banner-pericias-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  z-index: 1;
+}
+
+.banner-atributos-wrap .banner-text,
+.banner-pericias-wrap .banner-text {
+  position: relative;
+  z-index: 2;
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #ffffff;
+  text-shadow: 0 2px 4px #000;
+}
+
+.vigilia-attributes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 24px;
+}
+
+.vigilia-attr-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 200px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.vigilia-attr-row.attr-fisico { margin-left: 14px; }
+.vigilia-attr-row.attr-mente { margin-left: 0px; }
+.vigilia-attr-row.attr-emocao { margin-left: 22px; }
+
+.vigilia-attr-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.vigilia-attr-row .attr-name {
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+  text-shadow: 0 2px 4px #000;
+}
+
+/* Dados em polígonos fiéis ao PDF */
+.vigilia-die-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: #8c9791;
+  color: #0b1410;
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  flex-shrink: 0;
+}
+
+.vigilia-die-badge.attr-die {
+  background: #738079;
+}
+
+.vigilia-die-badge.die-4 {
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  width: 24px;
+  height: 22px;
+  padding-top: 5px;
+}
+
+.vigilia-die-badge.die-6 {
+  clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+  border-radius: 3px;
+  width: 22px;
+  height: 22px;
+}
+
+.vigilia-die-badge.die-8 {
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  width: 24px;
+  height: 24px;
+}
+
+.vigilia-die-badge.die-10 {
+  clip-path: polygon(50% 0%, 100% 32%, 80% 100%, 20% 100%, 0% 32%);
+  width: 26px;
+  height: 26px;
+}
+
+.vigilia-die-badge.die-12 {
+  clip-path: polygon(50% 0%, 90% 20%, 100% 60%, 75% 100%, 25% 100%, 0% 60%, 10% 20%);
+  width: 26px;
+  height: 26px;
+}
+
+/* Tabela de Perícias */
+.vigilia-skills-table {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vigilia-skill-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2.5px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.vigilia-skill-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.vigilia-skill-row .skill-name {
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+  text-shadow: 0 1px 3px #000;
+}
+
+.skill-dice-block {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.skill-dice-block .plus-sign {
+  color: #6e7d75;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.skill-attr-name {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #6e7d75;
+  width: 48px;
+  text-align: left;
+}
+
+/* Coluna 2: PV/PD, Habilidades e Equipamento */
+.vigilia-resources-bar {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.vigilia-resource-block {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(8, 20, 16, 0.7);
+  padding: 8px 14px;
+  border: 1px solid #2a3a32;
+  border-radius: 6px;
+}
+
+.resource-badge-group {
+  position: relative;
+  width: 68px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-res-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 1;
+}
+
+.resource-badge-group .res-num {
+  position: relative;
+  z-index: 2;
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 2px 6px #000;
+}
+
+.vigilia-pips-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.vigilia-pips-row {
+  display: flex;
+  gap: 3px;
+}
+
+.vigilia-pip {
+  width: 13px;
+  height: 10px;
+  transform: skewX(-14deg);
+  background: rgba(10, 22, 17, 0.85);
+  border: 1.5px solid #7d8983;
+  border-radius: 1px;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.12s ease;
+}
+
+.vigilia-pip:hover {
+  border-color: #ffffff;
+  transform: skewX(-14deg) scale(1.1);
+}
+
+.vigilia-pip.filled {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
+}
+
+/* Cards de Habilidade */
+.vigilia-abilities-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.vigilia-power-card,
+.vigilia-equipment-section {
+  margin-bottom: 4px;
+}
+
+.power-banner-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 16px;
+  margin-bottom: 6px;
+}
+
+.power-banner-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  z-index: 1;
+}
+
+.power-title {
+  position: relative;
+  z-index: 2;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #ffffff;
+  text-shadow: 0 2px 4px #000;
+  margin-right: 10px;
+}
+
+.power-content,
+.equipment-content {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #d8e2dd;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  padding-left: 2px;
+}
+
+.power-content strong,
+.equipment-content strong {
+  color: #ffffff;
+}
+
+/* Slots de Ímpeto e Análise no Banner */
+.impeto-slots-row,
+.analise-slots-row {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 3.5px;
+  align-items: center;
+}
+
+.impeto-slot-pip,
+.analise-slot-pip {
+  width: 14px;
+  height: 11px;
+  transform: skewX(-14deg);
+  background: rgba(0, 0, 0, 0.65);
+  border: 1.5px solid #9aa49e;
+  border-radius: 1px;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.12s;
+}
+
+.impeto-slot-pip:hover,
+.analise-slot-pip:hover {
+  border-color: #ffffff;
+}
+
+.impeto-slot-pip.filled,
+.analise-slot-pip.filled {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.85);
+}
+
+.btn-vigilia-prontidao {
+  position: relative;
+  z-index: 2;
+  background: #1c3629;
+  border: 1px solid #4a6657;
+  color: #ffffff;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-vigilia-prontidao:hover {
+  background: #284a39;
+  border-color: #5cf5ab;
+}
+
+.power-actions-bar,
+.item-actions-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.vigilia-action-btn {
+  background: #152920;
+  border: 1px solid #374f42;
+  color: #ffffff;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.vigilia-action-btn:hover {
+  background: #223f32;
+  border-color: #6ee7b7;
+}
+
+/* Coluna 3: Retrato */
+.vigilia-portrait-container {
+  width: 100%;
+  height: 100%;
+  min-height: 750px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.vigilia-character-portrait {
+  width: 100%;
+  max-height: 850px;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.9));
+  pointer-events: none;
+}
+
+/* ─── VERSO DA FICHA (HISTÓRIA & RELAÇÕES) ───────────────────────────────── */
+
+.vigilia-back-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-right: 24px;
+}
+
+.back-name-block {
+  font-family: 'Cinzel', serif;
+  line-height: 1;
+}
+
+.back-first-name {
+  font-size: 46px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.03em;
+}
+
+.back-last-name {
+  font-size: 24px;
+  font-weight: 600;
+  color: #9aa49e;
+  margin-left: 12px;
+  letter-spacing: 0.04em;
+}
+
+.back-bio-summary {
+  max-width: 52%;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #cdd9d3;
+  text-align: right;
+}
+
+.vigilia-back-divider {
+  margin: 10px 0 18px;
+}
+
+.vigilia-back-divider img {
+  width: 100%;
+  height: 10px;
+  object-fit: fill;
+  opacity: 0.75;
+}
+
+.vigilia-history-paragraphs {
+  column-count: 2;
+  column-gap: 36px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #d6deda;
+  margin-bottom: 26px;
+  text-align: justify;
+}
+
+.vigilia-history-paragraphs p {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.vigilia-history-edit {
+  width: 100%;
+  background: #0f1f18;
+  border: 1px solid #364a40;
+  color: #ffffff;
+  padding: 12px;
+  font-family: Georgia, serif;
+  font-size: 13px;
+  line-height: 1.6;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+/* Banner de Relações */
+.banner-relacoes-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 24px;
+  margin-bottom: 14px;
+}
+
+.banner-relacoes-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  z-index: 1;
+}
+
+.banner-relacoes-title {
+  position: relative;
+  z-index: 2;
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: #ffffff;
+  text-shadow: 0 2px 4px #000;
+}
+
+.vigilia-relations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vigilia-relation-row {
+  display: grid;
+  grid-template-columns: 140px 75px 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 14px;
+  border-bottom: 1px solid rgba(154, 164, 158, 0.15);
+  border-radius: 4px;
+  transition: background 0.12s;
+}
+
+.vigilia-relation-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.relation-target-name {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: right;
+  letter-spacing: 0.05em;
+}
+
+.vigilia-relation-pips {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.relation-pip-btn {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.relation-pip-btn .pip-outer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid #9aa49e;
+  border-radius: 50%;
+  transition: border-color 0.15s;
+}
+
+.relation-pip-btn .pip-inner {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: transparent;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.relation-pip-btn.active .pip-outer {
+  border-color: #ffffff;
+}
+
+.relation-pip-btn.active .pip-inner {
+  background: #ffffff;
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+}
+
+.relation-desc-block {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: #c4d0ca;
+}
+
+.relation-desc-block .relation-feeling {
+  color: #ffffff;
+  font-weight: 800;
+  margin-right: 6px;
+  letter-spacing: 0.04em;
+}
+
+.relation-desc-block .relation-note {
+  font-variant: small-caps;
+}
+
+.btn-invoke-relation {
+  background: #173024;
+  border: 1px solid #3c5749;
+  color: #6ee7b7;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: all 0.15s;
+}
+
+.btn-invoke-relation:hover {
+  background: #254a39;
+  border-color: #34d399;
+  color: #ffffff;
+}
+
+@media (max-width: 1200px) {
+  .vigilia-body-columns {
+    grid-template-columns: 260px 1fr;
+  }
+  .vigilia-col-right {
+    display: none;
+  }
+  .vigilia-history-paragraphs {
+    column-count: 1;
+  }
+}

@@ -22,6 +22,17 @@
     "system": true
   },
   {
+    "id": "folder-vigilia",
+    "name": "Personagens Vigília",
+    "kind": "characters",
+    "parentId": null,
+    "color": "#34d399",
+    "icon": "shield",
+    "collapsed": true,
+    "order": 1,
+    "system": true
+  },
+  {
     "id": "fld-mvxb7120-5p5gg",
     "name": "Ídolo de Pedra",
     "kind": "custom",

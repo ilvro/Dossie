@@ -18,6 +18,17 @@ export const DEFAULT_FOLDERS = [
     system: true
   },
   {
+    id: 'folder-vigilia',
+    name: 'Personagens Vigília',
+    kind: 'characters',
+    parentId: null,
+    color: '#34d399',
+    icon: 'shield',
+    collapsed: false,
+    order: 1,
+    system: true
+  },
+  {
     id: 'folder-threats',
     name: 'Ameaças',
     kind: 'threats',
@@ -25,7 +36,7 @@ export const DEFAULT_FOLDERS = [
     color: '#993ce8',
     icon: 'skull',
     collapsed: false,
-    order: 1,
+    order: 2,
     system: true
   }
 ];
@@ -42,14 +53,18 @@ export function clone(data) {
  * Normaliza um objeto de pasta garantindo tipos e campos obrigatórios.
  */
 export function normalizeFolder(raw = {}, index = 0) {
-  const isSys = raw.id === 'folder-characters' || raw.id === 'folder-threats' || raw.system === true;
+  const isSys = raw.id === 'folder-characters' || raw.id === 'folder-vigilia' || raw.id === 'folder-threats' || raw.system === true;
+  let defName = 'Nova Pasta';
+  if (raw.id === 'folder-threats') defName = 'Ameaças';
+  else if (raw.id === 'folder-vigilia') defName = 'Personagens Vigília';
+  else if (raw.id === 'folder-characters') defName = 'Personagens';
   return {
     id: String(raw.id || makeFolderId()),
-    name: String(raw.name || (isSys ? (raw.id === 'folder-threats' ? 'Ameaças' : 'Personagens') : 'Nova Pasta')).trim(),
+    name: String(raw.name || (isSys ? defName : 'Nova Pasta')).trim(),
     kind: ['characters', 'threats', 'custom'].includes(raw.kind) ? raw.kind : (isSys ? (raw.id === 'folder-threats' ? 'threats' : 'characters') : 'custom'),
     parentId: raw.parentId ? String(raw.parentId) : null,
-    color: String(raw.color || (raw.id === 'folder-threats' ? '#993ce8' : (raw.id === 'folder-characters' ? '#e0150d' : '#3187ff'))),
-    icon: String(raw.icon || (raw.id === 'folder-threats' ? 'skull' : (raw.id === 'folder-characters' ? 'user' : 'folder'))),
+    color: String(raw.color || (raw.id === 'folder-threats' ? '#993ce8' : (raw.id === 'folder-vigilia' ? '#34d399' : (raw.id === 'folder-characters' ? '#e0150d' : '#3187ff')))),
+    icon: String(raw.icon || (raw.id === 'folder-threats' ? 'skull' : (raw.id === 'folder-vigilia' ? 'shield' : (raw.id === 'folder-characters' ? 'user' : 'folder')))),
     collapsed: Boolean(raw.collapsed),
     order: typeof raw.order === 'number' ? raw.order : index,
     system: isSys
@@ -72,12 +87,15 @@ export function normalizeFolders(rawList = []) {
     }
   });
 
-  // Garante a existência das 2 pastas do sistema
+  // Garante a existência das pastas padrão do sistema
   if (!existingMap.has('folder-characters')) {
     existingMap.set('folder-characters', clone(DEFAULT_FOLDERS[0]));
   }
+  if (!existingMap.has('folder-vigilia')) {
+    existingMap.set('folder-vigilia', clone(DEFAULT_FOLDERS[1]));
+  }
   if (!existingMap.has('folder-threats')) {
-    existingMap.set('folder-threats', clone(DEFAULT_FOLDERS[1]));
+    existingMap.set('folder-threats', clone(DEFAULT_FOLDERS[2]));
   }
 
   const normalized = Array.from(existingMap.values());
