@@ -3970,6 +3970,191 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.7);
 }
 
+/* ═══ EFEITOS DE BAIXA SANIDADE (PD) E PV BAIXO — A VIGÍLIA ═══════════════ */
+
+/* ── PV: Alerta (<= 50%) ── */
+body.warning-pv-state .vigilia-resource-block.resource-pv .resource-badge-group {
+  filter: drop-shadow(0 0 calc(8px * var(--pv-warning-strength)) rgba(220, 20, 40, var(--pv-warning-strength)));
+}
+body.warning-pv-state .vigilia-resource-block.resource-pv .res-num {
+  color: #ff99a4;
+  text-shadow: 0 0 calc(8px * var(--pv-warning-strength)) rgba(255, 30, 50, 0.8), 0 2px 4px #000;
+}
+body.warning-pv-state .vigilia-resource-block.resource-pv .vigilia-pip:not(.filled):not(.temp-pip) {
+  border-color: rgba(220, 40, 60, calc(0.3 + 0.5 * var(--pv-warning-strength)));
+  background: rgba(30, 8, 12, 0.85);
+}
+body.warning-pv-state .vigilia-resource-block.resource-pv .vigilia-pip.filled:not(.temp-pip) {
+  background: #d62839 !important;
+  border-color: #ff8594 !important;
+  box-shadow: 0 0 8px rgba(214, 40, 57, 0.7);
+}
+
+/* ── PV: Crítico (<= 25%) — Pulsação Sanguínea e Batimento Cardíaco ── */
+body.critical-pv-state .vigilia-resource-block.resource-pv .resource-badge-group {
+  filter: drop-shadow(0 0 14px rgba(255, 0, 30, 0.85)) drop-shadow(0 0 25px rgba(180, 0, 20, 0.6));
+  animation: vigilia-pv-critical-pulse 1.9s ease-in-out infinite;
+}
+body.critical-heartbeat-beat .vigilia-resource-block.resource-pv .resource-badge-group {
+  animation: vigilia-heartbeat-pop 0.36s cubic-bezier(0.2, 0.02, 0.28, 1) both !important;
+}
+body.critical-pv-state .vigilia-resource-block.resource-pv .res-tag {
+  color: #ffb8c2;
+  text-shadow: 0 0 10px #ff0022;
+}
+body.critical-pv-state .vigilia-resource-block.resource-pv .res-num {
+  color: #ffffff;
+  text-shadow: 0 0 12px #ff0022, 0 0 24px #c9001b, 0 2px 4px #000;
+}
+body.critical-pv-state .vigilia-resource-block.resource-pv .vigilia-pip:not(.filled):not(.temp-pip) {
+  border-color: #7a1520;
+  background: rgba(45, 10, 16, 0.9);
+  box-shadow: inset 0 0 4px rgba(255, 0, 30, 0.3);
+}
+body.critical-pv-state .vigilia-resource-block.resource-pv .vigilia-pip.filled:not(.temp-pip) {
+  background: #ff122e !important;
+  border-color: #ffa1ad !important;
+  box-shadow: 0 0 10px rgba(255, 18, 46, 0.95), 0 0 20px rgba(200, 0, 25, 0.7);
+  animation: vigilia-pip-pv-bleed 1.8s ease-in-out infinite alternate;
+}
+body.critical-heartbeat-beat .vigilia-resource-block.resource-pv .vigilia-pip.filled:not(.temp-pip) {
+  transform: skewX(-14deg) scale(1.18);
+  filter: brightness(1.35);
+}
+body.critical-pv-state .vigilia-page {
+  box-shadow: inset 0 0 60px 15px rgba(160, 0, 20, 0.35);
+}
+body.critical-pv-state .vigilia-character-portrait {
+  filter: contrast(1.06) drop-shadow(0 0 14px rgba(180, 10, 25, 0.45));
+}
+
+/* ── PV: Zero (0 PV — Morrendo / Risco de Lesão Grave) ── */
+body.critical-pv-zero .vigilia-resource-block.resource-pv .resource-badge-group {
+  filter: drop-shadow(0 0 20px #ff0022) drop-shadow(0 0 40px #800010);
+  animation: vigilia-dying-flash 0.9s ease-in-out infinite alternate;
+}
+body.critical-pv-zero .vigilia-resource-block.resource-pv .res-num {
+  color: #ff102b !important;
+  text-shadow: 0 0 16px #ff0020, 0 0 32px #800010;
+}
+body.critical-pv-zero .vigilia-content-viewport {
+  box-shadow: inset 0 0 60px 20px rgba(130, 0, 15, 0.55), inset 0 0 120px 40px rgba(40, 0, 5, 0.75);
+}
+
+/* ── PD: Alerta (<= 50% — Tensão Mental) ── */
+body.warning-pd-state .vigilia-resource-block.resource-pd .resource-badge-group {
+  filter: drop-shadow(0 0 calc(8px * var(--pd-warning-strength)) rgba(168, 85, 247, var(--pd-warning-strength)));
+}
+body.warning-pd-state .vigilia-resource-block.resource-pd .res-num {
+  color: #e9d5ff;
+  text-shadow: 0 0 calc(8px * var(--pd-warning-strength)) rgba(168, 85, 247, 0.8), 0 2px 4px #000;
+}
+body.warning-pd-state .vigilia-resource-block.resource-pd .vigilia-pip:not(.filled):not(.temp-pip) {
+  border-color: rgba(147, 51, 234, calc(0.3 + 0.5 * var(--pd-warning-strength)));
+  background: rgba(22, 12, 32, 0.85);
+}
+body.warning-pd-state .vigilia-resource-block.resource-pd .vigilia-pip.filled:not(.temp-pip) {
+  background: #9333ea !important;
+  border-color: #d8b4fe !important;
+  box-shadow: 0 0 8px rgba(147, 51, 234, 0.7);
+}
+
+/* ── PD: Crítico (<= 25% — Pavor / Terror / Aberração Mental) ── */
+body.critical-pd-state .vigilia-resource-block.resource-pd .resource-badge-group {
+  filter: drop-shadow(0 0 14px rgba(168, 85, 247, 0.95)) drop-shadow(0 0 26px rgba(107, 33, 168, 0.75));
+  animation: vigilia-pd-critical-anxiety 0.75s ease-in-out infinite;
+}
+body.critical-pd-state .vigilia-resource-block.resource-pd .res-tag {
+  color: #f3e8ff;
+  text-shadow: 0 0 10px #a855f7;
+}
+body.critical-pd-state .vigilia-resource-block.resource-pd .res-num {
+  color: #ffffff;
+  text-shadow: 0 0 14px #c084fc, 0 0 26px #7e22ce, 0 2px 4px #000;
+}
+body.critical-pd-state .vigilia-resource-block.resource-pd .vigilia-pip:not(.filled):not(.temp-pip) {
+  border-color: #581c87;
+  background: rgba(30, 14, 45, 0.9);
+  box-shadow: inset 0 0 5px rgba(147, 51, 234, 0.3);
+}
+body.critical-pd-state .vigilia-resource-block.resource-pd .vigilia-pip.filled:not(.temp-pip) {
+  background: #a855f7 !important;
+  border-color: #f3e8ff !important;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.9), 0 0 22px rgba(126, 34, 206, 0.75);
+  animation: vigilia-pip-pd-pulse 2.2s ease-in-out infinite;
+}
+body.critical-pd-state .vigilia-page {
+  box-shadow: inset 0 0 70px 20px rgba(60, 10, 85, 0.45);
+}
+body.critical-pd-state .vigilia-character-portrait {
+  filter: contrast(1.1) drop-shadow(0 0 16px rgba(139, 92, 246, 0.4));
+  animation: vigilia-portrait-sanity-drift 6s ease-in-out infinite;
+}
+
+/* ── PD: Zero (0 PD — Colapso Psicológico / Teste de Trauma) ── */
+body.critical-pd-zero .vigilia-resource-block.resource-pd .resource-badge-group {
+  filter: drop-shadow(0 0 22px #a855f7) drop-shadow(0 0 45px #3b0764);
+  animation: vigilia-insane-flash 0.85s ease-in-out infinite alternate;
+}
+body.critical-pd-zero .vigilia-resource-block.resource-pd .res-num {
+  color: #c084fc !important;
+  text-shadow: 0 0 18px #d8b4fe, 0 0 35px #581c87;
+}
+body.critical-pd-zero .vigilia-content-viewport {
+  box-shadow: inset 0 0 70px 25px rgba(35, 8, 55, 0.65), inset 0 0 140px 50px rgba(10, 2, 18, 0.8);
+}
+
+/* ── Combinação de Ambos os Críticos (PV Crítico + Sanidade Baixa) ── */
+body.critical-pv-state.critical-pd-state .vigilia-page {
+  box-shadow: inset 0 0 70px 25px rgba(160, 0, 20, 0.35), inset 0 0 120px 45px rgba(45, 5, 65, 0.5);
+}
+
+/* ── Animações Exclusivas de Vigília ── */
+@keyframes vigilia-heartbeat-pop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.08); filter: drop-shadow(0 0 22px rgba(255, 0, 30, 1)) drop-shadow(0 0 35px rgba(255, 30, 50, 0.8)); }
+  60% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+@keyframes vigilia-pv-critical-pulse {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(220, 20, 40, 0.65)) drop-shadow(0 0 20px rgba(160, 0, 20, 0.45)); }
+  50% { filter: drop-shadow(0 0 18px rgba(255, 20, 40, 0.95)) drop-shadow(0 0 32px rgba(220, 0, 30, 0.75)); }
+}
+
+@keyframes vigilia-dying-flash {
+  0% { filter: drop-shadow(0 0 10px #70000a) brightness(0.85); }
+  100% { filter: drop-shadow(0 0 24px #ff0022) drop-shadow(0 0 45px #990012) brightness(1.15); }
+}
+
+@keyframes vigilia-pip-pv-bleed {
+  0% { box-shadow: 0 0 6px rgba(255, 18, 46, 0.6); }
+  100% { box-shadow: 0 0 14px rgba(255, 18, 46, 1), 0 0 20px rgba(220, 0, 30, 0.7); }
+}
+
+@keyframes vigilia-pd-critical-anxiety {
+  0%, 100% { transform: translate(0, 0) scale(1); filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.8)); }
+  20% { transform: translate(-1.5px, 0.8px) scale(1.01); filter: drop-shadow(0 0 16px rgba(192, 132, 252, 0.95)); }
+  40% { transform: translate(1.2px, -0.6px) scale(0.99); }
+  60% { transform: translate(-0.8px, -1px) scale(1.015); }
+  80% { transform: translate(1px, 0.5px) scale(1); }
+}
+
+@keyframes vigilia-pip-pd-pulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(168, 85, 247, 0.6); }
+  50% { box-shadow: 0 0 16px rgba(192, 132, 252, 1), 0 0 22px rgba(126, 34, 206, 0.8); }
+}
+
+@keyframes vigilia-insane-flash {
+  0% { filter: drop-shadow(0 0 12px #3b0764) brightness(0.8); }
+  100% { filter: drop-shadow(0 0 28px #c084fc) drop-shadow(0 0 50px #581c87) brightness(1.2); }
+}
+
+@keyframes vigilia-portrait-sanity-drift {
+  0%, 100% { filter: contrast(1.1) drop-shadow(0 0 12px rgba(107, 33, 168, 0.35)); }
+  50% { filter: contrast(1.16) brightness(0.92) drop-shadow(0 0 24px rgba(147, 51, 234, 0.65)); }
+}
+
 /* ─── CORPO PRINCIPAL EM 3 COLUNAS ───────────────────────────────────────── */
 
 .vigilia-body-columns {

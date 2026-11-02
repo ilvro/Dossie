@@ -1129,7 +1129,7 @@ function render(){syncDraftBaseline();syncUnsavedBar();document.querySelectorAll
             : (isCinematic?renderCinematic(trainingOptions,bgIsVideo):renderTraditional(trainingOptions,bgIsVideo,aptidaoOptions,aptidaoCount)))
     )
   }
-	 ${isCinematic?renderCriticalAtmosphere():''}
+	 ${(isCinematic || state.viewMode === 'vigilia')?renderCriticalAtmosphere():''}
 	 ${state.systemMode==='threat'?'':`<div class="view-mode-switch ${viewSwitchCollapsed?'collapsed':'expanded'}">${viewSwitchCollapsed?`<button type="button" class="view-mode-trigger" data-toggle-view-switch title="Alternar modo de exibição (Clique para expandir)">${state.viewMode==='vigilia'?icon('shield',14):(isCinematic?icon('film',14):icon('grid',14))}<span>${state.viewMode==='vigilia'?'VIGÍLIA':(isCinematic?'CINEMA':'PADRÃO')}</span><i class="switch-arrow">▾</i></button>`:`<button type="button" class="${state.viewMode==='traditional'&&!presentationMode?'active':''}" data-display-mode="traditional">${icon('grid',14)}<span>TRADICIONAL</span></button><button type="button" class="${isCinematic&&!presentationMode?'active':''}" data-display-mode="cinematic">${icon('film',14)}<span>CINEMATOGRÁFICO</span></button><button type="button" class="${state.viewMode==='vigilia'?'active':''}" data-display-mode="vigilia">${icon('shield',14)}<span>A VIGÍLIA</span></button><button type="button" class="${presentationMode?'active':''}" data-open-presentation title="Modo de Apresentação">${icon('presentation',14)}<span>APRESENTAÇÃO</span></button><button type="button" class="btn-collapse-switch" data-toggle-view-switch title="Recolher menu">${icon('chevron',12)}</button>`}</div>`}
   ${editMode?`<div class="edit-status active"><span></span>MODO DE EDIÇÃO — TEMA ÂMBAR</div>`:''}<div class="floating"><button class="${editMode?'active':''}" data-toggle-edit title="${editMode?'Fechar edição':'Editar ficha'}">${editMode?icon('close'):icon('edit')}</button></div><div class="save-toast" id="save-toast">SALVO</div>
 
@@ -4807,7 +4807,7 @@ function startCriticalTendrils(canvas,intensity){
  if(reducedMotionQuery?.matches){criticalTendrilIntensity=nextIntensity;criticalTendrils.forEach(t=>t.presence=t.targetPresence);drawCriticalTendrils(canvas,0)}else criticalTendrilRaf=requestAnimationFrame(animate);
 }
 function syncCriticalAtmosphere(){
- const critical=getCriticalState(),cinematic=state.viewMode==='cinematic',visible=!document.hidden;
+ const critical=getCriticalState(),cinematic=state.viewMode==='cinematic'||state.viewMode==='vigilia',visible=!document.hidden;
  document.body.style.setProperty('--pv-warning-strength',(.18+critical.pv.warningIntensity*.35).toFixed(3));document.body.style.setProperty('--pd-warning-strength',(.18+critical.pd.warningIntensity*.35).toFixed(3));
  document.body.classList.toggle('warning-pv-state',critical.pv.warning);document.body.classList.toggle('warning-pd-state',critical.pd.warning);document.body.classList.toggle('critical-pv-state',critical.pv.special);document.body.classList.toggle('critical-pd-state',critical.pd.special);document.body.classList.toggle('critical-pd-effects',cinematic&&criticalEffects.pd&&critical.pd.special);document.body.classList.toggle('critical-pv-zero',critical.pv.special&&critical.pv.value===0);document.body.classList.toggle('critical-pd-zero',critical.pd.special&&critical.pd.value===0);
  const atmosphere=document.querySelector('[data-critical-atmosphere]');
