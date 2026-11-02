@@ -7,8 +7,8 @@
 import * as THREE from 'three';
 import { clamp01, easeOutCubic } from './dice-fx-primitives.js';
 
-const HAND_Y = -.3;        // altura dos dados na mão: baixa, para ficarem sob o cursor (chão em -1.15)
-const SPACING = .8;        // distância entre dados na formação (evita nascerem sobrepostos)
+const HAND_Y = -.1;        // altura base dos dados na mão (chão em -1.14)
+const SPACING = .48;       // agrupamento mais compacto dos dados na mão
 const ENTER = 280;
 
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -23,10 +23,10 @@ export function createDiceHand({ camera, dice, radius, size, stage, onRattle, on
   const n = dice.length, cols = Math.min(n, 3), rows = Math.ceil(n / 3);
   const slots = dice.map((_, i) => new THREE.Vector3(
     ((i % 3) - (Math.min(cols, n - Math.floor(i / 3) * 3) - 1) / 2) * SPACING,
-    (i % 2) * .1,
+    (i % 2) * .08,
     Math.floor(i / 3) * SPACING * .85 - (rows - 1) * SPACING * .42
   ));
-  const halfWidth = (cols - 1) / 2 * SPACING + .4;
+  const halfWidth = (cols - 1) / 2 * SPACING + .35;
   const spins = dice.map(() => new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize());
   dice.forEach(die => die.mesh.scale.setScalar(.001));
 
@@ -40,9 +40,10 @@ export function createDiceHand({ camera, dice, radius, size, stage, onRattle, on
     return ray.ray.intersectPlane(plane, point) ? point : null;
   }
 
-  // A mão fica sobre o círculo, com a formação inteira dentro das paredes
+  // A mão pode navegar livremente pela maior parte do círculo ritual
   function clampToCircle(point) {
-    const max = Math.max(0, radius - halfWidth - .05), r = Math.hypot(point.x, point.z);
+    const max = Math.max(0.5, radius * 0.84);
+    const r = Math.hypot(point.x, point.z);
     if (r > max) { point.x *= max / r; point.z *= max / r; }
     point.y = HAND_Y;
     return point;
@@ -56,26 +57,27 @@ export function createDiceHand({ camera, dice, radius, size, stage, onRattle, on
     const perp = new THREE.Vector3(-dir.z, 0, dir.x);
     onThrow(dice.map((die, i) => {
       const s = speed * rand(.9, 1.1);
-      const velocity = dir.clone().multiplyScalar(s).add(perp.clone().multiplyScalar(rand(-.5, .5)));
-      velocity.y = 1.2 + s * .15;
-      const spinPower = 9 + s * 2.2;
+      const velocity = dir.clone().multiplyScalar(s).add(perp.clone().multiplyScalar(rand(-.4, .4)));
+      // Arco parabólico expressivo em Y: sobe alto e cai quicando na mesa
+      velocity.y = 3.6 + s * .35 + rand(-.3, .5);
+      const spinPower = 14 + s * 3.2;
       return {
         position: die.mesh.position.clone(),
         quaternion: die.mesh.quaternion.clone(),
         velocity,
-        angularVelocity: spins[i].clone().multiplyScalar(spinPower).add(new THREE.Vector3(rand(-4, 4), rand(-4, 4), rand(-4, 4)))
+        angularVelocity: spins[i].clone().multiplyScalar(spinPower).add(new THREE.Vector3(rand(-6, 6), rand(-6, 6), rand(-6, 6)))
       };
     }));
   }
 
-  // Sem gesto: joga a partir de onde a mão está, cruzando o círculo
+  // Sem gesto: joga a partir de onde a mão está, cruzando o círculo com arco vigoroso
   function throwAuto() {
     const toCenter = new THREE.Vector3(-hand.x, 0, -hand.z);
     const dir = toCenter.lengthSq() > .04
       ? toCenter.normalize()
       : new THREE.Vector3(rand(-1, 1), 0, rand(-1, -.2)).normalize();
-    dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), rand(-.5, .5));
-    throwWith(dir, rand(3.4, 4.6) * radius / 1.6);
+    dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), rand(-.4, .4));
+    throwWith(dir, rand(4.2, 5.8) * radius / 1.6);
   }
 
   function release(x, y) {
@@ -138,20 +140,30 @@ export function createDiceHand({ camera, dice, radius, size, stage, onRattle, on
     handSpeed = dt > 0 ? lastHand.distanceTo(hand) / dt : 0;
 
     const appear = easeOutCubic(clamp01((now - startedAt) / ENTER));
-    const shake = Math.min(1, handSpeed / 6);
+    const shake = THREE.MathUtils.clamp(handSpeed / 3.0, 0, 1);
     dice.forEach((die, i) => {
-      const bob = Math.sin(now * .003 + i * 1.7) * .07;
-      const target = hand.clone().add(slots[i].clone().multiplyScalar(grabbed ? .9 : 1));
-      target.y += bob + (grabbed ? .15 : 0);
-      die.mesh.position.lerp(target, 1 - Math.exp(-dt * (grabbed ? 16 : 10)));
-      die.mesh.rotateOnAxis(spins[i], dt * (.7 + shake * 14));
+      const bob = Math.sin(now * .004 + i * 1.7) * .08;
+      // Chacoalhar vivo e evidente no eixo Y com saltos assíncronos e tremor
+      const shakeBounce = Math.sin(now * .022 + i * 2.3) * (shake * 0.40);
+      const jitterY = (Math.random() - .5) * (shake * 0.16);
+      const target = hand.clone().add(slots[i].clone().multiplyScalar(grabbed ? .85 : 1));
+      target.y += (grabbed ? 0.38 : 0) + bob + shakeBounce + jitterY;
+      target.x += Math.cos(now * .018 + i * 1.5) * (shake * 0.12);
+      target.z += Math.sin(now * .018 + i * 1.5) * (shake * 0.12);
+
+      die.mesh.position.lerp(target, 1 - Math.exp(-dt * (grabbed ? 18 : 10)));
+      die.mesh.rotateOnAxis(spins[i], dt * (1.2 + shake * 18));
+      if (shake > .08) {
+        die.mesh.rotation.y += Math.sin(now * .016 + i) * shake * dt * 8;
+        die.mesh.rotation.x += Math.cos(now * .016 + i) * shake * dt * 8;
+      }
       die.mesh.scale.setScalar(Math.max(.001, appear));
     });
 
-    // Chacoalhar faz barulho de dados batendo
-    if (grabbed && shake > .35 && now - lastRattle > 75 - shake * 30) {
+    // Chacoalhar faz barulho dinâmico de dados batendo
+    if (grabbed && shake > .16 && now - lastRattle > Math.max(48, 90 - shake * 45)) {
       lastRattle = now;
-      onRattle?.(2 + shake * 5);
+      onRattle?.(1.5 + shake * 6);
     }
   }
 

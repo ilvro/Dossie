@@ -184,15 +184,15 @@ function createDie(scene, world, config, index, total) {
 
     if (world.sceneRadius) {
       const r = world.sceneRadius;
-      const spread = Math.min(r * 1.4, (total - 1) * .9);
+      const spread = Math.min(r * 1.4, (total - 1) * .85);
       const lane = (total > 1 ? (index / (total - 1) - .5) * spread : 0) + (Math.random() - .5) * .3;
-      const stagger = index * .22;
-      const startPos = dir.clone().multiplyScalar(-r * 0.78 - stagger)
+      const stagger = index * .2;
+      const startPos = dir.clone().multiplyScalar(-r * 0.82 - stagger)
         .add(perp.clone().multiplyScalar(lane));
-      body.position.set(startPos.x, -0.2 + Math.random() * 0.3, startPos.z);
-      const speed = (2.2 + power * 3.6) * (r / 1.6);
+      body.position.set(startPos.x, 0.4 + Math.random() * 0.4, startPos.z);
+      const speed = (2.6 + power * 3.8) * (r / 1.6);
       const vel = dir.clone().multiplyScalar(speed);
-      body.velocity.set(vel.x, 1.6 + power * 1.2, vel.z);
+      body.velocity.set(vel.x, 3.2 + power * 1.8, vel.z);
     } else {
       const spread = Math.min(world.boundsX * 1.4, (total - 1) * .72);
       const lane = total > 1 ? (index / (total - 1) - .5) * spread : 0;
@@ -207,18 +207,18 @@ function createDie(scene, world, config, index, total) {
       body.velocity.set(vel.x, -2.5 - power * 2, vel.z);
     }
   } else if (world.sceneRadius) {
-    // Cena: o arremesso começa dentro do quadro, rente ao chão, e cruza o círculo
+    // Cena: o arremesso começa com arco alto e cruza o círculo com vigor
     // Espaçamento de um dado inteiro entre eles: nascer sobrepostos faz a física explodir
     const r = world.sceneRadius, side = launch % 2 ? 1 : -1, power = r / 1.6;
-    const spread = Math.min(r * 1.4, (total - 1) * .9);
+    const spread = Math.min(r * 1.4, (total - 1) * .85);
     const lane = (total > 1 ? (index / (total - 1) - .5) * spread : 0) + (Math.random() - .5) * .3;
-    const stagger = index * .22, drift = (Math.random() - .5) * 2.2, speed = (2.6 + Math.random() * 1.4) * power;
+    const stagger = index * .2, drift = (Math.random() - .5) * 2.2, speed = (3.2 + Math.random() * 1.2) * power;
     if (launch < 2) {
-      body.position.set(side * (r * .78 + stagger), -.2 + Math.random() * .3, lane);
-      body.velocity.set(-side * speed, 1.8 + Math.random() * .8, -lane * .5 + drift);
+      body.position.set(side * (r * .82 + stagger), 0.5 + Math.random() * .4, lane);
+      body.velocity.set(-side * speed, 3.4 + Math.random() * 1.2, -lane * .5 + drift);
     } else {
-      body.position.set(lane, -.2 + Math.random() * .3, r * .78 + stagger);
-      body.velocity.set(-lane * .5 + drift, 2 + Math.random() * .8, -speed);
+      body.position.set(lane, 0.5 + Math.random() * .4, r * .82 + stagger);
+      body.velocity.set(-lane * .5 + drift, 3.6 + Math.random() * 1.2, -speed);
     }
   } else if (launch === 0) {
     // Lançamento da esquerda em direção ao centro da ficha
@@ -238,7 +238,7 @@ function createDie(scene, world, config, index, total) {
     body.velocity.set((Math.random() - .5) * 1.8, -3.0 - Math.random() * 1.0, (-4.2 - Math.random() * 1.2) * speedScale);
   }
   body.angularVelocity.set((13 + Math.random() * 10) * angScale, (11 + Math.random() * 12) * angScale, (12 + Math.random() * 11) * angScale);
-  body.angularDamping = .13; body.linearDamping = world.sceneRadius ? .22 : .035;
+  body.angularDamping = .10; body.linearDamping = world.sceneRadius ? .065 : .035;
   body.quaternion.setFromEuler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
   let lastImpact = 0;
   body.addEventListener('collide', event => {
@@ -460,7 +460,7 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(34, aspect, .1, 100);
-    const trayRadius = aspect < 1 ? 1.2 : 1.6;
+    const trayRadius = aspect < 1 ? 1.6 : 2.15;
     if (sceneMode) {
       // Enquadra o círculo inteiro na largura e deixa os dados grandes; o deslocamento
       // vertical sobe o círculo para abrir espaço ao total embaixo.
@@ -490,13 +490,13 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
       hemi.intensity = 1.1; key.intensity = 1.6; key.castShadow = false; accent.intensity = 5;
     }
 
-    const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -25, 0) });
+    const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -19.5, 0) });
     world.allowSleep = true; world.broadphase = new CANNON.SAPBroadphase(world);
     world.launch = Math.floor(Math.random() * 4);
     world.diceMaterial = new CANNON.Material('dice');
     const floorMaterial = new CANNON.Material('floor');
-    world.addContactMaterial(new CANNON.ContactMaterial(world.diceMaterial, floorMaterial, { friction: .25, restitution: .55 }));
-    world.addContactMaterial(new CANNON.ContactMaterial(world.diceMaterial, world.diceMaterial, { friction: .15, restitution: .40 }));
+    world.addContactMaterial(new CANNON.ContactMaterial(world.diceMaterial, floorMaterial, { friction: .22, restitution: .64 }));
+    world.addContactMaterial(new CANNON.ContactMaterial(world.diceMaterial, world.diceMaterial, { friction: .12, restitution: .52 }));
     const floorBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(), material: floorMaterial });
     floorBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); floorBody.position.y = -1.15; world.addBody(floorBody);
     const wallMaterial = floorMaterial;
@@ -513,14 +513,14 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
       for (let i = 0; i < N; i++) {
         const ang = (i * 2 * Math.PI) / N;
         const wall = new CANNON.Body({ mass: 0, material: wallMaterial });
-        wall.addShape(new CANNON.Box(new CANNON.Vec3(0.5, 3.0, segLen * 0.58)));
-        wall.position.set(Math.cos(ang) * (trayRadius + 0.48), 1.8, Math.sin(ang) * (trayRadius + 0.48));
+        wall.addShape(new CANNON.Box(new CANNON.Vec3(0.5, 3.5, segLen * 0.58)));
+        wall.position.set(Math.cos(ang) * (trayRadius + 0.35), 1.8, Math.sin(ang) * (trayRadius + 0.35));
         wall.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), -ang);
         world.addBody(wall);
       }
-      // Teto baixo: os dados nunca saem do enquadramento
-      const ceiling = new CANNON.Body({ mass: 0, shape: new CANNON.Box(new CANNON.Vec3(trayRadius * 2, 1.0, trayRadius * 2)), material: wallMaterial });
-      ceiling.position.set(0, 2.7, 0);
+      // Teto alto: permite arcos parabólicos e quiques expressivos no eixo Y
+      const ceiling = new CANNON.Body({ mass: 0, shape: new CANNON.Box(new CANNON.Vec3(trayRadius * 2.4, 1.0, trayRadius * 2.4)), material: wallMaterial });
+      ceiling.position.set(0, 3.8, 0);
       world.addBody(ceiling);
 
       tray = createTray({ scene, radius: trayRadius, floorY: -1.14 });
@@ -708,21 +708,23 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
 
       // Trava de segurança física: impede que dados saiam da área da bandeja/ficha
       if (sceneMode) {
-        const maxR = trayRadius - .12;
+        const maxR = trayRadius + .15;
         dice.forEach(die => {
           const r = Math.hypot(die.body.position.x, die.body.position.z);
           if (r > maxR) {
             const factor = maxR / (r || 1);
             die.body.position.x *= factor;
             die.body.position.z *= factor;
-            if (die.body.velocity.x * die.body.position.x + die.body.velocity.z * die.body.position.z > 0) {
-              die.body.velocity.x *= -0.35;
-              die.body.velocity.z *= -0.35;
+            const dot = die.body.velocity.x * (die.body.position.x / (r || 1)) + die.body.velocity.z * (die.body.position.z / (r || 1));
+            if (dot > 0) {
+              const nx = die.body.position.x / (r || 1), nz = die.body.position.z / (r || 1);
+              die.body.velocity.x -= 1.55 * dot * nx;
+              die.body.velocity.z -= 1.55 * dot * nz;
             }
           }
-          if (die.body.position.y < -1.10) {
-            die.body.position.y = -1.10;
-            if (die.body.velocity.y < 0) die.body.velocity.y = -die.body.velocity.y * 0.35;
+          if (die.body.position.y < -1.14) {
+            die.body.position.y = -1.14;
+            if (die.body.velocity.y < 0) die.body.velocity.y = Math.abs(die.body.velocity.y) * 0.55;
           }
           die.mesh.position.copy(die.body.position);
           die.mesh.quaternion.copy(die.body.quaternion);
