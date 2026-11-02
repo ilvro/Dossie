@@ -180,6 +180,7 @@ import {
   renderQuickSwitcherResults,
   renderMobileSheetDrawer
 } from './workspace/workspace-sidebar.js';
+import { setFxEnabledGetter, runPostRenderFx } from './fx/ui-fx.js';
 
 let currentOriginalTab = 'habilidades';
 let originalSkillsFilter = '';
@@ -412,6 +413,7 @@ try{criticalEffects={...criticalEffects,...JSON.parse(localStorage.getItem(CRITI
 // Preferências gerais do app (fora dos efeitos críticos).
 const APP_SETTINGS_KEY='ordem-ii-app-settings-v1';
 let appSettings={
+  gameFx:true,
   tutorialOriginal:true,
   sidebarScope:'all',
   sidebarNavigatorOpen:false,
@@ -430,6 +432,7 @@ let appSettings={
 };
 try{appSettings={...appSettings,...JSON.parse(localStorage.getItem(APP_SETTINGS_KEY)||'{}')}}catch{}
 function saveAppSettings(){try{localStorage.setItem(APP_SETTINGS_KEY,JSON.stringify(appSettings))}catch{}}
+setFxEnabledGetter(()=>appSettings.gameFx!==false);
 
 let sidebarNavigatorOpen = Boolean(appSettings.sidebarNavigatorOpen);
 let sidebarNavigatorPinned = Boolean(appSettings.sidebarNavigatorPinned);
@@ -534,7 +537,7 @@ function getCriticalState(){
  return{pv,pd,active:pv.critical||pd.critical};
 }
 function renderCriticalAtmosphere(){return `<div class="critical-atmosphere" data-critical-atmosphere aria-hidden="true"><div class="critical-pd-darkness"></div><div class="critical-pv-vignette"></div><div class="critical-pd-vignette"></div><canvas class="critical-tendrils" data-critical-tendrils></canvas><div class="critical-distortion"></div></div>`}
-function renderCriticalSettings(){const row=(key,title,copy)=>`<div class="critical-setting-row"><span><b>${title}</b><small>${copy}</small></span><button type="button" class="critical-effect-toggle ${criticalEffects[key]?'active':''}" data-critical-effect="${key}" aria-pressed="${criticalEffects[key]}"><i></i><em>${criticalEffects[key]?'ATIVO':'DESATIVADO'}</em></button></div>`;return `<div class="modal critical-settings-modal" id="critical-settings-modal"><div class="backdrop critical-settings-backdrop"></div><section><button type="button" class="critical-settings-close">${icon('close')}</button><small>IMERSÃO & ACESSIBILIDADE</small><h2>EFEITOS CRÍTICOS</h2><p>Escolha quais efeitos atmosféricos podem aparecer. As cores e bordas informativas de PV e PD continuam visíveis.</p>${row('pv','ESTADO CRÍTICO DE PV','Vinheta pulsante e batimento cardíaco sincronizado.')}${row('pd','ESTADO CRÍTICO DE PD','Escurecimento, vibração e formas paranormais.')}<h2 style="margin-top:22px">CRIAÇÃO DE FICHA</h2><div class="critical-setting-row"><span><b>TUTORIAL DE ORDEM PARANORMAL 1</b><small>Ao criar uma ficha, guia a escolha de aprimoramento, origem, atributos, perícias e poder geral.</small></span><button type="button" class="critical-effect-toggle ${appSettings.tutorialOriginal?'active':''}" data-app-setting="tutorialOriginal" aria-pressed="${appSettings.tutorialOriginal}"><i></i><em>${appSettings.tutorialOriginal?'ATIVO':'DESATIVADO'}</em></button></div></section></div>`}
+function renderCriticalSettings(){const row=(key,title,copy)=>`<div class="critical-setting-row"><span><b>${title}</b><small>${copy}</small></span><button type="button" class="critical-effect-toggle ${criticalEffects[key]?'active':''}" data-critical-effect="${key}" aria-pressed="${criticalEffects[key]}"><i></i><em>${criticalEffects[key]?'ATIVO':'DESATIVADO'}</em></button></div>`;const appRow=(key,title,copy)=>`<div class="critical-setting-row"><span><b>${title}</b><small>${copy}</small></span><button type="button" class="critical-effect-toggle ${appSettings[key]!==false?'active':''}" data-app-setting="${key}" aria-pressed="${appSettings[key]!==false}"><i></i><em>${appSettings[key]!==false?'ATIVO':'DESATIVADO'}</em></button></div>`;return `<div class="modal critical-settings-modal" id="critical-settings-modal"><div class="backdrop critical-settings-backdrop"></div><section><button type="button" class="critical-settings-close">${icon('close')}</button><small>IMERSÃO & ACESSIBILIDADE</small><h2>EFEITOS CRÍTICOS</h2><p>Escolha quais efeitos atmosféricos podem aparecer. As cores e bordas informativas de PV e PD continuam visíveis.</p>${row('pv','ESTADO CRÍTICO DE PV','Vinheta pulsante e batimento cardíaco sincronizado.')}${row('pd','ESTADO CRÍTICO DE PD','Escurecimento, vibração e formas paranormais.')}<h2 style="margin-top:22px">EXPERIÊNCIA DE JOGO</h2>${appRow('gameFx','ANIMAÇÕES DE JOGO','Efeitos visuais, contagem dinâmica de dados e partículas.')}<h2 style="margin-top:22px">CRIAÇÃO DE FICHA</h2>${appRow('tutorialOriginal','TUTORIAL DE ORDEM PARANORMAL 1','Ao criar uma ficha, guia a escolha de aprimoramento, origem, atributos, perícias e poder geral.')}</section></div>`}
 
 function getCardCost(card){
  if(card.cost !== undefined && card.cost !== null) {
@@ -5512,6 +5515,7 @@ function bind(){
   if(toast){toast.textContent='HISTÓRICO COMPLETO COPIADO!';toast.classList.add('show');setTimeout(()=>{toast.classList.remove('show');toast.textContent='SALVO'},1500)}
  });
  bindRollLogItemEvents();
+ runPostRenderFx();
 }
 document.addEventListener('click',e=>{closeSheetContextMenu();closeFolderContextMenu();if(!viewSwitchCollapsed&&!e.target.closest('.view-mode-switch')){viewSwitchCollapsed=true;const sw=document.querySelector('.view-mode-switch');if(sw){sw.className='view-mode-switch collapsed';sw.innerHTML=`<button type="button" class="view-mode-trigger" data-toggle-view-switch title="Alternar modo de exibição (Clique para expandir)">${state.viewMode==='vigilia'?icon('shield',14):(state.viewMode==='cinematic'?icon('film',14):icon('grid',14))}<span>${state.viewMode==='vigilia'?'VIGÍLIA':(state.viewMode==='cinematic'?'CINEMA':'PADRÃO')}</span><i class="switch-arrow">▾</i></button>`;const trig=sw.querySelector('[data-toggle-view-switch]');if(trig)trig.onclick=ev=>{ev.stopPropagation();viewSwitchCollapsed=!viewSwitchCollapsed;render()}}}});
 

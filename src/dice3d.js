@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { createDreadSequence } from './dice-dread-fx.js';
+import { countUp, fxEnabled } from './fx/ui-fx.js';
 
 const geometryFactories = {
   4: () => new THREE.TetrahedronGeometry(.9),
@@ -56,6 +57,23 @@ function playDiceImpact(velocity) {
   source.buffer = noiseBuffer; filter.type = 'bandpass'; filter.frequency.value = 520 + Math.random() * 880; filter.Q.value = 1.2;
   gain.gain.setValueAtTime(.075 * strength, now); gain.gain.exponentialRampToValueAtTime(.0001, now + .045 + strength * .025);
   source.connect(filter).connect(gain).connect(context.destination); source.start(now);
+}
+
+function playTick(progress = 0) {
+  const context = getAudioContext();
+  if (!context) return;
+  try {
+    const now = context.currentTime;
+    const osc = context.createOscillator();
+    const gain = context.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(900 + progress * 900, now);
+    gain.gain.setValueAtTime(0.02, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.02);
+    osc.connect(gain).connect(context.destination);
+    osc.start(now);
+    osc.stop(now + 0.025);
+  } catch { /* áudio é opcional */ }
 }
 
 function faceData(geometry) {
@@ -246,9 +264,27 @@ function showResult(resultNode, dice, results, title, modifier = 0, rollMode = '
     else dreadHtml = '<span class="roll-dread-badge resisted">VOCÊ RESISTIU AO PAVOR</span>';
   }
 
-  resultNode.innerHTML = `<small>${title}</small><div>${diceBreakdownHtml}</div>${vigiliaMetaHtml}${dreadHtml}<strong>${total}</strong><button type="button" class="btn-dice-open-log" data-open-roll-log title="Ver histórico de rolagens">HISTÓRICO ▾</button>`;
+  const shouldAnimateTotal = fxEnabled() && total > 0;
+  const totalHtml = shouldAnimateTotal
+    ? `<strong data-total="${total}">0</strong>`
+    : `<strong>${total}</strong>`;
+
+  resultNode.innerHTML = `<small>${title}</small><div>${diceBreakdownHtml}</div>${vigiliaMetaHtml}${dreadHtml}${totalHtml}<button type="button" class="btn-dice-open-log" data-open-roll-log title="Ver histórico de rolagens">HISTÓRICO ▾</button>`;
   resultNode.classList.toggle('dread-result', dreadIndex >= 0);
   resultNode.classList.add('visible');
+
+  if (shouldAnimateTotal) {
+    const strong = resultNode.querySelector('strong[data-total]');
+    if (strong) {
+      const duration = Math.min(650, 220 + total * 25);
+      countUp(strong, total, {
+        duration,
+        onTick: (progress) => playTick(progress)
+      }).then(() => {
+        if (strong.isConnected) strong.classList.add('landed');
+      });
+    }
+  }
 }
 
 function pulseStage(stage, className) {

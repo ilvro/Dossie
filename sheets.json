@@ -2160,7 +2160,9 @@
         "note": "Acha as mãos limpas, a postura nobre e o sotaque estrangeiro do rapaz incompatíveis com a história de simples andarilho."
       }
     ],
-    "favorite": false
+    "favorite": false,
+    "dadoPavor": null,
+    "pavorEmbraced": false
   },
   {
     "name": "Cormac Coluim",
@@ -14359,7 +14361,7 @@
     "diceColor": "",
     "hasIntro": true,
     "introTitle": "",
-    "introText": "Existe uma lenda de uma dimensão alternativa, um espaço que poderia ser acessado por puro acaso. Uma possibilidade minúscula, inacreditável, de que ao interagir com uma passagem, você poderia acessar outro lugar que não pretendia. Como se em todas as vezes que as portas do elevador se abriram, ou quando você se prepara para sair de casa, ou até mesmo quando abre o microondas para pegar comida, você estivesse jogando na loteria da probabilidade anárquica.\n\nE se seu infortúnio for inacreditável, você terá sido escolhido por uma anomalia.\n\nExceto que a anomalia não é uma dimensão, ele é uma manifestaç��o paranormal, um monstro. Uma criatura com uma forma tão caótica que a Realidade tenta conter escondida por trás da menor das possibilidades, para que sua falta de lógica possa ser ignorada. A anomalia é indescritível para aqueles que a vivenciaram. Sua forma não é contida por barreiras físicas de um corpo compreensível. Não existem registros de testemunhas sobreviventes dessa manifestação, mas aqueles que de alguma forma conseguiram registrar o momento em que a presenciaram conseguiram apenas rir enlouquecidos enquanto os filamentos de suas mentes eram destroçados em segundos.\n\nÉ impossível determinar se uma anomalia é uma manifestação instantânea que se desfaz após escolher uma vítima ou se está constantemente na Realidade, apenas esperando pela impossibilidade de sua manifestação. Na verdade, é impossível ter qualquer dado concreto e lógico sobre a Anomalia. Mas algo sempre estará presente: o medo de que, na próxima vez que você abrir aquela porta, a anomalia escolha você.",
+    "introText": "Existe uma lenda de uma dimensão alternativa, um espaço que poderia ser acessado por puro acaso. Uma possibilidade minúscula, inacreditável, de que ao interagir com uma passagem, você poderia acessar outro lugar que não pretendia. Como se em todas as vezes que as portas do elevador se abriram, ou quando você se prepara para sair de casa, ou até mesmo quando abre o microondas para pegar comida, você estivesse jogando na loteria da probabilidade anárquica.\n\nE se seu infortúnio for inacreditável, você terá sido escolhido por uma anomalia.\n\nExceto que a anomalia não é uma dimensão, ele é uma manifestaç����o paranormal, um monstro. Uma criatura com uma forma tão caótica que a Realidade tenta conter escondida por trás da menor das possibilidades, para que sua falta de lógica possa ser ignorada. A anomalia é indescritível para aqueles que a vivenciaram. Sua forma não é contida por barreiras físicas de um corpo compreensível. Não existem registros de testemunhas sobreviventes dessa manifestação, mas aqueles que de alguma forma conseguiram registrar o momento em que a presenciaram conseguiram apenas rir enlouquecidos enquanto os filamentos de suas mentes eram destroçados em segundos.\n\nÉ impossível determinar se uma anomalia é uma manifestação instantânea que se desfaz após escolher uma vítima ou se está constantemente na Realidade, apenas esperando pela impossibilidade de sua manifestação. Na verdade, é impossível ter qualquer dado concreto e lógico sobre a Anomalia. Mas algo sempre estará presente: o medo de que, na próxima vez que você abrir aquela porta, a anomalia escolha você.",
     "introImage": "",
     "introSide": "left",
     "condicoesAtivas": [],
