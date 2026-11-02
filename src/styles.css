@@ -3527,9 +3527,9 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   position: relative;
   z-index: 5;
   width: 100%;
-  max-width: 1260px;
+  max-width: 1624px;
   margin: 0 auto;
-  padding: 16px 32px 36px;
+  padding: 18px 50px 36px 85px;
   box-sizing: border-box;
 }
 
@@ -3659,7 +3659,7 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   width: 100%;
   height: 2px;
   background: linear-gradient(90deg, rgba(154, 164, 158, 0.2) 0%, rgba(255, 255, 255, 0.9) 30%, rgba(154, 164, 158, 0.4) 100%);
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 /* ─── SEÇÃO SUPERIOR: ATRIBUTOS + PV/PD ALINHADOS ─────────────────────────── */
@@ -3668,7 +3668,7 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  margin-bottom: 18px;
+  margin-bottom: 10px;
   gap: 40px;
 }
 
@@ -3914,15 +3914,17 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 
 .vigilia-body-columns {
   display: grid;
-  grid-template-columns: 295px 1fr 400px;
-  gap: 20px;
-  min-height: 750px;
+  grid-template-columns: 315px 1fr 400px;
+  gap: 24px;
+  min-height: 0;
   position: relative;
 }
 
 /* Coluna 1: Perícias */
 .vigilia-col-skills {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
 }
 
 .banner-pericias-wrap {
@@ -3930,9 +3932,10 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 40px;
-  padding: 0 20px;
-  margin-bottom: 12px;
+  height: 34px;
+  padding: 0 18px;
+  margin-bottom: 6px;
+  align-self: flex-start;
 }
 
 .banner-pericias-img {
@@ -3948,7 +3951,7 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   position: relative;
   z-index: 2;
   font-family: 'Cinzel', serif;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 900;
   letter-spacing: 0.14em;
   color: #ffffff;
@@ -3959,17 +3962,41 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 .vigilia-skills-table {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  width: 290px;
+  gap: 2px;
+  width: 315px;
+  max-height: calc(100vh - 270px);
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: #37473f transparent;
+}
+
+.vigilia-skills-table::-webkit-scrollbar {
+  width: 5px;
+}
+
+.vigilia-skills-table::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vigilia-skills-table::-webkit-scrollbar-thumb {
+  background: #37473f;
+  border-radius: 4px;
+}
+
+.vigilia-skills-table::-webkit-scrollbar-thumb:hover {
+  background: #527965;
 }
 
 .vigilia-skill-row {
   display: grid;
-  grid-template-columns: 126px 26px 10px 26px 48px;
+  grid-template-columns: 142px 24px 10px 24px 44px;
   align-items: center;
-  gap: 4px;
-  height: 25px;
-  padding: 2px 4px;
+  gap: 3px;
+  height: 21px;
+  padding: 1px 3px;
   border-radius: 3px;
   cursor: pointer;
   transition: background 0.12s;
@@ -3982,9 +4009,9 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 .vigilia-skill-row .skill-name {
   text-align: right;
   font-family: 'Cinzel', serif;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   color: #ffffff;
   text-shadow: 0 1px 3px #000;
   white-space: nowrap;

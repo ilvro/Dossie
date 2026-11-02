@@ -17,7 +17,7 @@
     "backgroundZoom": 100,
     "diceColor": "",
     "themeColor": "",
-    "viewMode": "cinematic",
+    "viewMode": "vigilia",
     "cinematicTokenX": 50,
     "cinematicTokenY": 52,
     "cinematicTokenScale": 100,
@@ -313,7 +313,7 @@
     "pv": 20,
     "maxPv": 20,
     "pvTemp": 0,
-    "pd": 12,
+    "pd": 8,
     "maxPd": 12,
     "pdTemp": 0,
     "history": "Rowan (RÓ-u-an) era a prole mais nova de uma numerosa família camponesa. Quando criança, era apenas mais uma boca para alimentar. Na mesma época, seu tio Fergus Mac Colum (FÉR-gus mak KÓ-lum), então caçador da vila de Ballynyr, começou a mostrar sinais de velhice. Sem filhos, precisava de um aprendiz a quem transmitir seu ofício. Assim, a família enviou Rowan. Realizava trabalho braçal, como carregar peles pesadas, cortar lenha e limpar armadilhas e, em troca, o tio lhe ensinava a arte de fabricar arcos, curtir couro, rastrear animais e manejar armas.\n\nAdaptou-se bem a vida nos ermos, pois nunca foi muito sociável, trocando com alegria a companhia de humanos pela de animais. Mata para preservar o ciclo da vida, mas também é capaz de poupar — e até cativar — mesmo o mais temido predador. Foi em uma noite sem lua que encontrou um lobo ferido. Era uma rara variedade castanha. Outros diriam que o certo era matá-lo, mas Rowan escolheu a vida. Tratou os ferimentos do lobo sem esperar nada em troca, mas recebeu uma amizade eterna. Hoje, os dois são inseparáveis.\n\nRowan anda sempre em companhia da fera, o que desperta a desconfiança dos moradores da vila. Dizem os mais supersticiosos que Rowan enxerga através dos olhos da besta, ou até que é capaz de assumir uma forma lupina. Rhiona Mac Tuirenn não acredita nisso. Muirenn Lua Pálida talvez até acredite, mas não se importa. São as únicas pessoas, além do tio idoso, com quem Rowan se importa… quase como se fossem animais.",
@@ -1440,7 +1440,7 @@
             "type": "pips",
             "displayStyle": "rectangles",
             "label": "Barra de Ímpeto",
-            "current": 0,
+            "current": 5,
             "maxFormula": "5"
           }
         ],
@@ -1451,7 +1451,7 @@
         "schema": "abilities",
         "title": "ÍMPETO FERVILHANTE",
         "type": "Habilidade",
-        "content": "No início de cada cena, você preenche um espaço de sua barra de ímpeto.",
+        "content": "No in��cio de cada cena, você preenche um espaço de sua barra de ímpeto.",
         "accent": "#9aa49e",
         "icon": "◆",
         "markers": [],
@@ -17430,7 +17430,7 @@
       {
         "id": "sec-mvabfa1w-n73m",
         "titulo": "PARASITOSE MELANCÓLICA",
-        "corpo": "A infecção da Melancolia segue as mesmas regras de doenças (OPRPG, p. 291), sendo uma contaminação por contato e teste de Vontade (DT 25).\n• Estágio I (Medo). O ser infectado se torna constantemente inseguro e fica abalado. Essa condição se aplica mesmo em seres imunes a efeitos de medo.\n• Estágio II (Sangue). A instabilidade emocional assume os pensamentos do ser, invadindo-os com ideias irracionais e, costumeiramente, de autoflagelo emocional. O ser fica alquebrado e frustrado. Essas condições se aplicam mesmo em seres imunes a efeitos mentais.\n• Estágio III (Morte). A falta de apego à própria vida enfraquece a mente da vítima a ponto de destruir o que resta do cérebro fragmentado. O ser fica esmorecido. Essa condição se aplica mesmo em seres imunes a efeitos mentais.\n• Estágio IV (Conhecimento). As portas para a verdade se escancaram na mente do ser revelando sua completa insignificância diante do universo. Todas as ações da vítima devem ser realizadas com o único objetivo de tirar a própria vida e dar fim a sua completa irrelevância. A cada estágio, o parasita se torna mais visível para a vítima, mas não tangível, aumentando de tamanho e tornando a dificuldade do teste de Vontade cada vez maior.\n• Estágio I. Parasita Minúsculo; Vontade (DT 25).\n• Estágio II. Parasita Pequeno; Vontade (DT 30).\n• Estágio III. Parasita Médio; Vontade (DT 35).\n• Estágio IV. Parasita Grande; Vontade (DT 40). Se a vítima for bem-sucedida em se recuperar da infecção, o parasita abandonará o ser e procurará outra vítima. Contudo, o ser ainda demora um dia para se recuperar de cada estágio. Por exemplo, uma vítima em Estágio IV precisará de um dia para melhorar para o Estágio III, outro dia para alcançar o Estágio II e mais um dia para o Estágio I, curando-se totalmente ao final do quarto dia.",
+        "corpo": "A infecção da Melancolia segue as mesmas regras de doenças (OPRPG, p. 291), sendo uma contaminação por contato e teste de Vontade (DT 25).\n• Estágio I (Medo). O ser infectado se torna constantemente inseguro e fica abalado. Essa condição se aplica mesmo em seres imunes a efeitos de medo.\n• Estágio II (Sangue). A instabilidade emocional assume os pensamentos do ser, invadindo-os com ideias irracionais e, costumeiramente, de autoflagelo emocional. O ser fica alquebrado e frustrado. Essas condições se aplicam mesmo em seres imunes a efeitos mentais.\n• Estágio III (Morte). A falta de apego à própria vida enfraquece a mente da vítima a ponto de destruir o que resta do cérebro fragmentado. O ser fica esmorecido. Essa condição se aplica mesmo em seres imunes a efeitos mentais.\n• Estágio IV (Conhecimento). As portas para a verdade se escancaram na mente do ser revelando sua completa insignificância diante do universo. Todas as ações da vítima devem ser realizadas com o único objetivo de tirar a própria vida e dar fim a sua completa irrelev��ncia. A cada estágio, o parasita se torna mais visível para a vítima, mas não tangível, aumentando de tamanho e tornando a dificuldade do teste de Vontade cada vez maior.\n• Estágio I. Parasita Minúsculo; Vontade (DT 25).\n• Estágio II. Parasita Pequeno; Vontade (DT 30).\n• Estágio III. Parasita Médio; Vontade (DT 35).\n• Estágio IV. Parasita Grande; Vontade (DT 40). Se a vítima for bem-sucedida em se recuperar da infecção, o parasita abandonará o ser e procurará outra vítima. Contudo, o ser ainda demora um dia para se recuperar de cada estágio. Por exemplo, uma vítima em Estágio IV precisará de um dia para melhorar para o Estágio III, outro dia para alcançar o Estágio II e mais um dia para o Estágio I, curando-se totalmente ao final do quarto dia.",
         "estilo": "normal",
         "coluna": "esquerda"
       },
