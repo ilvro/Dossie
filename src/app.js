@@ -1037,8 +1037,9 @@ function renderRollLogItemsHtml() {
   const modStr = entry.modifier ? ` ${entry.modifier > 0 ? '+' : '−'} ${Math.abs(entry.modifier)}` : '';
   const isAdvantage = entry.rollMode === 'highest' || entry.rollMode === 'lowest';
   const diceStr = (entry.dice || []).map(d => {
-   const cls = d.isChosen ? 'chosen' : (d.discarded ? 'discarded' : '');
-   return `<span class="roll-die-pill ${cls}" data-sides="${d.sides}"><b>${d.value}</b><small>d${d.sides}</small></span>`;
+   const cls = d.dread ? 'dread' : (d.destroyed ? 'destroyed discarded' : (d.isChosen ? 'chosen' : (d.discarded ? 'discarded' : '')));
+   const pillTitle = d.dread ? ' title="Dado de Pavor"' : (d.destroyed ? ' title="Destruído pelo Pavor"' : '');
+   return `<span class="roll-die-pill ${cls}" data-sides="${d.sides}"${pillTitle}><b>${d.dread ? '☠' : ''}${d.value}</b><small>d${d.sides}</small></span>`;
   }).join(isAdvantage ? '<i class="roll-plus">,</i>' : '<i class="roll-plus">+</i>');
   const accentColor = entry.accent || PROFILE_COLORS[entry.profile] || ORIGINAL_CLASS_COLORS[entry.profile?.toLowerCase()] || '#e0150d';
   const copyText = `🎲 [${entry.characterName}] ${entry.title}: ${entry.total} (${(entry.dice || []).map(d => `d${d.sides}:${d.value}`).join(', ')}${modStr})`;
@@ -4567,23 +4568,23 @@ async function roll(name,sides,modifier=0,rollMode='sum'){
    save(false);
   } else {
    dreadIndex = diceConfigs.length;
-   diceConfigs.push({ sides: state.dadoPavor, color: '#7c3aed', label: `Pavor (d${state.dadoPavor})` });
+   diceConfigs.push({ sides: state.dadoPavor, color: '#7c3aed', label: `Pavor (d${state.dadoPavor})`, dread: true });
   }
  }
  const res=await rollDice3d(diceConfigs,name,Number(modifier)||0,soundContext,rollMode);
  if(res&&Array.isArray(res.values)){
   if (dreadIndex >= 0 && res.values[dreadIndex] !== undefined) {
-   const pavorVal = res.values[dreadIndex];
-   if (pavorVal === 1) {
+   if (res.vanquished) {
     state.dadoPavor = null;
     save(false);
-    render();
     const toast = document.querySelector('#save-toast');
     if (toast) {
      toast.textContent = 'DADO DE PAVOR TIROU 1: VENCEU O PAVOR!';
      toast.classList.add('show');
      setTimeout(() => toast.classList.remove('show'), 2500);
     }
+    // Re-renderiza só depois que o palco de dados fechar, para não cortar a animação.
+    setTimeout(() => render(), 4300);
    }
   }
   addRollLogEntry({title:name,dice:res.breakdown||res.values.map((v,i)=>({sides:diceConfigs[i]?.sides||20,value:v})),modifier:Number(modifier)||0,total:res.total,rollMode});
