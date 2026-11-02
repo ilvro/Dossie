@@ -409,7 +409,7 @@ async function loadInitialSheets(){
  if(state?.cinematicCollapsed)state.cinematicCollapsed.abilities=false;
  activeSheetId=state.id;
 }
-let currentRight='abilities',currentView='stats',editMode=false,modeJustChanged=false,editTransitionMode=null,editorMarkers=[],editorActions=[],diceApiPromise,blobBgType='',currentResourceShift=120,mobileTab='agent',sheetDrawerOpen=false,viewSwitchCollapsed=true,presentationMode=true,presentationIndex=0,presentationLockingIn=false,presentationEntering=false,cinematicMobileTab='skills';
+let currentRight='abilities',currentView='stats',editMode=false,modeJustChanged=false,editTransitionMode=null,editorMarkers=[],editorActions=[],diceApiPromise,blobBgType='',currentResourceShift=120,mobileTab='agent',sheetDrawerOpen=false,viewSwitchCollapsed=true,presentationMode=false,presentationIndex=0,presentationLockingIn=false,presentationEntering=false,cinematicMobileTab='skills';
 const CRITICAL_EFFECTS_KEY='ordem-ii-critical-effects-v1';
 let criticalEffects={pv:true,pd:true};
 try{criticalEffects={...criticalEffects,...JSON.parse(localStorage.getItem(CRITICAL_EFFECTS_KEY)||'{}')}}catch{}
@@ -5707,17 +5707,9 @@ document.addEventListener('visibilitychange',syncCriticalAtmosphere);
 document.addEventListener('pointerdown',()=>{const context=getUiAudioContext();if(context?.state==='running')syncCriticalAtmosphere();else context?.resume?.().then(syncCriticalAtmosphere).catch(()=>{})},{once:true,capture:true});
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}),{once:true});
 await loadInitialSheets();
+presentationMode = false;
 if (state.systemMode === 'threat') {
- presentationMode = false;
  state.viewMode = 'livro';
-} else {
- if (state.viewMode !== 'vigilia') {
-  state.viewMode = 'cinematic';
- }
- presentationMode = true;
- const presSheets = getPresentationSheets();
- presentationIndex = Math.max(0, presSheets.findIndex(sheet => sheet.id === state.id));
- state = presSheets[presentationIndex] || state;
 }
 activeSheetId = state.id;
 initOriginalCompendium({
