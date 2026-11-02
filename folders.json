@@ -39,7 +39,7 @@
     "parentId": null,
     "color": "#e0150d",
     "icon": "user",
-    "collapsed": false,
+    "collapsed": true,
     "order": 1,
     "system": false
   },

@@ -551,7 +551,7 @@ function getCardCost(card){
 }
 
 function renderCinematicCard(card){const inlineMarkers=(card.markers||[]).filter(marker=>marker.displayStyle==='rectangles'&&(marker.type==='pips'||marker.type==='bar'||marker.type==='slots')),bodyMarkers=(card.markers||[]).filter(marker=>!inlineMarkers.includes(marker)),actions=(card.actions||[]).map(action=>`<button class="card-roll" data-expression="${safe(action.expression)}" data-roll-title="${safe(action.name||card.title)}" data-card-id="${card.id}" data-action-id="${action.id}">${die((String(action.expression).match(/d(4|6|8|10|12|20)/i)||[])[1]||20,'micro',true)}<span>${safe(action.name||'Rolar')}</span></button>`).join('');const cost=getCardCost(card);const isWeapon=card.type?.toLowerCase().includes('arma')||(card.schema==='items'&&!card.content?.toLowerCase().includes('documento'));const costBadge=cost?`<span class="cinematic-card-cost">${safe(cost)}</span>`:'';return `<article class="cinematic-card ${inlineMarkers.length?'has-inline-marker':''} ${isWeapon?'is-weapon':''}" data-card-id="${card.id}" style="--card-accent:${safe(cardAccent(card))};--card-ink:${inkFor(cardAccent(card))}"><header><h3>${safe(card.title)}</h3>${inlineMarkers.length?`<div class="cinematic-inline-markers">${inlineMarkers.map(marker=>renderMarker(card,marker)).join('')}</div>`:''}${costBadge}${editMode?`<button class="cinematic-card-edit" data-edit-card="${card.id}" title="Editar">${icon('edit',14)}</button>`:''}</header>${bodyMarkers.map(marker=>renderMarker(card,marker)).join('')}<div class="cinematic-card-copy">${formatCardText(card.content)}</div>${actions?`<div class="card-rolls">${actions}</div>`:''}</article>`}
-function cinematicSection(key,title,content,addSchema=''){const isLockable=key==='items'||key==='history';const collapsed=(presentationMode&&isLockable)?true:(key==='abilities'?(state.cinematicCollapsed?.abilities===true):!!state.cinematicCollapsed?.[key]);const lockHtml=isLockable?`<i class="cinematic-section-lock" title="Bloqueado no modo apresentação" aria-hidden="true">${icon('lock',15)}</i>`:'';return `<section class="cinematic-section-group ${collapsed?'collapsed':''} ${isLockable?'section-lockable':''}" data-section-key="${key}"><div class="cinematic-section-heading"><button class="cinematic-section-toggle" data-cinematic-section-toggle="${key}" aria-expanded="${!collapsed}"><span>${lockHtml}${title}</span>${icon('chevron',18)}</button>${editMode&&addSchema?`<button class="cinematic-section-add" data-cinematic-add="${addSchema}" title="Adicionar">${icon('plus',15)}</button>`:''}</div><div class="cinematic-section-body"><div>${content}</div></div></section>`}
+function cinematicSection(key,title,content,addSchema=''){const isLockable=key==='items'||key==='history';const collapsed=(presentationMode&&isLockable)?true:(key==='abilities'?(state.cinematicCollapsed?.abilities===true):!!state.cinematicCollapsed?.[key]);const lockHtml=isLockable?`<i class="cinematic-section-lock" title="Bloqueado no modo apresentação" aria-hidden="true">${icon('lock',15)}</i>`:'';const armorPts=state.armorPoints??(state.pontosArmadura??0);const showArmor=key==='items'&&(state.armorPoints!==undefined||state.pontosArmadura!==undefined||(state.cards||[]).some(c=>c.content&&/armadura/i.test(c.content)));const armorPillHtml=showArmor?`<div class="equip-armor-pill ${armorPts>0?'active':'zero'}" style="margin-left:auto;margin-right:8px;" onclick="event.stopPropagation()"><button type="button" class="btn-armor-spend" data-spend-armor title="Gastar 1 Ponto de Armadura (Ação Livre: reduz dano em 10)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><b>${armorPts}</b> PA</button><span class="armor-stepper-inline"><button type="button" data-armor-step="-1" title="Diminuir Ponto de Armadura (−1 PA)">−</button><button type="button" data-armor-step="1" title="Aumentar Ponto de Armadura (+1 PA)">+</button></span></div>`:'';return `<section class="cinematic-section-group ${collapsed?'collapsed':''} ${isLockable?'section-lockable':''}" data-section-key="${key}"><div class="cinematic-section-heading"><button class="cinematic-section-toggle" data-cinematic-section-toggle="${key}" aria-expanded="${!collapsed}"><span>${lockHtml}${title}</span>${icon('chevron',18)}</button>${armorPillHtml}${editMode&&addSchema?`<button class="cinematic-section-add" data-cinematic-add="${addSchema}" title="Adicionar">${icon('plus',15)}</button>`:''}</div><div class="cinematic-section-body"><div>${content}</div></div></section>`}
 function renderBackgroundLayer(bgIsVideo=false,isCinematic=false){
  const bgUrl=safeUrl(state.backgroundImage)||'';
  if(bgIsVideo){
@@ -3043,7 +3043,9 @@ function switchToSheet(targetId) {
     presentationMode = false;
    } else {
     presentationIndex = Math.max(0, getPresentationSheets().findIndex(s => s.id === state.id));
-    state.viewMode = 'cinematic';
+    if (state.viewMode !== 'vigilia') {
+     state.viewMode = 'cinematic';
+    }
    }
   }
   render();
@@ -3699,9 +3701,18 @@ function bindVigiliaEvents() {
    e.stopPropagation();
    const delta = Number(btn.dataset.armorStep) || 0;
    const cur = state.armorPoints ?? (state.pontosArmadura ?? 0);
-   state.armorPoints = Math.max(0, cur + delta);
-   save(false);
-   render();
+   const next = Math.max(0, cur + delta);
+   if (next !== cur) {
+    state.armorPoints = next;
+    save(false);
+    render();
+    const toast = document.querySelector('#save-toast');
+    if (toast) {
+     toast.textContent = delta > 0 ? `ARMADURA: +1 (${next} PA)` : `ARMADURA: -1 (${next} PA)`;
+     toast.classList.add('show');
+     setTimeout(() => toast.classList.remove('show'), 1500);
+    }
+   }
   };
  });
 
@@ -5611,7 +5622,9 @@ if (state.systemMode === 'threat') {
  presentationMode = false;
  state.viewMode = 'livro';
 } else {
- state.viewMode = 'cinematic';
+ if (state.viewMode !== 'vigilia') {
+  state.viewMode = 'cinematic';
+ }
  presentationMode = true;
  const presSheets = getPresentationSheets();
  presentationIndex = Math.max(0, presSheets.findIndex(sheet => sheet.id === state.id));
