@@ -58,6 +58,17 @@ import { enhanceSelects } from './custom-select.js';
 import { abrirTutorial, fecharTutorial } from './systems/original/original-wizard.js';
 import { icon } from './icons.js';
 import { renderVigiliaSheet, setVigiliaSide, getVigiliaSide } from './systems/vigilia/vigilia-view.js';
+import {
+  LESOES_TABLE,
+  TRAUMAS_TABLE,
+  FALHAS_CRITICAS_TABLE,
+  getRelationBenefits,
+  getLesaoResult,
+  getTraumaResult,
+  getFalhaCriticaResult,
+  stepUpPavor,
+  stepDownPavor
+} from './systems/vigilia/vigilia-mechanics.js';
 
 // Pop-ups de trilha da ficha de Ordem 1: escolha da trilha ao liberá-la e a
 // pergunta de Versatilidade a cada NEX de habilidade de trilha.
@@ -1116,7 +1127,7 @@ function render(){syncDraftBaseline();syncUnsavedBar();document.querySelectorAll
     : (state.systemMode==='original'
         ? (isCinematic?renderCinematicOriginal(state,editMode,{safeUrl,renderBackgroundLayer,presentationMode,renderPresentationDock,die,accent:getSheetAccent(state),resourceShift:currentResourceShift,pageClass:`cinematic-tab-${cinematicMobileTab} ${presentationMode?'presentation-active':''} ${presentationLockingIn?'presentation-locking-in':''} ${presentationEntering?'presentation-entering':''} ${editTransitionMode?`edit-trans-${editTransitionMode}`:''} ${modeJustChanged?'mode-enter':''}`}):renderTraditionalOriginal(state,editMode,{accent:getSheetAccent(state),currentRight:currentOriginalTab,filterQuery:originalSkillsFilter,safeUrl,renderBackgroundLayer}))
         : (state.viewMode==='vigilia'
-            ? renderVigiliaSheet(state, editMode, { safeUrl, renderBackgroundLayer })
+            ? renderVigiliaSheet(state, editMode, { safeUrl, renderBackgroundLayer, modeJustChanged })
             : (isCinematic?renderCinematic(trainingOptions,bgIsVideo):renderTraditional(trainingOptions,bgIsVideo,aptidaoOptions,aptidaoCount)))
     )
   }
@@ -3038,7 +3049,9 @@ function switchToSheet(targetId) {
   }
   render();
  };
- if (state.viewMode === 'cinematic' || presentationMode || state.systemMode === 'threat' || sheets.find(sh => sh.id === targetId)?.systemMode === 'threat') {
+ const targetSheet = sheets.find(sh => sh.id === targetId);
+ const isVigilia = state.viewMode === 'vigilia' || targetSheet?.viewMode === 'vigilia';
+ if (state.viewMode === 'cinematic' || isVigilia || presentationMode || state.systemMode === 'threat' || targetSheet?.systemMode === 'threat') {
   triggerGlitchTransition(doSwitch);
  } else {
   doSwitch();
@@ -3378,13 +3391,306 @@ function bindVigiliaEvents() {
   };
  });
 
+ document.querySelectorAll('[data-reset-relations]').forEach(btn => {
+  btn.onclick = (e) => {
+   e.stopPropagation();
+   if (Array.isArray(state.relations)) {
+    state.relations.forEach(r => r.invoked = false);
+    save(false);
+    render();
+    const toast = document.querySelector('#save-toast');
+    if (toast) {
+     toast.textContent = 'RELAÇÕES REINICIADAS PARA NOVA MISSÃO';
+     toast.classList.add('show');
+     setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+   }
+  };
+ });
+
  document.querySelectorAll('[data-invoke-relation]').forEach(btn => {
   btn.onclick = (e) => {
    e.stopPropagation();
    const [target, degStr] = btn.dataset.invokeRelation.split(':');
-   const deg = Number(degStr) || 1;
-   const d = deg === 1 ? '1d6' : deg === 2 ? '1d8' : '1d12';
-   roll(`Invocação de Relação (${target})`, d, 0);
+   const degree = Number(degStr) || 1;
+   const rel = state.relations?.find(r => r.target === target) || { target, degree, feeling: 'AMIZADE', note: '' };
+   const modal = document.querySelector('#vigilia-relation-modal');
+   const container = document.querySelector('#vigilia-relation-modal-content');
+   if (!modal || !container) return;
+   const benefits = getRelationBenefits(degree);
+   container.innerHTML = `
+     <div class="relation-modal-detail-card">
+       <h3>${safe(rel.target)} (Grau ${degree})</h3>
+       <p><strong>${safe(rel.feeling)}:</strong> ${safe(rel.note || '')}</p>
+       ${rel.invoked ? '<p style="color:#f59e0b;font-weight:700;">⚠ Esta relação já foi invocada nesta missão.</p>' : ''}
+     </div>
+     <div class="relation-modal-options">
+       ${benefits.map(b => `
+         <button type="button" class="relation-option-btn" data-trigger-benefit="${b.id}" data-target="${safe(rel.target)}" data-degree="${degree}">
+           <strong>${safe(b.label)}</strong>
+           <small>${safe(b.desc)}</small>
+         </button>
+       `).join('')}
+     </div>
+   `;
+   modal.style.display = 'flex';
+
+   container.querySelectorAll('[data-trigger-benefit]').forEach(optBtn => {
+    optBtn.onclick = async () => {
+     const bId = optBtn.dataset.triggerBenefit;
+     modal.style.display = 'none';
+     rel.invoked = true;
+     save(false);
+     render();
+     if (bId === 'bonus_test' || bId === 'bonus_help') {
+      const d = degree === 1 ? 6 : degree === 2 ? 8 : 12;
+      roll(`Invocação: ${bId === 'bonus_test' ? 'Bônus no Teste' : 'Bônus em Ajudar'} (${rel.target})`, [d], 0);
+     } else if (bId === 'motivate_pd') {
+      const sides = degree === 2 ? [4, 4] : [6, 6];
+      const res = await roll(`Invocação: Motivar (${rel.target})`, sides, 0);
+      if (res && res.total) {
+       state.pd = Math.min(state.maxPd, state.pd + res.total);
+       updateResourceUi('pd');
+       save(false);
+       render();
+       const toast = document.querySelector('#save-toast');
+       if (toast) {
+        toast.textContent = `MOTIVADO: +${res.total} PD RECUPERADOS!`;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+       }
+      }
+     } else if (bId === 'extra_action') {
+      alert(`Ação Extra ativada para proteger ${rel.target}! Você tem 1 ação adicional neste turno.`);
+     }
+    };
+   });
+  };
+ });
+
+ document.querySelectorAll('[data-spend-armor]').forEach(btn => {
+  btn.onclick = (e) => {
+   e.stopPropagation();
+   const pts = state.armorPoints ?? (state.pontosArmadura ?? 0);
+   if (pts > 0) {
+    state.armorPoints = pts - 1;
+    save(false);
+    render();
+    const toast = document.querySelector('#save-toast');
+    if (toast) {
+     toast.textContent = '1 PONTO DE ARMADURA GASTO (-10 DANO)';
+     toast.classList.add('show');
+     setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+   } else {
+    alert('Nenhum ponto de armadura disponível para gastar.');
+   }
+  };
+ });
+
+ document.querySelectorAll('[data-armor-step]').forEach(btn => {
+  btn.onclick = (e) => {
+   e.stopPropagation();
+   const delta = Number(btn.dataset.armorStep) || 0;
+   const cur = state.armorPoints ?? (state.pontosArmadura ?? 0);
+   state.armorPoints = Math.max(0, cur + delta);
+   save(false);
+   render();
+  };
+ });
+
+ document.querySelectorAll('[data-pavor-action]').forEach(btn => {
+  btn.onclick = (e) => {
+   e.stopPropagation();
+   const action = btn.dataset.pavorAction;
+   if (action === 'trigger') {
+    state.dadoPavor = stepUpPavor(state.dadoPavor);
+    save(false);
+    render();
+    const toast = document.querySelector('#save-toast');
+    if (toast) {
+     toast.textContent = `DADO DE PAVOR ATIVADO: d${state.dadoPavor}`;
+     toast.classList.add('show');
+     setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+   } else if (action === 'control') {
+    if (state.pd >= 1) {
+     state.pd -= 1;
+     state.dadoPavor = stepDownPavor(state.dadoPavor);
+     updateResourceUi('pd');
+     save(false);
+     render();
+     const toast = document.querySelector('#save-toast');
+     if (toast) {
+      toast.textContent = 'PAVOR CONTROLADO (-1 PD)';
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+     }
+    } else {
+     alert('Pontos de Determinação insuficientes para controlar o pavor (necessário 1 PD).');
+    }
+   } else if (action === 'embrace') {
+    if (state.pd >= 5) {
+     state.pd -= 5;
+     state.pavorEmbraced = true;
+     updateResourceUi('pd');
+     save(false);
+     render();
+     const toast = document.querySelector('#save-toast');
+     if (toast) {
+      toast.textContent = 'PAVOR ABRAÇADO (-5 PD): O dado será convertido em bônus no próximo teste!';
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+     }
+    } else {
+     alert('Pontos de Determinação insuficientes para abraçar o pavor (necessário 5 PD).');
+    }
+   } else if (action === 'clear') {
+    state.dadoPavor = null;
+    state.pavorEmbraced = false;
+    save(false);
+    render();
+    const toast = document.querySelector('#save-toast');
+    if (toast) {
+     toast.textContent = 'PAVOR SUPERADO!';
+     toast.classList.add('show');
+     setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+   }
+  };
+ });
+
+ document.querySelectorAll('[data-open-vigilia-modal]').forEach(btn => {
+  btn.onclick = (e) => {
+   e.stopPropagation();
+   const modalId = `vigilia-${btn.dataset.openVigiliaModal}-modal`;
+   const modal = document.querySelector(`#${modalId}`);
+   if (modal) modal.style.display = 'flex';
+  };
+ });
+
+ document.querySelectorAll('[data-close-vigilia-modal]').forEach(btn => {
+  btn.onclick = (e) => {
+   e.stopPropagation();
+   document.querySelectorAll('.vigilia-modal-backdrop').forEach(m => m.style.display = 'none');
+  };
+ });
+
+ document.querySelectorAll('[data-roll-lesao-check]').forEach(btn => {
+  btn.onclick = async (e) => {
+   e.stopPropagation();
+   const [diceStr, dtStr] = btn.dataset.rollLesaoCheck.split('|');
+   const [attrDie, skillDie] = diceStr.split(',').map(Number);
+   const dt = Number(dtStr) || 7;
+   const modal = document.querySelector('#vigilia-lesao-modal');
+   if (modal) modal.style.display = 'none';
+   const res = await roll(`Teste de Lesão (DT ${dt})`, [attrDie, skillDie], 0);
+   if (res && res.values) {
+    state.lesoesCountScene = (state.lesoesCountScene || 0) + 1;
+    save(false);
+    const [d1, d2] = res.values;
+    const total = d1 + d2;
+    const isCrit = d1 === d2 && d1 >= 6;
+    const isFumble = d1 === 1 && d2 === 1;
+    setTimeout(() => {
+     if (isCrit) {
+      state.pv = Math.max(1, state.pv + 1);
+      updateResourceUi('pv');
+      save(false);
+      render();
+      alert('★ SUCESSO CRÍTICO NO TESTE DE LESÃO!\nVocê recupera 1 PV e se recupera das condições Inconsciente e Moribundo!');
+     } else if (isFumble) {
+      alert('☠ FALHA CRÍTICA NO TESTE DE LESÃO!\nVocê morreu. Hora de criar um novo personagem.');
+     } else if (total >= dt) {
+      alert(`✓ SUCESSO NO TESTE DE LESÃO (${total} vs DT ${dt})!\nVocê fica Inconsciente e Moribundo (estável aguardando socorro).`);
+     } else {
+      alert(`✕ FALHA NO TESTE DE LESÃO (${total} vs DT ${dt})!\nVocê deve rolar na Tabela de Lesões (1d20).`);
+      if (modal) modal.style.display = 'flex';
+     }
+    }, 800);
+   }
+  };
+ });
+
+ document.querySelectorAll('[data-roll-trauma-check]').forEach(btn => {
+  btn.onclick = async (e) => {
+   e.stopPropagation();
+   const [diceStr, dtStr] = btn.dataset.rollTraumaCheck.split('|');
+   const [attrDie, skillDie] = diceStr.split(',').map(Number);
+   const dt = Number(dtStr) || 7;
+   const modal = document.querySelector('#vigilia-trauma-modal');
+   if (modal) modal.style.display = 'none';
+   const res = await roll(`Teste de Trauma (DT ${dt})`, [attrDie, skillDie], 0);
+   if (res && res.values) {
+    state.traumasCountScene = (state.traumasCountScene || 0) + 1;
+    save(false);
+    const [d1, d2] = res.values;
+    const total = d1 + d2;
+    const isCrit = d1 === d2 && d1 >= 6;
+    const isFumble = d1 === 1 && d2 === 1;
+    setTimeout(() => {
+     if (isCrit) {
+      state.pd = Math.max(1, state.pd + 1);
+      updateResourceUi('pd');
+      save(false);
+      render();
+      alert('★ SUCESSO CRÍTICO NO TESTE DE TRAUMA!\nVocê supera o choque imediato e recupera 1 PD!');
+     } else if (isFumble) {
+      alert('☠ FALHA CRÍTICA NO TESTE DE TRAUMA!\nColapso mental total: sua mente se estilhaça diante do horror.');
+     } else if (total >= dt) {
+      alert(`✓ SUCESSO NO TESTE DE TRAUMA (${total} vs DT ${dt})!\nVocê está abalado, mas resiste sem traumas permanentes.`);
+     } else {
+      alert(`✕ FALHA NO TESTE DE TRAUMA (${total} vs DT ${dt})!\nVocê deve rolar na Tabela de Traumas (1d20).`);
+      if (modal) modal.style.display = 'flex';
+     }
+    }, 800);
+   }
+  };
+ });
+
+ document.querySelectorAll('[data-roll-table]').forEach(btn => {
+  btn.onclick = async (e) => {
+   e.stopPropagation();
+   const table = btn.dataset.rollTable;
+   if (table === 'lesao') {
+    const modal = document.querySelector('#vigilia-lesao-modal');
+    if (modal) modal.style.display = 'none';
+    const res = await roll('Tabela de Lesões', [20], 0);
+    if (res && res.values) {
+     const val = res.values[0];
+     const outcome = getLesaoResult(val);
+     setTimeout(() => {
+      alert(`RESULTADO DA LESÃO [${val}]: ${outcome.name.toUpperCase()}\n\n${outcome.desc}`);
+     }, 700);
+    }
+   } else if (table === 'trauma') {
+    const modal = document.querySelector('#vigilia-trauma-modal');
+    if (modal) modal.style.display = 'none';
+    const res = await roll('Tabela de Traumas', [20], 0);
+    if (res && res.values) {
+     const val = res.values[0];
+     const outcome = getTraumaResult(val);
+     if (outcome.pavor) {
+      state.dadoPavor = stepUpPavor(state.dadoPavor);
+      save(false);
+      render();
+     }
+     setTimeout(() => {
+      alert(`RESULTADO DO TRAUMA [${val}]: ${outcome.name.toUpperCase()}\n\n${outcome.desc}`);
+     }, 700);
+    }
+   } else if (table === 'fumble') {
+    const modal = document.querySelector('#vigilia-fumble-modal');
+    if (modal) modal.style.display = 'none';
+    const res = await roll('Tabela de Falhas Críticas', [8], 0);
+    if (res && res.values) {
+     const val = res.values[0];
+     const outcome = getFalhaCriticaResult(val);
+     setTimeout(() => {
+      alert(`FALHA CRÍTICA [${val}]: ${outcome.name.toUpperCase()}\n\n${outcome.desc}`);
+     }, 700);
+    }
+   }
   };
  });
 
@@ -3982,7 +4288,42 @@ function bindSheetInteractions() {
  }
 }
 function parseRollExpression(expression){const vars=formulaVariables();let expanded=String(expression||'').replace(/@\{([^}]+)\}/g,(_,key)=>String(vars[formulaKey(key)]??0));const dice=[];expanded=expanded.replace(/(\d*)d(4|6|8|10|12|20)/gi,(_,count,sides)=>{for(let i=0;i<Math.min(12,Number(count)||1);i++)dice.push(Number(sides));return '0'});let modifier=0;try{if(/^[\d+\-*/().\s]+$/.test(expanded))modifier=Math.floor(Function(`"use strict";return (${expanded||0})`)())}catch{}return{dice,modifier}}
-async function roll(name,sides,modifier=0,rollMode='sum'){const list=Array.isArray(sides)?sides:String(sides).split(',').map(Number).filter(side=>DICE_STEPS.includes(side));if(!list.length)return null;const soundContext=getUiAudioContext(),{rollDice3d}=await getDiceApi(),color=state.diceColor||getSheetAccent(state);const res=await rollDice3d(list.map(side=>({sides:side,color})),name,Number(modifier)||0,soundContext,rollMode);if(res&&Array.isArray(res.values)){addRollLogEntry({title:name,dice:res.breakdown||res.values.map((v,i)=>({sides:list[i]||20,value:v})),modifier:Number(modifier)||0,total:res.total,rollMode})}return res}
+async function roll(name,sides,modifier=0,rollMode='sum'){
+ const list=Array.isArray(sides)?sides:String(sides).split(',').map(Number).filter(side=>DICE_STEPS.includes(side));
+ if(!list.length)return null;
+ const soundContext=getUiAudioContext(),{rollDice3d}=await getDiceApi(),color=state.diceColor||getSheetAccent(state);
+ let dreadIndex = -1;
+ const diceConfigs = list.map(side => ({ sides: side, color }));
+ if (state.viewMode === 'vigilia' && state.dadoPavor && !name.includes('Pavor') && !name.includes('Tabela') && !name.includes('Lesão') && !name.includes('Trauma') && !name.includes('Falha') && list.length >= 2) {
+  if (state.pavorEmbraced) {
+   diceConfigs.push({ sides: state.dadoPavor, color: '#f43f5e', label: `Bônus Pavor (d${state.dadoPavor})` });
+   state.pavorEmbraced = false;
+   save(false);
+  } else {
+   dreadIndex = diceConfigs.length;
+   diceConfigs.push({ sides: state.dadoPavor, color: '#7c3aed', label: `Pavor (d${state.dadoPavor})` });
+  }
+ }
+ const res=await rollDice3d(diceConfigs,name,Number(modifier)||0,soundContext,rollMode);
+ if(res&&Array.isArray(res.values)){
+  if (dreadIndex >= 0 && res.values[dreadIndex] !== undefined) {
+   const pavorVal = res.values[dreadIndex];
+   if (pavorVal === 1) {
+    state.dadoPavor = null;
+    save(false);
+    render();
+    const toast = document.querySelector('#save-toast');
+    if (toast) {
+     toast.textContent = 'DADO DE PAVOR TIROU 1: VENCEU O PAVOR!';
+     toast.classList.add('show');
+     setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+   }
+  }
+  addRollLogEntry({title:name,dice:res.breakdown||res.values.map((v,i)=>({sides:diceConfigs[i]?.sides||20,value:v})),modifier:Number(modifier)||0,total:res.total,rollMode});
+ }
+ return res;
+}
 
 async function rollExpression(name,expression){const parsed=parseRollExpression(expression);return roll(name,parsed.dice,parsed.modifier,'sum')}
 
@@ -4210,7 +4551,7 @@ let _glitchActive=false;
 function triggerGlitchTransition(callback){
  document.querySelectorAll('.cinematic-ghost-exit').forEach(el=>el.remove());
  _glitchActive=true;playGlitchSound();
- const CONTENT_SEL='.cinematic-contents, .threat-contents',PAGE_SEL='.cinematic-page, .threat-book-page';
+ const CONTENT_SEL='.cinematic-contents, .threat-contents, .vigilia-content-viewport',PAGE_SEL='.cinematic-page, .threat-book-page, .vigilia-page';
  const oldContents=document.querySelector(CONTENT_SEL),oldPage=document.querySelector(PAGE_SEL);
  let oldClone=null,cloneRect=null;
  if(oldContents){
@@ -4249,8 +4590,8 @@ function tokenRangeAtY(profile,tokenRect,pageY){if(!profile)return null;const na
 let cinematicLineMaskRaf=0;
 function syncCinematicLineMask(){const page=document.querySelector('.cinematic-page'),frame=document.querySelector('.cinematic-frame'),token=document.querySelector('[data-cinematic-token]'),rightPanel=document.querySelector('.cinematic-right');if(!frame||!page)return;if(!token){frame.querySelectorAll('.cinematic-frame-line').forEach(line=>line.classList.remove('masked'));currentResourceShift=120;page.style.setProperty('--resource-shift','120px');return}if(cinematicLineMaskRaf)cancelAnimationFrame(cinematicLineMaskRaf);cinematicLineMaskRaf=requestAnimationFrame(()=>{cinematicLineMaskRaf=0;const frameRect=frame.getBoundingClientRect(),tokenRect=token.getBoundingClientRect();if(!tokenRect.width||!tokenRect.height)return;const profile=getTokenAlphaProfile(token);const lines=Array.from(frame.querySelectorAll('.cinematic-frame-line'));const lineTops=lines.map(line=>line.getBoundingClientRect().top);const rightRect=rightPanel?rightPanel.getBoundingClientRect():null;lines.forEach((line,i)=>{const lineY=lineTops[i],range=tokenRangeAtY(profile,tokenRect,lineY);if(!range){line.classList.remove('masked');return}const buffer=22,left=Math.max(0,range.left-frameRect.left-buffer),right=Math.min(frameRect.width,range.right-frameRect.left+buffer);line.style.setProperty('--line-cut-left',`${left}px`);line.style.setProperty('--line-cut-right',`${right}px`);line.classList.add('masked')});if(rightRect){const visibleRight=profile?tokenRect.left+(profile.globalMax+1)/profile.width*tokenRect.width:tokenRect.right,shift=Math.max(0,Math.min(150,rightRect.left-visibleRight-24));currentResourceShift=shift;page.style.setProperty('--resource-shift',`${shift}px`)}})}
 function bindCinematicToken(){syncTokenOutlineFilter();const area=document.querySelector('[data-cinematic-character]'),token=document.querySelector('[data-cinematic-token]'),scale=document.querySelector('[data-cinematic-scale]');if(token){token.addEventListener('load',syncCinematicLineMask,{once:true});syncCinematicLineMask()}if(scale)scale.oninput=()=>{state.cinematicTokenScale=Number(scale.value);if(token)token.style.setProperty('--token-scale',state.cinematicTokenScale/100);syncCinematicLineMask()};if(scale)scale.onchange=()=>save(false);document.querySelectorAll('[data-outline-side]').forEach(btn=>{btn.onclick=()=>{state.cinematicOutlineSide=btn.dataset.outlineSide;document.querySelectorAll('[data-outline-side]').forEach(b=>b.classList.toggle('active',b===btn));syncTokenOutlineFilter();save(false)}});const outlineIntensity=document.querySelector('[data-cinematic-outline-intensity]');if(outlineIntensity){outlineIntensity.oninput=()=>{state.cinematicOutlineIntensity=Number(outlineIntensity.value)/100;syncTokenOutlineFilter()};outlineIntensity.onchange=()=>save(false)}const outlineWidth=document.querySelector('[data-cinematic-outline-width]');if(outlineWidth){outlineWidth.oninput=()=>{state.cinematicOutlineWidth=Number(outlineWidth.value);syncTokenOutlineFilter()};outlineWidth.onchange=()=>save(false)}const outlineFade=document.querySelector('[data-cinematic-outline-fade]');if(outlineFade){outlineFade.oninput=()=>{state.cinematicOutlineFade=Number(outlineFade.value);syncTokenOutlineFilter()};outlineFade.onchange=()=>save(false)}const btnUpscale=document.querySelector('[data-upscale-token]');if(btnUpscale){btnUpscale.onclick=async()=>{if(!state.tokenImage)return;const orig=btnUpscale.innerHTML;btnUpscale.disabled=true;btnUpscale.innerHTML=`${icon('sparkles',14)} PROCESSANDO...`;try{const enhanced=await upscaleAndEnhanceImage(state.tokenImage,{scale:2,sharpness:1.1});if(enhanced){state.tokenImage=enhanced;save(false);render();const toast=document.querySelector('#save-toast');if(toast){toast.textContent='TOKEN EM ALTA DEFINIÇÃO (2X HD)!';toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1500)}}}catch(e){console.error(e);alert('Erro ao processar upscaling.')}finally{if(btnUpscale){btnUpscale.disabled=false;btnUpscale.innerHTML=orig}}}}document.querySelector('[data-reset-cinematic-token]')?.addEventListener('click',()=>{state.cinematicTokenX=50;state.cinematicTokenY=52;state.cinematicTokenScale=100;save();render()});if(!editMode||!area||!token)return;token.onpointerdown=event=>{event.preventDefault();const rect=area.getBoundingClientRect(),startX=event.clientX,startY=event.clientY,originX=state.cinematicTokenX,originY=state.cinematicTokenY;token.setPointerCapture(event.pointerId);token.classList.add('dragging');token.onpointermove=move=>{state.cinematicTokenX=Math.max(0,Math.min(100,originX+(move.clientX-startX)/rect.width*100));state.cinematicTokenY=Math.max(0,Math.min(100,originY+(move.clientY-startY)/rect.height*100));token.style.left=`${state.cinematicTokenX}%`;token.style.top=`${state.cinematicTokenY}%`;syncCinematicLineMask()};token.onpointerup=()=>{token.classList.remove('dragging');token.onpointermove=null;syncCinematicLineMask();save(false)}}}
-function updateResourceUi(key){const current=state[key],temp=state[`${key}Temp`]||0,isPv=key.toLowerCase()==='pv',cinDiv=document.querySelectorAll('.cinematic-resources>div')[isPv?0:1],tempBadge=temp?`<button type="button" class="temp-badge-btn" data-consume-temp="${key}:1" title="Clique para extinguir 1 ${key.toUpperCase()} temporário (Botão direito para extinguir todos)"><em>+${temp}</em></button>`:'';if(cinDiv){const b=cinDiv.querySelector('b');if(b)b.innerHTML=`${current}${tempBadge}`;const pips=cinDiv.querySelectorAll('.pip:not(.temporary)');pips.forEach((pip,i)=>pip.classList.toggle('filled',i<current))}document.querySelectorAll(`.resource-row [data-set-resource^="${key}:"]`).forEach(pip=>{const val=Number(pip.dataset.setResource.split(':')[1]);pip.classList.toggle('filled',val<=current)});document.querySelectorAll('.resource-row').forEach(row=>{if(row.querySelector(`[data-set-resource^="${key}:"]`)){const b=row.querySelector('b');if(b)b.innerHTML=`${current}${tempBadge}`}});document.querySelectorAll(`.vigilia-resource-block.resource-${key.toLowerCase()}`).forEach(block=>{const numEl=block.querySelector('.res-num');if(numEl)numEl.textContent=current;const pips=block.querySelectorAll('.vigilia-pip:not(.temp-pip)');pips.forEach((pip,i)=>pip.classList.toggle('filled',i<current))});syncCriticalAtmosphere()}
-function updateMarkerUi(cardId,markerId){const card=state.cards.find(c=>c.id===cardId),marker=card?.markers.find(m=>m.id===markerId);if(!marker)return;const max=markerMax(marker),current=Math.min(Number(marker.current)||0,max||999),id=`${cardId}:${markerId}`;document.querySelectorAll(`[data-card-marker^="${id}:"],[data-card-marker-set^="${id}:"]`).forEach(el=>{const container=el.closest('.card-marker');if(!container)return;const toggle=container.querySelector('.toggle-switch');if(toggle){toggle.classList.toggle('on',!!current);toggle.innerHTML=`<i></i>${current?'LIGADO':'DESLIGADO'}`}const track=container.querySelector('.progress-track i');if(track)track.style.width=`${max?current/max*100:0}%`;const charges=container.querySelectorAll('.charge');charges.forEach((btn,i)=>btn.classList.toggle('on',i<current));const strong=container.querySelector('strong');if(strong){if(container.classList.contains('marker-bar')||container.classList.contains('marker-pips')){strong.textContent=`${current}/${max}`}else if(!container.classList.contains('marker-toggle')){strong.textContent=`${current}${max?`/${max}`:''}`}}});if(cardId==='impeto'||markerId==='impeto-m'||card?.title?.toUpperCase().includes('ÍMPETO')){document.querySelectorAll('.impeto-slot-pip').forEach((pip,i)=>pip.classList.toggle('filled',i<current))}if(cardId==='analise'||markerId==='analise-m'||card?.title?.toUpperCase().includes('ANÁLISE')){document.querySelectorAll('.analise-slot-pip').forEach((pip,i)=>pip.classList.toggle('filled',i<current))}}
+function updateResourceUi(key){const current=state[key],temp=state[`${key}Temp`]||0,isPv=key.toLowerCase()==='pv',cinDiv=document.querySelectorAll('.cinematic-resources>div')[isPv?0:1],tempBadge=temp?`<button type="button" class="temp-badge-btn" data-consume-temp="${key}:1" title="Clique para extinguir 1 ${key.toUpperCase()} temporário (Botão direito para extinguir todos)"><em>+${temp}</em></button>`:'';if(cinDiv){const b=cinDiv.querySelector('b');if(b)b.innerHTML=`${current}${tempBadge}`;const pips=cinDiv.querySelectorAll('.pip:not(.temporary)');pips.forEach((pip,i)=>pip.classList.toggle('filled',i<current))}document.querySelectorAll(`.resource-row [data-set-resource^="${key}:"]`).forEach(pip=>{const val=Number(pip.dataset.setResource.split(':')[1]);pip.classList.toggle('filled',val<=current)});document.querySelectorAll('.resource-row').forEach(row=>{if(row.querySelector(`[data-set-resource^="${key}:"]`)){const b=row.querySelector('b');if(b)b.innerHTML=`${current}${tempBadge}`}});document.querySelectorAll(`.vigilia-resource-block.resource-${key.toLowerCase()}`).forEach(block=>{const numEl=block.querySelector('.res-num');if(numEl)numEl.textContent=current;const pips=block.querySelectorAll('.vigilia-pip:not(.temp-pip)');pips.forEach((pip,i)=>pip.classList.toggle('filled',i<current))});if(state.viewMode==='vigilia'){if(key.toLowerCase()==='pv'&&state.pv<=0){const modal=document.querySelector('#vigilia-lesao-modal');if(modal)modal.style.display='flex';}if(key.toLowerCase()==='pd'&&state.pd<=0){const modal=document.querySelector('#vigilia-trauma-modal');if(modal)modal.style.display='flex';}}syncCriticalAtmosphere()}
+function updateMarkerUi(cardId,markerId){const card=state.cards.find(c=>c.id===cardId),marker=card?.markers.find(m=>m.id===markerId);if(!marker)return;const max=markerMax(marker),current=Math.min(Number(marker.current)||0,max||999),id=`${cardId}:${markerId}`;document.querySelectorAll(`[data-card-marker^="${id}:"],[data-card-marker-set^="${id}:"]`).forEach(el=>{const container=el.closest('.card-marker');if(!container)return;const toggle=container.querySelector('.toggle-switch');if(toggle){toggle.classList.toggle('on',!!current);toggle.innerHTML=`<i></i>${current?'LIGADO':'DESLIGADO'}`}const track=container.querySelector('.progress-track i');if(track)track.style.width=`${max?current/max*100:0}%`;const charges=container.querySelectorAll('.charge');charges.forEach((btn,i)=>btn.classList.toggle('on',i<current));const strong=container.querySelector('strong');if(strong){if(container.classList.contains('marker-bar')||container.classList.contains('marker-pips')){strong.textContent=`${current}/${max}`}else if(!container.classList.contains('marker-toggle')){strong.textContent=`${current}${max?`/${max}`:''}`}}});if(cardId==='impeto'||markerId==='impeto-m'||card?.title?.toUpperCase().includes('ÍMPETO')){document.querySelectorAll('.impeto-slot-pip, .impeto-segment').forEach((pip,i)=>pip.classList.toggle('filled',i<current))}if(cardId==='analise'||markerId==='analise-m'||card?.title?.toUpperCase().includes('ANÁLISE')){document.querySelectorAll('.analise-slot-pip').forEach((pip,i)=>pip.classList.toggle('filled',i<current))}}
 let isExportingCinematicImage=false;
 async function exportCinematicImage(){
  const toast=document.querySelector('#save-toast');

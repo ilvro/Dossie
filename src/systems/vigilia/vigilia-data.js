@@ -450,7 +450,7 @@ Diante da criança rejeitada por todos, disse: “Então ela ficará comigo.” 
     maxArmorPoints: 0,
     systemMode: 'ordem2',
     viewMode: 'vigilia',
-    tokenImage: '/assets/vigilia/token-cavan.png',
+    tokenImage: '/assets/vigilia/token-cavan-portrait.png',
     backgroundImage: '',
     attributes: {
       Físico: 6,
@@ -591,7 +591,7 @@ Sua amiga mais próxima é Rhiona Mac Tuirenn, a filha do ferreiro, que o ajudou
     maxArmorPoints: 0,
     systemMode: 'ordem2',
     viewMode: 'vigilia',
-    tokenImage: '/assets/vigilia/token-malik.png',
+    tokenImage: '/assets/vigilia/token-malik-portrait.png',
     backgroundImage: '',
     attributes: {
       Físico: 6,

@@ -1,0 +1,306 @@
+{
+  "name": "Rhiona Mac Tuirenn",
+  "occupation": "Ferreira",
+  "profile": "Analista",
+  "level": 3,
+  "pv": 22,
+  "maxPv": 22,
+  "pvTemp": 0,
+  "pd": 11,
+  "maxPd": 12,
+  "pdTemp": 0,
+  "history": "Filha do ferreiro da vila, Rhiona Mac Tuirenn (RÍ-o-na Mac TÚR-en) é versada nos segredos místicos do ferro e do fogo. Caberá a ela perpetuar o legado de fornecer para as famílias de Ballynyr as ferramentas e armas essenciais para o trabalho e a proteção da vila.\n\nTrabalha batendo o martelo na bigorna e testando em combate as próprias armas que faz. Sua figura feminina empunhando o martelo é vista como uma manifestação de Brígida, antiga deusa da forja, e Rhiona carrega no pescoço uma pequena medalha de Santa Brígida, a versão sincrética da deusa.\n\nUm casamento com Rhiona seria de grande valor, e o interesse da moça tem sido disputado por filhos de fazendeiros e até por guerreiros da nobreza menor. Porém, desde que seu pai caiu doente, ela está mais interessada em administrar o negócio da família, e por isso passa horas debatendo contabilidade com o Irmão Cavan.\n\nQuando se permite descansar, senta-se próximo à fogueira para ouvir as histórias que Malik ibn Qamar traz de um mundo distante. Também é próxima de Rowan, responsável por supri-la de ferro coletado do pântano. Recentemente, ela o avistou patrulhando as fronteiras das terras de seu pai sem que isso fosse solicitado.",
+  "tokenImage": "/assets/vigilia/token-rhiona-portrait.png",
+  "backgroundImage": "",
+  "backgroundBlur": 0,
+  "backgroundZoom": 100,
+  "diceColor": "",
+  "themeColor": "",
+  "viewMode": "cinematic",
+  "cinematicTokenX": 50,
+  "cinematicTokenY": 52,
+  "cinematicTokenScale": 100,
+  "cinematicOutlineSide": "left",
+  "cinematicOutlineIntensity": 0.5,
+  "cinematicOutlineWidth": 1.8,
+  "cinematicOutlineFade": 1.5,
+  "cinematicCollapsed": {
+    "abilities": false,
+    "items": true,
+    "history": true
+  },
+  "attributes": {
+    "Físico": 10,
+    "Mente": 6,
+    "Emoção": 6
+  },
+  "skills": [
+    {
+      "name": "ACROBACIA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "ANIMAIS",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "APTIDÃO (HUMANAS)",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "ATLETISMO",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "CRIME",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "DISCIPLINA",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "ENGANAÇÃO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "FURTIVIDADE",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "INSPECIONAR",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "INTIMIDAR",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "INTUIÇÃO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "LUTA",
+      "skillDie": 10,
+      "training": "MESTRE",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "MEDICINA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "OCULTISMO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "OFÍCIO (METALURGIA)",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "PERCEPÇÃO",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "PERSUASÃO",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "PONTARIA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "SOBREVIVÊNCIA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "VIGOR",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Físico",
+      "extra": 0
+    }
+  ],
+  "cards": [
+    {
+      "id": "analise",
+      "profileAbility": "Analista",
+      "themeLinked": true,
+      "schema": "abilities",
+      "title": "ANÁLISE",
+      "type": "Habilidade de Perfil",
+      "content": "Você pode gastar uma ação para receber **2 marcadores de análise**.\n• Quando faz um teste, **pode gastar quantos marcadores quiser após rolar os dados**. Para cada marcador gasto, pode mudar o resultado de um dado em **+1 ou –1** (até o máximo do dado).\n• Você pode acumular no **máximo 4 marcadores de análise** e, no fim da cena, **perde** quaisquer marcadores não usados.",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "markers": [
+        {
+          "id": "analise-m",
+          "type": "pips",
+          "displayStyle": "rectangles",
+          "label": "Marcadores de Análise",
+          "current": 0,
+          "maxFormula": "4"
+        }
+      ],
+      "actions": []
+    },
+    {
+      "id": "leitura-de-combate",
+      "schema": "abilities",
+      "title": "LEITURA DE COMBATE",
+      "type": "Habilidade",
+      "content": "Em combate, sempre que você gastar uma ação para se defender, você recebe um marcador de análise.",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "markers": [],
+      "actions": [],
+      "themeLinked": true
+    },
+    {
+      "id": "segredo-do-aco",
+      "schema": "abilities",
+      "title": "SEGREDO DO AÇO",
+      "type": "Habilidade",
+      "content": "Você sabe usar equipamentos marciais. Além disso, se estiver vestindo um item que forneça pontos de armadura, o item fornece **1 ponto de armadura adicional**.",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "markers": [],
+      "actions": [],
+      "themeLinked": true
+    },
+    {
+      "id": "equip-rhiona",
+      "schema": "items",
+      "title": "EQUIPAMENTO",
+      "type": "Equipamento",
+      "content": "**Martelo de forja** (arma corpo a corpo, dano RA+3), tenaz de ferreiro.",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "markers": [],
+      "actions": [
+        {
+          "id": "ataque-martelo",
+          "name": "Ataque com Martelo (Luta d10+Físico d10)",
+          "expression": "1d10 + 1d10"
+        },
+        {
+          "id": "dano-martelo",
+          "name": "Dano Martelo (RA+3)",
+          "expression": "RA + 3"
+        }
+      ],
+      "themeLinked": true
+    }
+  ],
+  "id": "sheet-vigilia-rhiona",
+  "folderId": "folder-vigilia",
+  "firstName": "RHIONA",
+  "lastName": "MAC TUIRENN",
+  "age": 23,
+  "shortBio": "Filha do ferreiro, detém o raro conhecimento da metalurgia e prestígio na comunidade. Idade 23.",
+  "armorPoints": 0,
+  "maxArmorPoints": 2,
+  "systemMode": "ordem2",
+  "relations": [
+    {
+      "target": "ROWAN",
+      "degree": 1,
+      "feeling": "CONFIANÇA",
+      "note": "É quem lhe traz o minério de ferro do pântano."
+    },
+    {
+      "target": "MUIRENN",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Soube de enfermos que foram tratados pela curandeira."
+    },
+    {
+      "target": "CAVAN",
+      "degree": 2,
+      "feeling": "AMIZADE",
+      "note": "Passam horas debatendo contabilidade."
+    },
+    {
+      "target": "MALIK",
+      "degree": 1,
+      "feeling": "ADMIRAÇÃO",
+      "note": "Gosta de ouvir as histórias que ele traz de terras distantes."
+    },
+    {
+      "target": "SIRA",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Aguarda ela se recuperar do naufrágio para fazer perguntas."
+    },
+    {
+      "target": "SORCHA",
+      "degree": 1,
+      "feeling": "RESPEITO",
+      "note": "Reconhece a importância de sua vigilância."
+    },
+    {
+      "target": "CORMAC",
+      "degree": 1,
+      "feeling": "CURIOSIDADE",
+      "note": "Pergunta-se de onde vem a espada que carrega."
+    }
+  ],
+  "favorite": false,
+  "dadoPavor": null,
+  "traumasCountScene": 1
+}

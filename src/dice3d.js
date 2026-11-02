@@ -188,7 +188,26 @@ function showResult(resultNode, dice, results, title, modifier = 0, rollMode = '
     total = results.reduce((sum, value) => sum + value, 0) + modifier;
     diceBreakdownHtml = results.map((value, index) => `<span><b>${value}</b> d${dice[index].sides}</span>`).join('<i>+</i>') + modifierLabel;
   }
-  resultNode.innerHTML = `<small>${title}</small><div>${diceBreakdownHtml}</div><strong>${total}</strong><button type="button" class="btn-dice-open-log" data-open-roll-log title="Ver histórico de rolagens">HISTÓRICO ▾</button>`;
+
+  let vigiliaMetaHtml = '';
+  if (results.length >= 2 && dice.every(d => d.sides !== 20)) {
+    const ra = Math.max(...results);
+    const rb = Math.min(...results);
+    const countHighest = results.filter(v => v === ra).length;
+    const isCritSuccess = countHighest >= 2 && ra >= 6;
+    const isCritFumble = results.every(v => v === 1);
+
+    vigiliaMetaHtml = `
+      <div class="vigilia-roll-meta">
+        <span class="ra-badge" title="Rolagem Alta (maior dado)">RA: <b>${ra}</b></span>
+        <span class="rb-badge" title="Rolagem Baixa (menor dado)">RB: <b>${rb}</b></span>
+      </div>
+      ${isCritSuccess ? '<span class="roll-crit-badge">★ SUCESSO CRÍTICO!</span>' : ''}
+      ${isCritFumble ? '<span class="roll-fumble-badge">☠ FALHA CRÍTICA!</span>' : ''}
+    `;
+  }
+
+  resultNode.innerHTML = `<small>${title}</small><div>${diceBreakdownHtml}</div>${vigiliaMetaHtml}<strong>${total}</strong><button type="button" class="btn-dice-open-log" data-open-roll-log title="Ver histórico de rolagens">HISTÓRICO ▾</button>`;
 
   resultNode.classList.add('visible');
 }

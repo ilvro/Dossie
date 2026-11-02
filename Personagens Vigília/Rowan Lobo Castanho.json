@@ -1,0 +1,321 @@
+{
+  "name": "Rowan Lobo Castanho",
+  "occupation": "Adestrador",
+  "profile": "Vigilante",
+  "level": 3,
+  "pv": 20,
+  "maxPv": 20,
+  "pvTemp": 0,
+  "pd": 12,
+  "maxPd": 12,
+  "pdTemp": 0,
+  "history": "Rowan (RÓ-u-an) era a prole mais nova de uma numerosa família camponesa. Quando criança, era apenas mais uma boca para alimentar. Na mesma época, seu tio Fergus Mac Colum (FÉR-gus mak KÓ-lum), então caçador da vila de Ballynyr, começou a mostrar sinais de velhice. Sem filhos, precisava de um aprendiz a quem transmitir seu ofício. Assim, a família enviou Rowan. Realizava trabalho braçal, como carregar peles pesadas, cortar lenha e limpar armadilhas e, em troca, o tio lhe ensinava a arte de fabricar arcos, curtir couro, rastrear animais e manejar armas.\n\nAdaptou-se bem a vida nos ermos, pois nunca foi muito sociável, trocando com alegria a companhia de humanos pela de animais. Mata para preservar o ciclo da vida, mas também é capaz de poupar — e até cativar — mesmo o mais temido predador. Foi em uma noite sem lua que encontrou um lobo ferido. Era uma rara variedade castanha. Outros diriam que o certo era matá-lo, mas Rowan escolheu a vida. Tratou os ferimentos do lobo sem esperar nada em troca, mas recebeu uma amizade eterna. Hoje, os dois são inseparáveis.\n\nRowan anda sempre em companhia da fera, o que desperta a desconfiança dos moradores da vila. Dizem os mais supersticiosos que Rowan enxerga através dos olhos da besta, ou até que é capaz de assumir uma forma lupina. Rhiona Mac Tuirenn não acredita nisso. Muirenn Lua Pálida talvez até acredite, mas não se importa. São as únicas pessoas, além do tio idoso, com quem Rowan se importa… quase como se fossem animais.",
+  "tokenImage": "/assets/vigilia/token-rowan-portrait.png",
+  "backgroundImage": "",
+  "backgroundBlur": 0,
+  "backgroundZoom": 100,
+  "diceColor": "",
+  "themeColor": "",
+  "viewMode": "vigilia",
+  "cinematicTokenX": 50,
+  "cinematicTokenY": 52,
+  "cinematicTokenScale": 100,
+  "cinematicOutlineSide": "left",
+  "cinematicOutlineIntensity": 0.5,
+  "cinematicOutlineWidth": 1.8,
+  "cinematicOutlineFade": 1.5,
+  "cinematicCollapsed": {
+    "abilities": false,
+    "items": true,
+    "history": true
+  },
+  "attributes": {
+    "Físico": 8,
+    "Mente": 8,
+    "Emoção": 6
+  },
+  "skills": [
+    {
+      "name": "ACROBACIA",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "ANIMAIS",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "APTIDÃO (HUMANAS)",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "ATLETISMO",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "CRIME",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "DISCIPLINA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "ENGANAÇÃO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "FURTIVIDADE",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "INSPECIONAR",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "INTIMIDAR",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "INTUIÇÃO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "LUTA",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "MEDICINA",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "OCULTISMO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "OFÍCIO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "PERCEPÇÃO",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "PERSUASÃO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "PONTARIA",
+      "skillDie": 10,
+      "training": "MESTRE",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "SOBREVIVÊNCIA",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "VIGOR",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    }
+  ],
+  "cards": [
+    {
+      "id": "prontidao",
+      "profileAbility": "Vigilante",
+      "themeLinked": true,
+      "schema": "abilities",
+      "title": "PRONTIDÃO",
+      "type": "Habilidade de Perfil",
+      "content": "Uma vez por rodada, quando você ou outro ser em alcance curto faz um teste, você pode **gastar 2 PD para rolar novamente**, ou para fazer o outro ser rolar novamente, **um dos dados do teste cujo resultado não tenha sido 1**.\n\nAlém disso, em combates, você pode fazer sua ação na **fase dela ou em fases posteriores**, e após qualquer ação daquela fase **já ter sido rolada**.",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "cost": "2 PD",
+      "markers": [],
+      "actions": []
+    },
+    {
+      "id": "esquiva",
+      "schema": "abilities",
+      "title": "ESQUIVA",
+      "type": "Habilidade",
+      "content": "Uma vez por rodada, quando sofre um ataque, pode fazer um **teste de Acrobacia (d6+d8)** oposto ao teste de ataque como uma **ação livre**. Se vencer, evita o ataque.",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "markers": [],
+      "actions": [
+        {
+          "id": "teste-esquiva",
+          "name": "Teste de Esquiva (Acrobacia d6 + Físico d8)",
+          "expression": "1d6 + 1d8"
+        }
+      ],
+      "themeLinked": true
+    },
+    {
+      "id": "espectro-lobo",
+      "schema": "abilities",
+      "title": "ESPECTRO, O LOBO",
+      "type": "Habilidade",
+      "content": "Você possui um parceiro lobo que fornece **+d6 em testes de ataque corpo a corpo**. Porém, se o dado do lobo rolar 1, ele terá se machucado e não poderá mais ajudá-lo pelo resto da cena.",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "markers": [
+        {
+          "id": "lobo-ativo",
+          "type": "toggle",
+          "label": "Lobo Apto",
+          "current": 1,
+          "maxFormula": "1",
+          "displayStyle": "default"
+        }
+      ],
+      "actions": [],
+      "themeLinked": true
+    },
+    {
+      "id": "equip-rowan",
+      "schema": "items",
+      "title": "EQUIPAMENTO",
+      "type": "Equipamento",
+      "content": "**Arco curto de teixo** (arma à distância, dano RA+1), **lança de javali** (arma corpo a corpo, dano RA+2; fornece um aumento de passo no primeiro ataque da cena).",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "markers": [],
+      "actions": [
+        {
+          "id": "ataque-arco",
+          "name": "Tiro de Arco (Pontaria d10+Físico d8)",
+          "expression": "1d10 + 1d8"
+        },
+        {
+          "id": "dano-arco",
+          "name": "Dano Arco (RA+1)",
+          "expression": "RA + 1"
+        },
+        {
+          "id": "ataque-lanca",
+          "name": "Golpe com Lança (Luta d6+Físico d8)",
+          "expression": "1d6 + 1d8"
+        },
+        {
+          "id": "dano-lanca",
+          "name": "Dano Lança (RA+2)",
+          "expression": "RA + 2"
+        }
+      ],
+      "themeLinked": true
+    }
+  ],
+  "id": "sheet-vigilia-rowan",
+  "folderId": "folder-vigilia",
+  "firstName": "ROWAN",
+  "lastName": "LOBO CASTANHO",
+  "age": 25,
+  "shortBio": "Aprendiz do caçador da vila, tem a companhia de um lobo enorme e leal. Idade 25.",
+  "armorPoints": 0,
+  "maxArmorPoints": 0,
+  "systemMode": "ordem2",
+  "relations": [
+    {
+      "target": "RHIONA",
+      "degree": 1,
+      "feeling": "DEVER",
+      "note": "A ferreira é importante para a vila e deve ser protegida."
+    },
+    {
+      "target": "MUIRENN",
+      "degree": 2,
+      "feeling": "CUMPLICIDADE",
+      "note": "Têm em comum o modo de vida apartado da vila."
+    },
+    {
+      "target": "CAVAN",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "O monge traz bons conselhos aos camponeses."
+    },
+    {
+      "target": "MALIK",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "O jeito bisbilhoteiro do andarilho não chega a incomodar."
+    },
+    {
+      "target": "SIRA",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Só se viram uma vez."
+    },
+    {
+      "target": "SORCHA",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Acha os rastros da passagem dela chamativos demais."
+    },
+    {
+      "target": "CORMAC",
+      "degree": 1,
+      "feeling": "TRANQUILIDADE",
+      "note": "Sabe de onde ele vem pelos espinhos grudados em suas roupas, mas não o considera uma ameaça."
+    }
+  ],
+  "favorite": false
+}

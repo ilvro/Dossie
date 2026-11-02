@@ -1,0 +1,311 @@
+{
+  "name": "Irmão Cavan",
+  "occupation": "Professor",
+  "profile": "Analista",
+  "level": 3,
+  "pv": 15,
+  "maxPv": 15,
+  "pvTemp": 0,
+  "pd": 15,
+  "maxPd": 15,
+  "pdTemp": 0,
+  "history": "Cavan (KÁ-van) foi ofertado por sua família ao Mosteiro do Olmo Cinzento aos sete anos de idade, logo após um de seus irmãos morrer de desnutrição em um inverno especialmente longo. Como noviço, aprendeu a ler e escrever, medir e calcular, produzir e administrar. Mais do que isso, anos de trabalho braçal no mosteiro arando campos rochosos com bois, carregando pedras pesadas para erguer muros e cortando lenha para aquecer os claustros no inverno o ensinaram a usar seu corpo com maestria.\n\nÉ dedicado e disciplinado, e desde cedo se destacou na caligrafia e na docência. Após proferir seus votos de obediência, pobreza e castidade, tornou-se um monge consagrado. Enviado pelo abade, instalou-se na vila de Ballynyr para atuar como administrador agrícola e guia espiritual. Ali, ensina técnicas de cultivo aos adultos e cânticos litúrgicos às crianças.\n\nSua amiga mais próxima é Rhiona Mac Tuirenn, a filha do ferreiro, que o ajudou a ser bem recebido na região e a quem admira mais profundamente do que seus votos deveriam permitir. Embora bem recebido, seus ensinamentos cristãos ainda entram em choque com os costumes folclóricos locais.",
+  "tokenImage": "/assets/vigilia/token-cavan-portrait.png",
+  "backgroundImage": "",
+  "backgroundBlur": 0,
+  "backgroundZoom": 100,
+  "diceColor": "",
+  "themeColor": "",
+  "viewMode": "vigilia",
+  "cinematicTokenX": 50,
+  "cinematicTokenY": 52,
+  "cinematicTokenScale": 100,
+  "cinematicOutlineSide": "left",
+  "cinematicOutlineIntensity": 0.5,
+  "cinematicOutlineWidth": 1.8,
+  "cinematicOutlineFade": 1.5,
+  "cinematicCollapsed": {
+    "abilities": false,
+    "items": true,
+    "history": true
+  },
+  "attributes": {
+    "Físico": 6,
+    "Mente": 10,
+    "Emoção": 6
+  },
+  "skills": [
+    {
+      "name": "ACROBACIA",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "ANIMAIS",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "APTIDÃO (ERUDIÇÃO)",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "ATLETISMO",
+      "skillDie": 10,
+      "training": "MESTRE",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "CRIME",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "DISCIPLINA",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "ENGANAÇÃO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "FURTIVIDADE",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "INSPECIONAR",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "INTIMIDAR",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "INTUIÇÃO",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "LUTA",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "MEDICINA",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "OCULTISMO",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "OFÍCIO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "PERCEPÇÃO",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "PERSUASÃO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "PONTARIA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "SOBREVIVÊNCIA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "VIGOR",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    }
+  ],
+  "cards": [
+    {
+      "id": "analise",
+      "profileAbility": "Analista",
+      "themeLinked": true,
+      "schema": "abilities",
+      "title": "ANÁLISE",
+      "type": "Habilidade de Perfil",
+      "content": "Você pode gastar uma ação para receber **2 marcadores de análise**.\n• Quando faz um teste, **pode gastar quantos marcadores quiser após rolar os dados**. Para cada marcador gasto, pode mudar o resultado de um dado em **+1 ou –1** (até o máximo do dado).\n• Você pode acumular no **máximo 4 marcadores de análise** e, no fim da cena, **perde** quaisquer marcadores não usados.",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "markers": [
+        {
+          "id": "analise-m",
+          "type": "pips",
+          "displayStyle": "rectangles",
+          "label": "Marcadores de Análise",
+          "current": 0,
+          "maxFormula": "4"
+        }
+      ],
+      "actions": []
+    },
+    {
+      "id": "curandeiro",
+      "schema": "abilities",
+      "title": "CURANDEIRO",
+      "type": "Habilidade",
+      "cost": "2 PD",
+      "content": "Você pode gastar **uma ação e 2 PD** para curar um aliado. Faça um **teste de Medicina (DT 7)**. Se passar, você cura PV do aliado iguais à **RA do teste**. Você só pode usar este poder em um mesmo alvo uma vez por cena.",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "markers": [],
+      "actions": [
+        {
+          "id": "teste-curandeiro",
+          "name": "Teste de Medicina (Medicina d6+Mente d10 vs DT 7)",
+          "expression": "1d6 + 1d10"
+        }
+      ],
+      "themeLinked": true
+    },
+    {
+      "id": "mentoria",
+      "schema": "abilities",
+      "title": "MENTORIA",
+      "type": "Habilidade",
+      "content": "Quando ajuda outro personagem, você pode fazer um **teste da perícia que usou para ajudar contra DT 7**. Se passar, o personagem ajudado pode **substituir um dos dados rolados por ele pela sua rolagem alta (RA)**.",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "markers": [],
+      "actions": [],
+      "themeLinked": true
+    },
+    {
+      "id": "equip-cavan",
+      "schema": "items",
+      "title": "EQUIPAMENTO",
+      "type": "Equipamento",
+      "content": "**Porrete** (arma corpo a corpo, dano RA+1).",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "markers": [],
+      "actions": [
+        {
+          "id": "ataque-porrete",
+          "name": "Golpe com Porrete (Luta d8+Mente d10)",
+          "expression": "1d8 + 1d10"
+        },
+        {
+          "id": "dano-porrete",
+          "name": "Dano Porrete (RA+1)",
+          "expression": "RA + 1"
+        }
+      ],
+      "themeLinked": true
+    }
+  ],
+  "id": "sheet-vigilia-cavan",
+  "folderId": "folder-vigilia",
+  "firstName": "IRMÃO CAVAN",
+  "lastName": "DO MOSTEIRO DO OLMO CINZENTO",
+  "age": 26,
+  "shortBio": "Monge enviado à vila como educador, contabilista e guia espiritual. Embora seja um erudito, seu corpo foi forjado pelo trabalho braçal no mosteiro. Idade 26.",
+  "armorPoints": 0,
+  "maxArmorPoints": 0,
+  "systemMode": "ordem2",
+  "relations": [
+    {
+      "target": "RHIONA",
+      "degree": 3,
+      "feeling": "GRANDE AFEIÇÃO",
+      "note": "Sentimento conflitante com seus votos monásticos."
+    },
+    {
+      "target": "ROWAN",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Espera um dia poderem conversar melhor."
+    },
+    {
+      "target": "MUIRENN",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Desaprova a tradição da curandeira, mas não a odeia."
+    },
+    {
+      "target": "MALIK",
+      "degree": 1,
+      "feeling": "ADMIRAÇÃO",
+      "note": "Interesse pelo conhecimento trazido de outras terras."
+    },
+    {
+      "target": "SIRA",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Aguarda ela se recuperar do naufrágio para fazer perguntas."
+    },
+    {
+      "target": "SORCHA",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Acredita que ela já sofreu muito."
+    },
+    {
+      "target": "CORMAC",
+      "degree": 1,
+      "feeling": "DISCRIÇÃO",
+      "note": "Reconhece seu sotaque de nobre bretão, mas não contou a ninguém."
+    }
+  ],
+  "favorite": false
+}

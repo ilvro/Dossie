@@ -1,0 +1,308 @@
+{
+  "name": "Muirenn da Lua Pálida",
+  "occupation": "Herborista",
+  "profile": "Executor",
+  "level": 3,
+  "pv": 15,
+  "maxPv": 15,
+  "pvTemp": 0,
+  "pd": 17,
+  "maxPd": 17,
+  "pdTemp": 0,
+  "history": "Anos atrás, em uma madrugada fria de outono, a vila de Ballynyr acordou com o choro de um bebê. Era uma menina abandonada em um cesto — não se sabe por quem, já que a vila é isolada. A crença inicial de que havia sido deixada por fadas ganhou ainda mais força quando olharam melhor para ela: na testa, possuía uma marca branca perfeitamente circular. “Changeling!”, disse alguém, e com isso ninguém quis acolhê-la. Com uma exceção.\n\nAtraída pela comoção que acontecia na vila, apareceu a velha curandeira a qual todos chamavam de bruxa. Marróg Niamh (MÁ-rog NÍV) vivia sozinha em sua cabana na floresta, em meio a ervas e unguentos, considerada estranha e indesejada. Ironicamente, quando alguém adoecia, era a ela que recorriam.\n\nDiante da criança rejeitada por todos, disse: “Então ela ficará comigo.” e levou-a para sua cabana. Muirenn (MÍ-ren) da Lua Pálida cresceu como uma criança normal e aprendeu com a velha sua tradição oral. Seu único amigo é Rowan Lobo Castanho, outro pária, que lhe traz carne de caça sempre que pode. No início, irritava-se com a forma como sua mentora era tratada pelos demais. Contudo, após a morte de Marróg, Muirenn tomou para si o dever de proteger os aldeões, mesmo aqueles que não mereciam.",
+  "tokenImage": "/assets/vigilia/token-muirenn-portrait.png",
+  "backgroundImage": "",
+  "backgroundBlur": 0,
+  "backgroundZoom": 100,
+  "diceColor": "",
+  "themeColor": "",
+  "viewMode": "cinematic",
+  "cinematicTokenX": 50,
+  "cinematicTokenY": 52,
+  "cinematicTokenScale": 100,
+  "cinematicOutlineSide": "right",
+  "cinematicOutlineIntensity": 0.5,
+  "cinematicOutlineWidth": 1.8,
+  "cinematicOutlineFade": 1.5,
+  "cinematicCollapsed": {
+    "abilities": false,
+    "items": true,
+    "history": true
+  },
+  "attributes": {
+    "Físico": 8,
+    "Mente": 8,
+    "Emoção": 8
+  },
+  "skills": [
+    {
+      "name": "ACROBACIA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "ANIMAIS",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "APTIDÃO (FOLCLORE)",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "ATLETISMO",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "CRIME",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "DISCIPLINA",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "ENGANAÇÃO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "FURTIVIDADE",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "INSPECIONAR",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "INTIMIDAR",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "INTUIÇÃO",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "LUTA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "MEDICINA",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "OCULTISMO",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "OFÍCIO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "PERCEPÇÃO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "PERSUASÃO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "PONTARIA",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "SOBREVIVÊNCIA",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "VIGOR",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    }
+  ],
+  "cards": [
+    {
+      "id": "impeto",
+      "profileAbility": "Executor",
+      "themeLinked": true,
+      "schema": "abilities",
+      "title": "ÍMPETO",
+      "type": "Habilidade de Perfil",
+      "content": "Você possui uma **barra de ímpeto, com cinco espaços**. Sempre que **faz um teste e falha**, você preenche um espaço na barra de ímpeto. Como uma ação livre, você pode gastar espaços da barra de ímpeto para receber benefícios:\n• **1 espaço.** Você recebe **+d4** em um teste.\n• **3 espaços.** Você **aumenta um atributo em um passo** até o fim da cena.\n• **3 espaços.** Em cenas de conflito, você faz uma **ação extra**.\n\nNo fim da cena, sua barra de ímpeto esvazia.",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "markers": [
+        {
+          "id": "impeto-m",
+          "type": "pips",
+          "displayStyle": "rectangles",
+          "label": "Barra de Ímpeto",
+          "current": 0,
+          "maxFormula": "5"
+        }
+      ],
+      "actions": []
+    },
+    {
+      "id": "arsenal-herborista",
+      "schema": "abilities",
+      "title": "ARSENAL DE HERBORISTA",
+      "type": "Habilidade",
+      "content": "Você possui uma pequena bolsa contendo preparados medicinais feitos com ervas, óleos e mel. Para usar o item, escolha um alvo e **gaste uma ação**. Cada item é de **uso único**.\n\n• **Tônico de urtiga-feroz.** O alvo recebe aumento de passo no atributo Físico por uma cena.\n• **Bálsamo de confrei.** O alvo recupera 2d4 PV (se for outro ser, precisa ficar parado nesta rodada).\n• **Pote de vespa.** Faça um teste de Sobrevivência para um ataque à distância, dano RA+1. Se o alvo sobreviver, perde sua próxima ação espantando as vespas.",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "markers": [],
+      "actions": [
+        {
+          "id": "balsamo-cura",
+          "name": "Curar com Bálsamo (2d4 PV)",
+          "expression": "2d4"
+        },
+        {
+          "id": "ataque-vespas",
+          "name": "Lançar Pote de Vespa (Sobrevivência d8+Mente d8)",
+          "expression": "1d8 + 1d8"
+        },
+        {
+          "id": "dano-vespas",
+          "name": "Dano Vespas (RA+1)",
+          "expression": "RA + 1"
+        }
+      ],
+      "themeLinked": true
+    },
+    {
+      "id": "equip-muirenn",
+      "schema": "items",
+      "title": "EQUIPAMENTO",
+      "type": "Equipamento",
+      "content": "**Faca ritualística** (arma corpo a corpo, dano RA+0), maleta de medicamentos.",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "markers": [],
+      "actions": [
+        {
+          "id": "ataque-faca",
+          "name": "Golpe com Faca (Luta d4+Físico d8)",
+          "expression": "1d4 + 1d8"
+        },
+        {
+          "id": "dano-faca",
+          "name": "Dano Faca (RA+0)",
+          "expression": "RA + 0"
+        }
+      ],
+      "themeLinked": true
+    }
+  ],
+  "id": "sheet-vigilia-muirenn",
+  "folderId": "folder-vigilia",
+  "firstName": "MUIRENN",
+  "lastName": "DA LUA PÁLIDA",
+  "age": 21,
+  "shortBio": "Bruxa do bosque. Dizem ser filha das fadas. Possui conhecimentos de ervas e tradições ancestrais. Idade 21.",
+  "armorPoints": 0,
+  "maxArmorPoints": 0,
+  "systemMode": "ordem2",
+  "relations": [
+    {
+      "target": "RHIONA",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Não gosta de armas de metal, mas sabe que são necessárias."
+    },
+    {
+      "target": "ROWAN",
+      "degree": 2,
+      "feeling": "AMIZADE",
+      "note": "Ao contrário do restante da vila, não tem medo do lobo."
+    },
+    {
+      "target": "CAVAN",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Desaprova a doutrina escrita do monge, mas não a odeia."
+    },
+    {
+      "target": "MALIK",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "O julga tolo, mas não perigoso."
+    },
+    {
+      "target": "SIRA",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Sabe que ela já se recuperou do naufrágio, mas finge debilidade."
+    },
+    {
+      "target": "SORCHA",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Duvida que a guarda a protegeria de algum perigo."
+    },
+    {
+      "target": "CORMAC",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Só mais um forasteiro sendo bem recebido na vila que a desamparou."
+    }
+  ],
+  "favorite": false
+}

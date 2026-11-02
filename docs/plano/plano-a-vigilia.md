@@ -160,24 +160,26 @@ Diferente do modo moderno (que usa vermelho/azul/verde saturados), todas as fich
 
 ---
 
-## Fase 3 — Mecânicas de Jogo de *Contos da Vigília*
+## ✅ Fase 3 (Concluída) — Mecânicas de Jogo de *Contos da Vigília*
 
 ### 3.1. Sistema de Relações (`sheet.relations`)
 - Suporte completo aos **Graus 0 a 3**:
   - **Grau 1 (Afinidade — `◉ ○ ○`):** Invocar 1x/missão para **`+1d6`** em um teste relacionado à pessoa ou na ação *Ajudar*.
   - **Grau 2 (Vínculo — `◉ ◉ ○`):** Invocar 1x/missão para **`+1d8`** em teste/ajuda, ou gastar 1 ação para motivar (**recupera `2d4 PD`**).
   - **Grau 3 (Devoção — `◉ ◉ ◉`):** Invocar 1x/missão para **`+1d12`** em teste/ajuda, motivar (**recupera `2d6 PD`**) ou fazer **1 ação extra** para proteger a pessoa em perigo.
+  - Botão de reset de missão (`data-reset-relations`) e modal com execução direta dos efeitos.
 
 ### 3.2. Ferimentos, Moribundo, Lesões (`1d20`), Sustos, Traumas (`1d20`) e Dado de Pavor
-- **Ao cair a 0 PV:** Assistente de **Teste de Lesão (`Físico + Vigor` vs DT 7, +3 por teste anterior na cena)**, estado **Moribundo**, rolagem na **Tabela de Lesões (`1d20` + patamar)** e aplicação automática das sequelas na ficha (*Morte Súbita, Morte Lenta, Laceração Profunda -2 PV, Sem Olho -1 Percepção/Pontaria, Sem Mão, Sem Pé, Tendão -2 Acrobacia, Músculo -2 Atletismo, Órgão Interno -2 Vigor, Órgão Sensorial -2 Percepção, Cicatriz -2 Persuasão/+1 Intimidar, Contusão -1 passo Físico, Surto de Adrenalina +1 PV*).
-- **Ao cair a 0 PD:** Assistente de **Teste de Trauma (`Emoção + Disciplina` vs DT 7, +3 por teste anterior na cena)**, rolagem na **Tabela de Traumas (`1d20` + patamar)** e aplicação automática (*Colapso Total, TEPT +1 dano emocional, Degradação -1 Mente, Mácula -1 Emoção, Chaga da Alma -2 PD máx, Retração -2 Persuasão/Intuição, Pânico -> Dado de Pavor, Estupor Catatônico, Injeção de Ânimo +1 PD*).
-- **Dado de Pavor (`d6 → d8 → d10 → d12`):** Rolado junto nos testes (anula dados menores; se cair `1`, vence o pavor; botões rápidos para *Controlar o Pavor* `-1 PD` e *Abraçar o Pavor* `-5 PD`).
+- **Ao cair a 0 PV:** Assistente e modal de **Teste de Lesão (`Físico + Vigor` vs DT 7, +3 por teste anterior na cena)**, estado **Moribundo**, rolagem na **Tabela de Lesões (`1d20` + patamar)** e aplicação das sequelas na ficha (*Morte Súbita, Morte Lenta, Laceração Profunda -2 PV, Sem Olho -1 Percepção/Pontaria, Sem Mão, Sem Pé, Tendão -2 Acrobacia, Músculo -2 Atletismo, Órgão Interno -2 Vigor, Órgão Sensorial -2 Percepção, Cicatriz -2 Persuasão/+1 Intimidar, Contusão -1 passo Físico, Surto de Adrenalina +1 PV*).
+- **Ao cair a 0 PD:** Assistente e modal de **Teste de Trauma (`Emoção + Disciplina` vs DT 7, +3 por teste anterior na cena)**, rolagem na **Tabela de Traumas (`1d20` + patamar)** e aplicação das sequelas (*Colapso Total, TEPT +1 dano emocional, Degradação -1 Mente, Mácula -1 Emoção, Chaga da Alma -2 PD máx, Retração -2 Persuasão/Intuição, Pânico -> Dado de Pavor, Estupor Catatônico, Injeção de Ânimo +1 PD*).
+- **Dado de Pavor (`d6 → d8 → d10 → d12`):** Rolado junto nos testes (anula dados menores; se cair `1`, vence o pavor automaticamente; botões rápidos na barra de ferramentas para *Controlar o Pavor* `-1 PD`, *Abraçar o Pavor* `-5 PD` e remoção).
 
 ### 3.3. Rolagem Alta (`RA`), Passo de Dados, Crítico/Falha Crítica e Pontos de Armadura
-- Exibição automática de **`RA` (Rolagem Alta)** e **`RB` (Rolagem Baixa)** no banner de resultado dos dados 3D.
-- Cálculo automático de dano de armas no formato **`RA + X`** (`RA+0`, `RA+1`, `RA+2`, `RA+3`), somando as **duas maiores rolagens (`RA1 + RA2 + X`)** em caso de **Sucesso Crítico** (2+ dados iguais $\ge 6$).
-- Detecção de **Falha Crítica** (todos os dados = `1`) com botão para rolar **`1d8` na Tabela de Falhas Críticas**.
-- Tracker de **Pontos de Armadura** (gastar 1 ponto = reduz dano em 10).
+- Exibição automática de **`RA` (Rolagem Alta)** e **`RB` (Rolagem Baixa)** no banner de resultado dos dados 3D em rolagens de Vigília.
+- Detecção automática de **Sucesso Crítico** (2+ dados iguais $\ge 6$) e **Falha Crítica** (todos os dados = 1).
+- Modal e botão da **Tabela de Falhas Críticas em Combate (`1d8`)**.
+- Tracker de **Pontos de Armadura** na barra superior (gastar 1 ponto com ação livre = reduz dano em 10).
+- Transições de glitch com áudio ao alternar entre fichas de Vigília e ajuste de posicionamento de retrato para nunca sobrepor textos.
 
 ---
 

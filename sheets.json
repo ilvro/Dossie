@@ -7,7 +7,7 @@
     "pv": 22,
     "maxPv": 22,
     "pvTemp": 0,
-    "pd": 12,
+    "pd": 11,
     "maxPd": 12,
     "pdTemp": 0,
     "history": "Filha do ferreiro da vila, Rhiona Mac Tuirenn (RÍ-o-na Mac TÚR-en) é versada nos segredos místicos do ferro e do fogo. Caberá a ela perpetuar o legado de fornecer para as famílias de Ballynyr as ferramentas e armas essenciais para o trabalho e a proteção da vila.\n\nTrabalha batendo o martelo na bigorna e testando em combate as próprias armas que faz. Sua figura feminina empunhando o martelo é vista como uma manifestação de Brígida, antiga deusa da forja, e Rhiona carrega no pescoço uma pequena medalha de Santa Brígida, a versão sincrética da deusa.\n\nUm casamento com Rhiona seria de grande valor, e o interesse da moça tem sido disputado por filhos de fazendeiros e até por guerreiros da nobreza menor. Porém, desde que seu pai caiu doente, ela está mais interessada em administrar o negócio da família, e por isso passa horas debatendo contabilidade com o Irmão Cavan.\n\nQuando se permite descansar, senta-se próximo à fogueira para ouvir as histórias que Malik ibn Qamar traz de um mundo distante. Também é próxima de Rowan, responsável por supri-la de ferro coletado do pântano. Recentemente, ela o avistou patrulhando as fronteiras das terras de seu pai sem que isso fosse solicitado.",
@@ -17,7 +17,7 @@
     "backgroundZoom": 100,
     "diceColor": "",
     "themeColor": "",
-    "viewMode": "vigilia",
+    "viewMode": "cinematic",
     "cinematicTokenX": 50,
     "cinematicTokenY": 52,
     "cinematicTokenScale": 100,
@@ -254,7 +254,7 @@
     "lastName": "MAC TUIRENN",
     "age": 23,
     "shortBio": "Filha do ferreiro, detém o raro conhecimento da metalurgia e prestígio na comunidade. Idade 23.",
-    "armorPoints": 1,
+    "armorPoints": 0,
     "maxArmorPoints": 2,
     "systemMode": "ordem2",
     "relations": [
@@ -301,7 +301,9 @@
         "note": "Pergunta-se de onde vem a espada que carrega."
       }
     ],
-    "favorite": false
+    "favorite": false,
+    "dadoPavor": null,
+    "traumasCountScene": 1
   },
   {
     "name": "Rowan Lobo Castanho",
@@ -944,7 +946,7 @@
     "maxPd": 15,
     "pdTemp": 0,
     "history": "Cavan (KÁ-van) foi ofertado por sua família ao Mosteiro do Olmo Cinzento aos sete anos de idade, logo após um de seus irmãos morrer de desnutrição em um inverno especialmente longo. Como noviço, aprendeu a ler e escrever, medir e calcular, produzir e administrar. Mais do que isso, anos de trabalho braçal no mosteiro arando campos rochosos com bois, carregando pedras pesadas para erguer muros e cortando lenha para aquecer os claustros no inverno o ensinaram a usar seu corpo com maestria.\n\nÉ dedicado e disciplinado, e desde cedo se destacou na caligrafia e na docência. Após proferir seus votos de obediência, pobreza e castidade, tornou-se um monge consagrado. Enviado pelo abade, instalou-se na vila de Ballynyr para atuar como administrador agrícola e guia espiritual. Ali, ensina técnicas de cultivo aos adultos e cânticos litúrgicos às crianças.\n\nSua amiga mais próxima é Rhiona Mac Tuirenn, a filha do ferreiro, que o ajudou a ser bem recebido na região e a quem admira mais profundamente do que seus votos deveriam permitir. Embora bem recebido, seus ensinamentos cristãos ainda entram em choque com os costumes folclóricos locais.",
-    "tokenImage": "/assets/vigilia/token-cavan.png",
+    "tokenImage": "/assets/vigilia/token-cavan-portrait.png",
     "backgroundImage": "",
     "backgroundBlur": 0,
     "backgroundZoom": 100,
@@ -1255,7 +1257,7 @@
     "maxPd": 19,
     "pdTemp": 0,
     "history": "Malik ibn Qamar (Ma-LÍK Í-bi-n Ka-MAR) é um poeta e geógrafo fascinado por explorar os limites do mundo conhecido. Nascido no Emirado de Al-Andalus e inspirado pela poesia árabe, decidiu deixar para trás sua terra e tornar-se um andarilho. Assim, viajou através da Península Ibérica, cruzou o Canal da Mancha e alcançou os confins da Irlanda, experimentando as maravilhas e horrores que o trajeto poderia oferecer.\n\nNa pequena vila de Ballynyr, encontrou tudo o que mais procurava: mistérios. Seja se surpreendendo pela eficácia das ervas medicinais de Muirenn da Lua Pálida ou apreciando a caligrafia impecável de Irmão Cavan, Malik faz novas descobertas a cada dia.\n\nRecentemente, a chegada da náufraga Sira Cissé despertou seu interesse. Ela se recusa a falar abertamente de onde veio ou como chegou aqui, mas Malik não desistiu de descobrir. Ele anota tudo o que descobre em seu diário de viagem e espera um dia retornar à sua pátria levando novos conhecimentos do mundo além-mar. Contudo, recentemente a vila se tornou ainda mais isolada e obscura, e ele não sabe se esse retorno será possível.",
-    "tokenImage": "/assets/vigilia/token-malik.png",
+    "tokenImage": "/assets/vigilia/token-malik-portrait.png",
     "backgroundImage": "",
     "backgroundBlur": 0,
     "backgroundZoom": 100,
@@ -14206,7 +14208,7 @@
     "diceColor": "",
     "hasIntro": true,
     "introTitle": "",
-    "introText": "O avanço da tecnologia e a obsessão com melhorias cibernéticas dentro da Realidade podem levar aos resultados mais bizarros. O ciborgue se originou de um cientista seduzido pelo poder da tecnologia que se tornou tão obstinado com a sua efici��ncia que amputou seus próprios membros e os substituiu por mecanismos ativados através de Energia paranormal.\n\nA dor causada pelo processo agressivo eventualmente distorceu seu ser em uma criatura descontrolada, com seu corpo formado de um grande aglomerado de partes mecânicas e orgânicas asquerosas.\n\nO ciborgue é uma criatura brutal, mas suas mutações robóticas parecem causar transformações espontâneas. Isso faz com que a criatura mude seu comportamento a qualquer momento, assim como a forma de atacar suas vítimas. Essa é uma criatura extremamente perigosa e não deve ser enfrentada sem preparo ou estudo do corpo que originou sua manifestação. A Energia fluindo por seu corpo torna o contato físico extremamente perigoso, com a criatura sendo capaz de liberar pulsos elétricos fortes o suficiente para desacordar uma pessoa adulta.",
+    "introText": "O avanço da tecnologia e a obsessão com melhorias cibernéticas dentro da Realidade podem levar aos resultados mais bizarros. O ciborgue se originou de um cientista seduzido pelo poder da tecnologia que se tornou tão obstinado com a sua eficiência que amputou seus próprios membros e os substituiu por mecanismos ativados através de Energia paranormal.\n\nA dor causada pelo processo agressivo eventualmente distorceu seu ser em uma criatura descontrolada, com seu corpo formado de um grande aglomerado de partes mecânicas e orgânicas asquerosas.\n\nO ciborgue é uma criatura brutal, mas suas mutações robóticas parecem causar transformações espontâneas. Isso faz com que a criatura mude seu comportamento a qualquer momento, assim como a forma de atacar suas vítimas. Essa é uma criatura extremamente perigosa e não deve ser enfrentada sem preparo ou estudo do corpo que originou sua manifestação. A Energia fluindo por seu corpo torna o contato físico extremamente perigoso, com a criatura sendo capaz de liberar pulsos elétricos fortes o suficiente para desacordar uma pessoa adulta.",
     "introImage": "",
     "introSide": "left",
     "condicoesAtivas": [],
@@ -24274,5 +24276,180 @@
     "textColor": "",
     "bannerColor": "",
     "contrast": "auto"
+  },
+  {
+    "name": "AMEAÇA 98",
+    "systemMode": "threat",
+    "folderId": "folder-threats",
+    "favorite": false,
+    "fonte": "homebrew",
+    "categoria": "paranormal",
+    "subtitulo": "SANGUE",
+    "vd": 60,
+    "elementos": [
+      "sangue"
+    ],
+    "elementoDestaque": "sangue",
+    "tipo": "Criatura",
+    "tamanho": "Médio",
+    "sigiloId": "",
+    "presenca": {
+      "ativa": true,
+      "dt": 17,
+      "dano": "3d6",
+      "tipoDano": "mental",
+      "imuneNex": 35,
+      "texto": ""
+    },
+    "sentidos": {
+      "percepcao": {
+        "dados": 2,
+        "bonus": 5,
+        "manual": false
+      },
+      "iniciativa": {
+        "dados": 1,
+        "bonus": 5,
+        "manual": false
+      },
+      "extra": "Percepção às cegas"
+    },
+    "defesa": 17,
+    "salvaguardas": {
+      "fortitude": {
+        "dados": 4,
+        "bonus": 5,
+        "manual": false
+      },
+      "reflexos": {
+        "dados": 1,
+        "bonus": 5,
+        "manual": false
+      },
+      "vontade": {
+        "dados": 2,
+        "bonus": 0,
+        "manual": false
+      }
+    },
+    "pv": 98,
+    "pvMax": 98,
+    "pvTemp": 0,
+    "machucadoOverride": null,
+    "imunidades": [
+      "Condições de Hemorragia"
+    ],
+    "resistencias": [
+      {
+        "tipo": "Balístico",
+        "valor": 15
+      },
+      {
+        "tipo": "Impacto",
+        "valor": 15
+      },
+      {
+        "tipo": "Perfuração",
+        "valor": 15
+      }
+    ],
+    "vulnerabilidades": [
+      "Corte"
+    ],
+    "atributos": {
+      "agi": 1,
+      "for": 4,
+      "int": 1,
+      "pre": 2,
+      "vig": 4
+    },
+    "deslocamento": {
+      "tipo": "",
+      "metros": 12,
+      "extras": []
+    },
+    "pericias": [],
+    "secoes": [],
+    "acoes": [
+      {
+        "id": "act-wizard-1",
+        "tipoAcao": "padrao",
+        "nome": "Agredir",
+        "gatilho": "",
+        "custo": "",
+        "coluna": "direita",
+        "usos": null,
+        "ataques": [
+          {
+            "id": "atk-wizard-1",
+            "nome": "Golpe Esmagador",
+            "alcance": "corpo",
+            "multiplicador": 1,
+            "teste": {
+              "dados": 4,
+              "bonus": 5
+            },
+            "dano": "5d6+3",
+            "tipoDano": "Impacto",
+            "critico": "20/x2"
+          }
+        ],
+        "texto": "",
+        "ativaQuando": null,
+        "fase": null
+      },
+      {
+        "id": "act-wizard-elemental",
+        "tipoAcao": "reacao",
+        "nome": "Frenesi Sangrento",
+        "gatilho": "Quando machucada",
+        "custo": "",
+        "coluna": "direita",
+        "usos": null,
+        "ataques": [],
+        "texto": "Quando fica machucada, a criatura entra em frenesi incontrolável: recebe +5 em testes de ataque e pode realizar um ataque corpo a corpo adicional por rodada como ação livre.",
+        "ativaQuando": "machucado",
+        "fase": null
+      }
+    ],
+    "viewMode": "cinematic",
+    "tokenImage": "",
+    "backgroundImage": "",
+    "backgroundBlur": 0,
+    "backgroundZoom": 100,
+    "cinematicTokenX": 50,
+    "cinematicTokenY": 52,
+    "cinematicTokenScale": 100,
+    "cinematicOutlineSide": "left",
+    "cinematicOutlineIntensity": 0.5,
+    "cinematicOutlineWidth": 1.8,
+    "cinematicOutlineFade": 1.5,
+    "themeColor": "",
+    "diceColor": "",
+    "hasIntro": false,
+    "introTitle": "",
+    "introText": "",
+    "introImage": "",
+    "introSide": "left",
+    "condicoesAtivas": [],
+    "notasMestre": "",
+    "tipografia": {
+      "escala": 100,
+      "alto_contraste": false
+    },
+    "maxPv": 120,
+    "isCustom": true,
+    "id": "threat-mvyhrq71-4pdz",
+    "createdAt": 1793577559645,
+    "updatedAt": 1793577559645,
+    "sigilImage": "",
+    "textColor": "",
+    "bannerColor": "",
+    "contrast": "auto",
+    "balanco": {
+      "vd": 60,
+      "preset": "equilibrada",
+      "slider": 0
+    }
   }
 ]

@@ -4073,7 +4073,6 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 }
 
 /* Slots de Ímpeto e Análise no Banner */
-.impeto-slots-row,
 .analise-slots-row {
   position: relative;
   z-index: 2;
@@ -4082,7 +4081,6 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   align-items: center;
 }
 
-.impeto-slot-pip,
 .analise-slot-pip {
   width: 15px;
   height: 12px;
@@ -4095,17 +4093,53 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   transition: all 0.12s;
 }
 
-.impeto-slot-pip:hover,
 .analise-slot-pip:hover {
   border-color: #ffffff;
   transform: skewX(-14deg) scale(1.15);
 }
 
-.impeto-slot-pip.filled,
 .analise-slot-pip.filled {
   background: #ffffff !important;
   border-color: #ffffff !important;
   box-shadow: 0 0 7px rgba(255, 255, 255, 0.9);
+}
+
+/* Barra de Ímpeto Oficial (Executor) — Cartucho contínuo com 5 compartimentos contíguos */
+.impeto-track-bar {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  background: #101512;
+  border: 1.5px solid #48524d;
+  border-radius: 4px;
+  padding: 2px 3px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.85);
+  height: 18px;
+  margin-left: 4px;
+}
+
+.impeto-segment {
+  width: 20px;
+  height: 12px;
+  background: #1c2420;
+  border: 1px solid #2b3630;
+  border-radius: 2px;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.14s ease;
+}
+
+.impeto-segment:hover {
+  border-color: #a8b3ac;
+  background: #28342e;
+}
+
+.impeto-segment.filled {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.95);
 }
 
 .btn-vigilia-prontidao {
@@ -4157,13 +4191,21 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   border-color: #6ee7b7;
 }
 
-/* Coluna 3: Retrato */
+/* Coluna de Habilidades e Perícias sempre na frente do retrato */
+.vigilia-col-powers,
+.vigilia-col-skills {
+  position: relative;
+  z-index: 5;
+}
+
+/* Coluna 3: Retrato (alinhado à direita para preencher a coluna sem sobrepor texto) */
 .vigilia-col-right {
   position: relative;
   display: flex;
   justify-content: flex-end;
   align-items: stretch;
   overflow: visible;
+  z-index: 1;
 }
 
 .vigilia-portrait-container {
@@ -4176,7 +4218,7 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   align-items: flex-start;
   justify-content: flex-end;
   pointer-events: none;
-  z-index: 2;
+  z-index: 1;
 }
 
 .vigilia-character-portrait {
@@ -4403,6 +4445,671 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   background: #254a39;
   border-color: #34d399;
   color: #ffffff;
+}
+
+.btn-invoke-relation.invoked {
+  background: #121c17;
+  border-color: #2b3d33;
+  color: #7d9487;
+  opacity: 0.85;
+}
+
+.btn-invoke-relation.invoked:hover {
+  border-color: #4a6656;
+  color: #d1fae5;
+}
+
+.btn-reset-relations {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #10241b;
+  border: 1px solid #2f473b;
+  color: #a7f3d0;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  transition: all 0.15s;
+  z-index: 3;
+}
+
+.btn-reset-relations:hover {
+  background: #1a382b;
+  border-color: #34d399;
+  color: #ffffff;
+}
+
+/* ─── Transições de Ficha em A Vigília ───────────────────────────────────── */
+.vigilia-content-viewport {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  max-width: 1624px;
+  margin: 0 auto;
+  aspect-ratio: 1624 / 1211;
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+
+.vigilia-content-viewport.glitch-enter {
+  animation: glitch-shake 380ms cubic-bezier(.22, .68, 0, 1.2) both;
+}
+
+.vigilia-content-viewport.cinematic-ghost-exit {
+  position: absolute;
+  inset: 0;
+  pointer-events: none !important;
+  z-index: 10;
+  animation: ghost-fade-out 220ms ease-out forwards, glitch-shake 380ms cubic-bezier(.22, .68, 0, 1.2) both;
+}
+
+/* ─── Dock Flutuante Discreto de A Vigília (Fixo no canto da tela, fora da folha) ── */
+.vigilia-floating-dock {
+  position: fixed;
+  bottom: 18px;
+  right: 24px;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(8, 16, 12, 0.9);
+  border: 1px solid #2d4538;
+  border-radius: 24px;
+  padding: 5px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(10px);
+}
+
+.vigilia-floating-dock .dock-pill-btn {
+  background: transparent;
+  border: 1px solid #2e4437;
+  color: #9eb5a8;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.vigilia-floating-dock .dock-pill-btn:hover {
+  background: #172a20;
+  border-color: #527965;
+  color: #ffffff;
+}
+
+.vigilia-floating-dock .dock-pavor-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #25123a;
+  border: 1px solid #7c3aed;
+  border-radius: 14px;
+  padding: 2px 8px;
+  animation: pulse-pavor 2s infinite ease-in-out;
+}
+
+.vigilia-floating-dock .pavor-dock-die {
+  color: #e9d5ff;
+  font-family: 'Cinzel', serif;
+  font-weight: 800;
+  font-size: 11px;
+}
+
+.vigilia-floating-dock .dock-btn-pavor {
+  background: #3b0764;
+  border: 1px solid #6b21a8;
+  color: #f3e8ff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.vigilia-floating-dock .dock-btn-pavor:hover {
+  background: #581c87;
+  border-color: #c084fc;
+  color: #ffffff;
+}
+
+.vigilia-floating-dock .dock-btn-close {
+  background: transparent;
+  border: 0;
+  color: #f87171;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 3px;
+}
+
+/* Badge de Armadura no Equipamento */
+.equip-armor-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  position: relative;
+  z-index: 2;
+}
+
+.btn-armor-spend {
+  background: #0f1c16;
+  border: 1px solid #2d4538;
+  color: #cbd5e1;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s;
+}
+
+.btn-armor-spend:hover {
+  background: #182e23;
+  border-color: #527965;
+  color: #ffffff;
+}
+
+.btn-armor-spend b {
+  color: #6ee7b7;
+}
+
+.armor-stepper-inline {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.armor-stepper-inline button {
+  background: #14241c;
+  border: 1px solid #2d4538;
+  color: #cbd5e1;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.armor-stepper-inline button:hover {
+  background: #243c2f;
+  color: #ffffff;
+}
+
+/* ─── Barra de Mecânicas de A Vigília (Armadura, Pavor, Lesões) ────────── */
+.vigilia-mechanics-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vigilia-toolbar-btn {
+  background: #0f1c16;
+  border: 1px solid #2d4538;
+  color: #cbd5e1;
+  font-family: 'Cinzel', serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 5px 11px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.vigilia-toolbar-btn:hover {
+  background: #1a3025;
+  border-color: #527965;
+  color: #ffffff;
+}
+
+.vigilia-toolbar-btn.btn-armor.active {
+  background: #142e22;
+  border-color: #38a169;
+  color: #68d391;
+}
+
+.vigilia-armor-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.armor-stepper {
+  display: inline-flex;
+  gap: 1px;
+}
+
+.armor-stepper button {
+  width: 20px;
+  height: 24px;
+  background: #142019;
+  border: 1px solid #2d4538;
+  color: #a7f3d0;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 3px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.armor-stepper button:hover {
+  background: #253b2f;
+  color: #fff;
+}
+
+/* Dado de Pavor */
+.vigilia-pavor-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #1c112b;
+  border: 1.5px solid #7c3aed;
+  border-radius: 20px;
+  padding: 3px 10px;
+  box-shadow: 0 0 10px rgba(124, 58, 237, 0.4);
+  animation: pulse-pavor 2s infinite ease-in-out;
+}
+
+@keyframes pulse-pavor {
+  0%, 100% { box-shadow: 0 0 8px rgba(124, 58, 237, 0.4); }
+  50% { box-shadow: 0 0 16px rgba(147, 51, 234, 0.7); }
+}
+
+.pavor-label {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #d8b4fe;
+}
+
+.pavor-die-badge {
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 12px;
+  font-weight: 900;
+  color: #ffffff;
+  background: #4c1d95;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.pavor-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.12s;
+  border: 1px solid transparent;
+}
+
+.pavor-btn.btn-ctrl {
+  background: #2e1065;
+  color: #c4b5fd;
+  border-color: #6d28d9;
+}
+
+.pavor-btn.btn-ctrl:hover {
+  background: #4338ca;
+  color: #ffffff;
+}
+
+.pavor-btn.btn-abrace {
+  background: #4c0519;
+  color: #f43f5e;
+  border-color: #9f1239;
+}
+
+.pavor-btn.btn-abrace:hover {
+  background: #881337;
+  color: #ffffff;
+}
+
+.pavor-btn.btn-clear {
+  background: transparent;
+  color: #9ca3af;
+  padding: 0 4px;
+}
+
+.pavor-btn.btn-clear:hover {
+  color: #ffffff;
+}
+
+/* ─── Modais de Mecânicas de A Vigília ───────────────────────────────────── */
+.vigilia-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(4, 10, 8, 0.85);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.vigilia-modal-box {
+  background: #0b1713;
+  border: 1.5px solid #4a6657;
+  border-radius: 8px;
+  width: min(820px, 96vw);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.95), 0 0 20px rgba(74, 102, 87, 0.25);
+  overflow: hidden;
+  color: #e2e8e5;
+}
+
+.vigilia-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #0e1e19;
+  border-bottom: 1.5px solid #334d40;
+}
+
+.vigilia-modal-title {
+  margin: 0;
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #ffffff;
+  text-shadow: 0 2px 4px #000;
+}
+
+.vigilia-modal-close {
+  background: transparent;
+  border: 0;
+  color: #94a3b8;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.vigilia-modal-close:hover {
+  color: #ffffff;
+  background: #1f352b;
+}
+
+.vigilia-modal-body {
+  padding: 18px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.vigilia-modal-intro {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #cbd5e1;
+  margin: 0;
+}
+
+.vigilia-roll-trigger-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #13241e;
+  border: 1px solid #3d594b;
+  border-radius: 6px;
+  padding: 12px 16px;
+  gap: 12px;
+}
+
+.vigilia-roll-trigger-card .trigger-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vigilia-roll-trigger-card .trigger-info strong {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+}
+
+.vigilia-roll-trigger-card .trigger-info small {
+  color: #94a3b8;
+  font-size: 11.5px;
+}
+
+.btn-vigilia-modal-roll {
+  background: #1c3d2e;
+  border: 1px solid #4ade80;
+  color: #ffffff;
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 9px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px rgba(74, 222, 128, 0.2);
+}
+
+.btn-vigilia-modal-roll:hover {
+  background: #23523d;
+  box-shadow: 0 4px 14px rgba(74, 222, 128, 0.4);
+  transform: translateY(-1px);
+}
+
+.vigilia-modal-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #2d4538;
+  padding-bottom: 6px;
+  margin-top: 6px;
+}
+
+.vigilia-modal-section-title span {
+  font-family: 'Cinzel', serif;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+}
+
+.btn-vigilia-table-roll {
+  background: #152620;
+  border: 1px solid #3b5c4b;
+  color: #a7f3d0;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.btn-vigilia-table-roll:hover {
+  background: #1e362d;
+  color: #ffffff;
+  border-color: #6ee7b7;
+}
+
+.vigilia-table-scroll {
+  overflow-x: auto;
+  border: 1px solid #23382e;
+  border-radius: 4px;
+}
+
+.vigilia-mechanics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.vigilia-mechanics-table th {
+  background: #10211a;
+  border-bottom: 1.5px solid #334d40;
+  color: #cbd5e1;
+  font-family: 'Cinzel', serif;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.vigilia-mechanics-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #1a2b23;
+  color: #d1d5db;
+  line-height: 1.45;
+}
+
+.vigilia-mechanics-table tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.vigilia-mechanics-table .col-roll {
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-weight: 900;
+  color: #a7f3d0;
+}
+
+.vigilia-mechanics-table .col-name {
+  color: #ffffff;
+  font-family: 'Cinzel', serif;
+}
+
+/* Modal de Invocação de Relação */
+.relation-modal-detail-card {
+  background: #0d1a15;
+  border: 1px solid #2f4539;
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+
+.relation-modal-detail-card h3 {
+  margin: 0 0 6px;
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  color: #ffffff;
+}
+
+.relation-modal-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.relation-option-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  background: #142820;
+  border: 1.5px solid #3b5747;
+  border-radius: 6px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: #e2e8e5;
+}
+
+.relation-option-btn strong {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  color: #a7f3d0;
+  letter-spacing: 0.04em;
+}
+
+.relation-option-btn small {
+  font-size: 11.5px;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.relation-option-btn:hover {
+  background: #1c382c;
+  border-color: #34d399;
+  transform: translateY(-1px);
+}
+
+/* Metadados de Vigília no Banner do Resultado 3D (RA, RB, Crítico, Falha) */
+.vigilia-roll-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 5px;
+}
+
+.ra-badge, .rb-badge {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #16241e;
+  border: 1px solid #344c3e;
+  color: #e2e8e5;
+}
+
+.ra-badge b {
+  color: #34d399;
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.rb-badge b {
+  color: #94a3b8;
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 14px;
+}
+
+.roll-crit-badge {
+  display: block;
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #fef08a;
+  text-shadow: 0 0 10px rgba(250, 204, 21, 0.7);
+  margin-top: 4px;
+}
+
+.roll-fumble-badge {
+  display: block;
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #f87171;
+  text-shadow: 0 0 10px rgba(248, 113, 113, 0.7);
+  margin-top: 4px;
 }
 
 @media (max-width: 1200px) {

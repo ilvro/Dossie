@@ -1,0 +1,292 @@
+{
+  "name": "Malik ibn Qamar",
+  "occupation": "Explorador",
+  "profile": "Executor",
+  "level": 3,
+  "pv": 15,
+  "maxPv": 15,
+  "pvTemp": 0,
+  "pd": 19,
+  "maxPd": 19,
+  "pdTemp": 0,
+  "history": "Malik ibn Qamar (Ma-LÍK Í-bi-n Ka-MAR) é um poeta e geógrafo fascinado por explorar os limites do mundo conhecido. Nascido no Emirado de Al-Andalus e inspirado pela poesia árabe, decidiu deixar para trás sua terra e tornar-se um andarilho. Assim, viajou através da Península Ibérica, cruzou o Canal da Mancha e alcançou os confins da Irlanda, experimentando as maravilhas e horrores que o trajeto poderia oferecer.\n\nNa pequena vila de Ballynyr, encontrou tudo o que mais procurava: mistérios. Seja se surpreendendo pela eficácia das ervas medicinais de Muirenn da Lua Pálida ou apreciando a caligrafia impecável de Irmão Cavan, Malik faz novas descobertas a cada dia.\n\nRecentemente, a chegada da náufraga Sira Cissé despertou seu interesse. Ela se recusa a falar abertamente de onde veio ou como chegou aqui, mas Malik não desistiu de descobrir. Ele anota tudo o que descobre em seu diário de viagem e espera um dia retornar à sua pátria levando novos conhecimentos do mundo além-mar. Contudo, recentemente a vila se tornou ainda mais isolada e obscura, e ele não sabe se esse retorno será possível.",
+  "tokenImage": "/assets/vigilia/token-malik-portrait.png",
+  "backgroundImage": "",
+  "backgroundBlur": 0,
+  "backgroundZoom": 100,
+  "diceColor": "",
+  "themeColor": "",
+  "viewMode": "vigilia",
+  "cinematicTokenX": 50,
+  "cinematicTokenY": 52,
+  "cinematicTokenScale": 100,
+  "cinematicOutlineSide": "right",
+  "cinematicOutlineIntensity": 0.5,
+  "cinematicOutlineWidth": 1.8,
+  "cinematicOutlineFade": 1.5,
+  "cinematicCollapsed": {
+    "abilities": false,
+    "items": true,
+    "history": true
+  },
+  "attributes": {
+    "Físico": 6,
+    "Mente": 6,
+    "Emoção": 10
+  },
+  "skills": [
+    {
+      "name": "ACROBACIA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "ANIMAIS",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "APTIDÃO (ERUDIÇÃO)",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "ATLETISMO",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "CRIME",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "DISCIPLINA",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "ENGANAÇÃO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "FURTIVIDADE",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "INSPECIONAR",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "INTIMIDAR",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "INTUIÇÃO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "LUTA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "MEDICINA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "OCULTISMO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "OFÍCIO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "PERCEPÇÃO",
+      "skillDie": 10,
+      "training": "MESTRE",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "PERSUASÃO",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "PONTARIA",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "SOBREVIVÊNCIA",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "VIGOR",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    }
+  ],
+  "cards": [
+    {
+      "id": "impeto",
+      "profileAbility": "Executor",
+      "themeLinked": true,
+      "schema": "abilities",
+      "title": "ÍMPETO",
+      "type": "Habilidade de Perfil",
+      "content": "Você possui uma **barra de ímpeto, com cinco espaços**. Sempre que **faz um teste e falha**, você preenche um espaço na barra de ímpeto. Como uma ação livre, você pode gastar espaços da barra de ímpeto para receber benefícios:\n• **1 espaço.** Você recebe **+d4** em um teste.\n• **3 espaços.** Você **aumenta um atributo em um passo** até o fim da cena.\n• **3 espaços.** Em cenas de conflito, você faz uma **ação extra**.\n\nNo fim da cena, sua barra de ímpeto esvazia.",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "markers": [
+        {
+          "id": "impeto-m",
+          "type": "pips",
+          "displayStyle": "rectangles",
+          "label": "Barra de Ímpeto",
+          "current": 0,
+          "maxFormula": "5"
+        }
+      ],
+      "actions": []
+    },
+    {
+      "id": "impeto-fervilhante",
+      "schema": "abilities",
+      "title": "ÍMPETO FERVILHANTE",
+      "type": "Habilidade",
+      "content": "No início de cada cena, você preenche um espaço de sua barra de ímpeto.",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "markers": [],
+      "actions": [],
+      "themeLinked": true
+    },
+    {
+      "id": "equip-malik",
+      "schema": "items",
+      "title": "EQUIPAMENTO",
+      "type": "Equipamento",
+      "content": "**Arco composto de Al-Andalus** (arma à distância, dano RA+1), diário de viagem.",
+      "accent": "#9aa49e",
+      "icon": "◆",
+      "markers": [],
+      "actions": [
+        {
+          "id": "ataque-arco-andalus",
+          "name": "Disparo de Arco (Pontaria d8+Físico d6)",
+          "expression": "1d8 + 1d6"
+        },
+        {
+          "id": "dano-arco-andalus",
+          "name": "Dano Arco Al-Andalus (RA+1)",
+          "expression": "RA + 1"
+        }
+      ],
+      "themeLinked": true
+    }
+  ],
+  "id": "sheet-vigilia-malik",
+  "folderId": "folder-vigilia",
+  "firstName": "MALIK",
+  "lastName": "IBN QAMAR",
+  "age": 24,
+  "shortBio": "Andarilho árabe em busca das maravilhas e horrores nas fronteiras do mundo conhecido. Idade 24.",
+  "armorPoints": 0,
+  "maxArmorPoints": 0,
+  "systemMode": "ordem2",
+  "relations": [
+    {
+      "target": "RHIONA",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Gosta de tê-la como ouvinte de suas histórias."
+    },
+    {
+      "target": "ROWAN",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Interessado em seu lobo e as superstições que o cercam."
+    },
+    {
+      "target": "MUIRENN",
+      "degree": 1,
+      "feeling": "ADMIRAÇÃO",
+      "note": "Fascinado por seu conhecimento ancestral exótico."
+    },
+    {
+      "target": "CAVAN",
+      "degree": 1,
+      "feeling": "ADMIRAÇÃO",
+      "note": "Fascinado por sua caligrafia e didática."
+    },
+    {
+      "target": "SIRA",
+      "degree": 1,
+      "feeling": "CURIOSIDADE",
+      "note": "Enche-a de perguntas pessoais em toda oportunidade."
+    },
+    {
+      "target": "SORCHA",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Sente-se oprimido pelo olhar desconfiado dela."
+    },
+    {
+      "target": "CORMAC",
+      "degree": 1,
+      "feeling": "CURIOSIDADE",
+      "note": "Admira seu vocabulário."
+    }
+  ],
+  "favorite": false
+}

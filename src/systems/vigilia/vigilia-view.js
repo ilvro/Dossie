@@ -5,6 +5,15 @@
 
 import { icon } from '../../icons.js';
 import { die } from '../../dice-icon.js';
+import {
+  LESOES_TABLE,
+  TRAUMAS_TABLE,
+  FALHAS_CRITICAS_TABLE,
+  getRelationBenefits,
+  getLesaoResult,
+  getTraumaResult,
+  getFalhaCriticaResult
+} from './vigilia-mechanics.js';
 
 let currentVigiliaSide = 'front'; // 'front' | 'back'
 
@@ -111,6 +120,7 @@ function renderRelationPips(degree = 0, targetName = '') {
  */
 function renderVigiliaFront(sheet, editMode, options) {
   const { safeUrl } = options;
+  const armorPoints = sheet.armorPoints ?? (sheet.pontosArmadura ?? 0);
 
   // Nome dividido (Primeiro nome grande, Sobrenome/Título menor)
   let firstName = sheet.firstName || '';
@@ -311,12 +321,12 @@ function renderVigiliaFront(sheet, editMode, options) {
 
               let extraBannerControl = '';
               if (isImpeto && impetoCard) {
-                // 5 paralelogramos de ímpeto exibidos ao lado do título
+                // Barra de Ímpeto oficial: cartucho contínuo com 5 compartimentos contíguos
                 extraBannerControl = `
-                  <div class="impeto-slots-row" role="group" aria-label="Espaços de Ímpeto">
+                  <div class="impeto-track-bar" role="group" aria-label="Barra de Ímpeto">
                     ${[1, 2, 3, 4, 5].map(i => `
                       <button type="button" 
-                        class="impeto-slot-pip ${i <= impetoCurrent ? 'filled' : ''}" 
+                        class="impeto-segment ${i <= impetoCurrent ? 'filled' : ''}" 
                         data-vigilia-slot="impeto:${i}" 
                         title="Espaço de Ímpeto ${i} (${i <= impetoCurrent ? 'Preenchido - clique para desmarcar' : 'Vazio - clique para marcar'})">
                       </button>
@@ -376,6 +386,20 @@ function renderVigiliaFront(sheet, editMode, options) {
               <div class="power-banner-wrap">
                 <img src="./assets/vigilia/banner-power.png" alt="" class="power-banner-img" draggable="false">
                 <span class="power-title">EQUIPAMENTO</span>
+                ${(armorPoints > 0 || editMode) ? `
+                  <div class="equip-armor-pill ${armorPoints > 0 ? 'active' : ''}">
+                    <button type="button" class="btn-armor-spend" data-spend-armor title="Gastar 1 Ponto de Armadura (Ação Livre: reduz dano em 10)">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                      <b>${armorPoints}</b> PA
+                    </button>
+                    ${editMode ? `
+                      <span class="armor-stepper-inline">
+                        <button type="button" data-armor-step="-1">−</button>
+                        <button type="button" data-armor-step="1">+</button>
+                      </span>
+                    ` : ''}
+                  </div>
+                ` : ''}
               </div>
               <div class="equipment-content">
                 ${items.map(it => `
@@ -474,13 +498,17 @@ function renderVigiliaBack(sheet, editMode, options) {
         <div class="banner-relacoes-wrap">
           <img src="./assets/vigilia/banner-relacoes.png" alt="RELAÇÕES" class="banner-relacoes-img" draggable="false">
           <span class="banner-relacoes-title">RELAÇÕES</span>
+          <button type="button" class="btn-reset-relations" data-reset-relations title="Reiniciar invocações para uma nova missão">
+            NOVA MISSÃO (RESET)
+          </button>
         </div>
 
         <div class="vigilia-relations-list">
           ${relations.map(rel => {
             const degree = Number(rel.degree) || 0;
+            const isInvoked = !!rel.invoked;
             return `
-              <div class="vigilia-relation-row" data-target="${safe(rel.target)}">
+              <div class="vigilia-relation-row ${isInvoked ? 'is-invoked' : ''}" data-target="${safe(rel.target)}">
                 <span class="relation-target-name">${safe(rel.target)}</span>
                 ${renderRelationPips(degree, rel.target)}
                 <div class="relation-desc-block">
@@ -488,10 +516,10 @@ function renderVigiliaBack(sheet, editMode, options) {
                   <span class="relation-note">${safe(rel.note)}</span>
                 </div>
                 ${degree > 0 ? `
-                  <button type="button" class="btn-invoke-relation" 
+                  <button type="button" class="btn-invoke-relation ${isInvoked ? 'invoked' : ''}" 
                     data-invoke-relation="${safe(rel.target)}:${degree}" 
-                    title="Invocar Relação na Missão (Grau ${degree})">
-                    INVOCAR (+1d${degree === 1 ? 6 : degree === 2 ? 8 : 12})
+                    title="${isInvoked ? 'Relação já invocada nesta missão (Clique para reabrir)' : `Invocar Relação na Missão (Grau ${degree})`}">
+                    ${isInvoked ? '✓ INVOCADA' : `INVOCAR (+1d${degree === 1 ? 6 : degree === 2 ? 8 : 12})`}
                   </button>
                 ` : ''}
               </div>
@@ -504,20 +532,204 @@ function renderVigiliaBack(sheet, editMode, options) {
 }
 
 /**
+ * Renderiza os Modais de Regras Oficiais de A Vigília
+ */
+function renderVigiliaModals(sheet) {
+  const attrs = sheet.attributes || { Físico: 6, Mente: 6, Emoção: 6 };
+  const skills = Array.isArray(sheet.skills) ? sheet.skills : [];
+  const vigorSkill = skills.find(s => s.name.toUpperCase() === 'VIGOR')?.skillDie || 4;
+  const disciplinaSkill = skills.find(s => s.name.toUpperCase() === 'DISCIPLINA')?.skillDie || 4;
+
+  const lesaoDT = 7 + 3 * (sheet.lesoesCountScene || 0);
+  const traumaDT = 7 + 3 * (sheet.traumasCountScene || 0);
+
+  return `
+    <!-- MODAL DE INVOCAR RELAÇÃO -->
+    <div class="vigilia-modal-backdrop" id="vigilia-relation-modal" style="display: none;">
+      <div class="vigilia-modal-box">
+        <header class="vigilia-modal-head">
+          <h2 class="vigilia-modal-title">INVOCAR RELAÇÃO</h2>
+          <button type="button" class="vigilia-modal-close" data-close-vigilia-modal>✕</button>
+        </header>
+        <div class="vigilia-modal-body" id="vigilia-relation-modal-content">
+          <!-- Preenchido dinamicamente via JS ao clicar em INVOCAR -->
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE TESTE DE LESÃO (0 PV) -->
+    <div class="vigilia-modal-backdrop" id="vigilia-lesao-modal" style="display: none;">
+      <div class="vigilia-modal-box">
+        <header class="vigilia-modal-head">
+          <h2 class="vigilia-modal-title">FERIMENTOS & TESTE DE LESÃO (0 PV)</h2>
+          <button type="button" class="vigilia-modal-close" data-close-vigilia-modal>✕</button>
+        </header>
+        <div class="vigilia-modal-body">
+          <p class="vigilia-modal-intro">
+            Sempre que for reduzido a 0 PV (ou perder PV já estando com 0), você deve realizar um <strong>Teste de Lesão</strong> (Físico + Vigor contra DT 7, +3 por teste já realizado na cena).
+          </p>
+          <div class="vigilia-roll-trigger-card">
+            <div class="trigger-info">
+              <strong>DT ATUAL: ${lesaoDT}</strong>
+              <small>Físico (d${attrs.Físico || 6}) + Vigor (d${vigorSkill})</small>
+            </div>
+            <button type="button" class="btn-vigilia-modal-roll" 
+              data-roll-lesao-check="${attrs.Físico || 6},${vigorSkill}|${lesaoDT}">
+              ROLAR TESTE DE LESÃO (DT ${lesaoDT})
+            </button>
+          </div>
+
+          <div class="vigilia-modal-section-title">
+            <span>OU ROLE DIRETO NA TABELA DE LESÕES (1d20)</span>
+            <button type="button" class="btn-vigilia-table-roll" data-roll-table="lesao">
+              ROLAR 1d20
+            </button>
+          </div>
+
+          <div class="vigilia-table-scroll">
+            <table class="vigilia-mechanics-table">
+              <thead>
+                <tr>
+                  <th style="width: 55px;">1d20</th>
+                  <th style="width: 160px;">Lesão</th>
+                  <th>Efeito & Sequela</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${LESOES_TABLE.map(row => `
+                  <tr>
+                    <td class="col-roll"><b>${row.min}${row.max !== row.min ? `–${row.max}` : ''}</b></td>
+                    <td class="col-name"><strong>${row.name}</strong></td>
+                    <td class="col-desc">${row.desc}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE TESTE DE TRAUMA (0 PD) -->
+    <div class="vigilia-modal-backdrop" id="vigilia-trauma-modal" style="display: none;">
+      <div class="vigilia-modal-box">
+        <header class="vigilia-modal-head">
+          <h2 class="vigilia-modal-title">HORROR & TESTE DE TRAUMA (0 PD)</h2>
+          <button type="button" class="vigilia-modal-close" data-close-vigilia-modal>✕</button>
+        </header>
+        <div class="vigilia-modal-body">
+          <p class="vigilia-modal-intro">
+            Sempre que for reduzido a 0 PD (ou perder PD já estando com 0), você deve realizar um <strong>Teste de Trauma</strong> (Emoção + Disciplina contra DT 7, +3 por teste já realizado na cena).
+          </p>
+          <div class="vigilia-roll-trigger-card">
+            <div class="trigger-info">
+              <strong>DT ATUAL: ${traumaDT}</strong>
+              <small>Emoção (d${attrs.Emoção || 6}) + Disciplina (d${disciplinaSkill})</small>
+            </div>
+            <button type="button" class="btn-vigilia-modal-roll" 
+              data-roll-trauma-check="${attrs.Emoção || 6},${disciplinaSkill}|${traumaDT}">
+              ROLAR TESTE DE TRAUMA (DT ${traumaDT})
+            </button>
+          </div>
+
+          <div class="vigilia-modal-section-title">
+            <span>OU ROLE DIRETO NA TABELA DE TRAUMAS (1d20)</span>
+            <button type="button" class="btn-vigilia-table-roll" data-roll-table="trauma">
+              ROLAR 1d20
+            </button>
+          </div>
+
+          <div class="vigilia-table-scroll">
+            <table class="vigilia-mechanics-table">
+              <thead>
+                <tr>
+                  <th style="width: 55px;">1d20</th>
+                  <th style="width: 160px;">Trauma</th>
+                  <th>Efeito & Sequela</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${TRAUMAS_TABLE.map(row => `
+                  <tr>
+                    <td class="col-roll"><b>${row.min}${row.max !== row.min ? `–${row.max}` : ''}</b></td>
+                    <td class="col-name"><strong>${row.name}</strong></td>
+                    <td class="col-desc">${row.desc}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DE TABELA DE FALHAS CRÍTICAS (1d8) -->
+    <div class="vigilia-modal-backdrop" id="vigilia-fumble-modal" style="display: none;">
+      <div class="vigilia-modal-box">
+        <header class="vigilia-modal-head">
+          <h2 class="vigilia-modal-title">TABELA DE FALHAS CRÍTICAS EM COMBATE (1d8)</h2>
+          <button type="button" class="vigilia-modal-close" data-close-vigilia-modal>✕</button>
+        </header>
+        <div class="vigilia-modal-body">
+          <p class="vigilia-modal-intro">
+            Quando todos os dados de um teste resultarem em <strong>1</strong> (ou forem anulados pelo Dado de Pavor), o teste é uma Falha Crítica.
+          </p>
+          <div class="vigilia-roll-trigger-card">
+            <div class="trigger-info">
+              <strong>ROLAR DESFECHO DESASTROSO</strong>
+              <small>Dado de 8 lados (1d8)</small>
+            </div>
+            <button type="button" class="btn-vigilia-table-roll" data-roll-table="fumble">
+              ROLAR 1d8 NA TABELA
+            </button>
+          </div>
+
+          <div class="vigilia-table-scroll">
+            <table class="vigilia-mechanics-table">
+              <thead>
+                <tr>
+                  <th style="width: 55px;">1d8</th>
+                  <th style="width: 170px;">Falha Crítica</th>
+                  <th>Efeito no Combate</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${FALHAS_CRITICAS_TABLE.map(row => `
+                  <tr>
+                    <td class="col-roll"><b>${row.roll}</b></td>
+                    <td class="col-name"><strong>${row.name}</strong></td>
+                    <td class="col-desc">${row.desc}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
  * Função Principal: Renderiza a Ficha no Modo "A Vigília"
  */
 export function renderVigiliaSheet(sheet, editMode, options = {}) {
   const isBack = currentVigiliaSide === 'back';
+  const armorPoints = sheet.armorPoints ?? (sheet.pontosArmadura ?? 0);
+  const dadoPavor = sheet.dadoPavor;
+  const lesoesCount = sheet.lesoesCountScene || 0;
+  const traumasCount = sheet.traumasCountScene || 0;
+  const modeJustChanged = options.modeJustChanged;
 
   return `
-    <main class="vigilia-page ${isBack ? 'view-back' : 'view-front'}">
+    <main class="vigilia-page ${isBack ? 'view-back' : 'view-front'} ${modeJustChanged ? 'mode-enter' : ''}">
       <!-- FUNDO E MOLDURA CELTA OFICIAL -->
       <div class="vigilia-bg-layer" style="background-image: url('./assets/vigilia/vigilia-bg.png');"></div>
       <div class="vigilia-frame-layer">
         <img src="./assets/vigilia/vigilia-frame.png" alt="" class="vigilia-frame-img" draggable="false">
       </div>
 
-      <!-- BARRA DE CONTROLE SUPERIOR (FLIP ENTRE FRENTE E VERSO) -->
+      <!-- BARRA DE CONTROLE SUPERIOR (FLIP ENTRE FRENTE E VERSO + MECÂNICAS DA VIGÍLIA) -->
       <div class="vigilia-toolbar">
         <div class="vigilia-side-switch">
           <button type="button" class="side-btn ${!isBack ? 'active' : ''}" data-vigilia-side="front">
@@ -533,6 +745,34 @@ export function renderVigiliaSheet(sheet, editMode, options = {}) {
       <div class="vigilia-content-viewport">
         ${isBack ? renderVigiliaBack(sheet, editMode, options) : renderVigiliaFront(sheet, editMode, options)}
       </div>
+
+      <!-- DOCK FLUTUANTE DISCRETO (FORA DA FOLHA, CANTO INFERIOR) -->
+      <aside class="vigilia-floating-dock" aria-label="Ferramentas de Vigília">
+        ${dadoPavor ? `
+          <div class="dock-pavor-active">
+            <span class="pavor-dock-die">d${dadoPavor}</span>
+            <button type="button" class="dock-btn-pavor" data-pavor-action="control" title="Controlar Pavor (-1 PD)">−1 PD</button>
+            <button type="button" class="dock-btn-pavor" data-pavor-action="embrace" title="Abraçar Pavor (-5 PD)">−5 PD</button>
+            <button type="button" class="dock-btn-close" data-pavor-action="clear" title="Remover">✕</button>
+          </div>
+        ` : `
+          <button type="button" class="dock-pill-btn" data-pavor-action="trigger" title="Adicionar Dado de Pavor (+d6)">
+            + PAVOR
+          </button>
+        `}
+        <button type="button" class="dock-pill-btn" data-open-vigilia-modal="lesao" title="Testar Lesão (0 PV)">
+          LESÕES (${lesoesCount})
+        </button>
+        <button type="button" class="dock-pill-btn" data-open-vigilia-modal="trauma" title="Testar Trauma (0 PD)">
+          TRAUMAS (${traumasCount})
+        </button>
+        <button type="button" class="dock-pill-btn" data-open-vigilia-modal="fumble" title="Tabela de Falhas Críticas (1d8)">
+          FALHAS (1d8)
+        </button>
+      </aside>
+
+      <!-- MODAIS DE MECÂNICAS DE A VIGÍLIA -->
+      ${renderVigiliaModals(sheet)}
     </main>
   `;
 }
