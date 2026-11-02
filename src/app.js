@@ -3207,8 +3207,7 @@ function bindNavigatorTreeEvents(container = document) {
    if (f) {
     f.collapsed = !f.collapsed;
     persistFoldersToStorage(folders, { idbSet });
-    updateNavigatorTreeOnly();
-    updateMobileDrawerOnly();
+    render();
    }
   };
  });

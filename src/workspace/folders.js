@@ -7,23 +7,23 @@ export const FOLDERS_STORAGE_KEY = 'ordem-ii-folders-v1';
 
 export const DEFAULT_FOLDERS = [
   {
-    id: 'folder-characters',
-    name: 'Personagens',
-    kind: 'characters',
-    parentId: null,
-    color: '#e0150d',
-    icon: 'user',
-    collapsed: false,
-    order: 0,
-    system: true
-  },
-  {
     id: 'folder-vigilia',
     name: 'Personagens Vigília',
     kind: 'characters',
     parentId: null,
     color: '#34d399',
     icon: 'shield',
+    collapsed: false,
+    order: 0,
+    system: true
+  },
+  {
+    id: 'fld-mvxb7120-5p5gg',
+    name: 'Ídolo de Pedra',
+    kind: 'characters',
+    parentId: null,
+    color: '#e0150d',
+    icon: 'user',
     collapsed: false,
     order: 1,
     system: true
@@ -35,8 +35,19 @@ export const DEFAULT_FOLDERS = [
     parentId: null,
     color: '#993ce8',
     icon: 'skull',
-    collapsed: false,
+    collapsed: true,
     order: 2,
+    system: true
+  },
+  {
+    id: 'folder-characters',
+    name: 'Outros Personagens',
+    kind: 'characters',
+    parentId: null,
+    color: '#3187ff',
+    icon: 'folder',
+    collapsed: false,
+    order: 3,
     system: true
   }
 ];
@@ -88,15 +99,11 @@ export function normalizeFolders(rawList = []) {
   });
 
   // Garante a existência das pastas padrão do sistema
-  if (!existingMap.has('folder-characters')) {
-    existingMap.set('folder-characters', clone(DEFAULT_FOLDERS[0]));
-  }
-  if (!existingMap.has('folder-vigilia')) {
-    existingMap.set('folder-vigilia', clone(DEFAULT_FOLDERS[1]));
-  }
-  if (!existingMap.has('folder-threats')) {
-    existingMap.set('folder-threats', clone(DEFAULT_FOLDERS[2]));
-  }
+  DEFAULT_FOLDERS.forEach(df => {
+    if (!existingMap.has(df.id)) {
+      existingMap.set(df.id, clone(df));
+    }
+  });
 
   const normalized = Array.from(existingMap.values());
   normalized.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));

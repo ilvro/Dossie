@@ -128,7 +128,7 @@ export function renderRailSwitcher(sheets = [], folders = [], activeSheetId = ''
     `;
   }
 
-  const items = filtered.map(sheet => {
+  function renderSheetAvatar(sheet) {
     const isActive = sheet.id === activeSheetId;
     const isThreat = sheet.systemMode === 'threat';
     const isOriginal = sheet.systemMode === 'original';
@@ -167,12 +167,51 @@ export function renderRailSwitcher(sheets = [], folders = [], activeSheetId = ''
         ${favStar}
       </button>
     `;
-  }).join('');
+  }
+
+  // Agrupamento por pastas colapsáveis no Rail lateral
+  const tree = buildFolderTree(folders, filtered);
+  let folderSectionsHtml = '';
+
+  tree.forEach(node => {
+    const { folder, sheets: folderSheets } = node;
+    // Se o escopo for incompatível ou não houver fichas neste escopo, pula
+    if (scope === 'characters' && folder.kind === 'threats') return;
+    if (scope === 'threats' && folder.kind === 'characters') return;
+    if (!folderSheets || folderSheets.length === 0) return;
+
+    const isCollapsed = Boolean(folder.collapsed);
+    const hasActive = folderSheets.some(s => s.id === activeSheetId);
+    const folderIconName = folder.icon || (folder.id === 'folder-threats' ? 'skull' : (folder.id === 'folder-vigilia' ? 'shield' : 'folder'));
+
+    folderSectionsHtml += `
+      <div class="rail-folder-section ${isCollapsed ? 'collapsed' : 'expanded'}" 
+        data-rail-folder-id="${folder.id}"
+        style="--folder-color:${safe(folder.color || '#3187ff')};">
+        <button type="button" 
+          class="rail-folder-btn ${isCollapsed ? 'collapsed' : 'expanded'} ${hasActive ? 'active-folder' : ''}" 
+          data-toggle-folder-id="${folder.id}" 
+          title="${safe(folder.name)} (${folderSheets.length} fichas · Clique para ${isCollapsed ? 'expandir' : 'recolher'})"
+          aria-label="${safe(folder.name)}">
+          <span class="rail-folder-icon" style="color:${safe(folder.color || '#3187ff')};">
+            ${icon(folderIconName, 13)}
+          </span>
+          <span class="rail-folder-badge">${folderSheets.length}</span>
+          <span class="rail-folder-chevron">${icon('chevron-right', 8)}</span>
+        </button>
+        ${!isCollapsed ? `
+          <div class="rail-folder-sheets">
+            ${folderSheets.map(renderSheetAvatar).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  });
 
   return `
     <div class="sheet-switcher">
       ${filterPill}
-      ${items}
+      ${folderSectionsHtml}
       <button class="nav-btn dashed" data-new-sheet title="Adicionar ficha (+)">
         ${icon('plus')}
       </button>

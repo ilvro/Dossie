@@ -326,7 +326,24 @@ export function buildFolderTree(folders = [], sheets = [], options = {}) {
   }
 
   const rootFolders = fList.filter(f => !f.parentId).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  return rootFolders.map(buildNode);
+  const nodes = rootFolders.map(buildNode);
+
+  // Garante que fichas sem pasta (ou com folderId órfão) apareçam em uma pasta válida
+  const allFolderIds = new Set(fList.map(f => f.id));
+  const orphanSheets = sList.filter(s => s && (!s.folderId || !allFolderIds.has(s.folderId)));
+  if (orphanSheets.length > 0) {
+    orphanSheets.forEach(sheet => {
+      const isThreat = sheet.systemMode === 'threat';
+      const targetId = isThreat ? 'folder-threats' : (sheet.viewMode === 'vigilia' ? 'folder-vigilia' : 'fld-mvxb7120-5p5gg');
+      const targetNode = nodes.find(n => n.folder.id === targetId) || nodes[0];
+      if (targetNode) {
+        targetNode.sheets.push(sheet);
+        targetNode.totalSheets++;
+      }
+    });
+  }
+
+  return nodes;
 }
 
 function normalizeFoldersTree(folders) {

@@ -205,6 +205,17 @@ body.critical-pd-state .cinematic-resources [data-resource-key="pd"] strong{back
 .sheet-avatar.dragging{opacity:.35;cursor:grabbing}
 .sheet-avatar.drag-over-top{border-top:3px solid var(--red);transform:translateY(2px)}
 .sheet-avatar.drag-over-bottom{border-bottom:3px solid var(--red);transform:translateY(-2px)}
+/* Pastas colapsáveis no Rail lateral */
+.rail-folder-section{display:flex;flex-direction:column;align-items:center;width:100%;margin:4px 0 2px;position:relative}
+.rail-folder-btn{width:46px;height:27px;border-radius:7px;background:#151622;border:1px solid #2d3042;color:#9ca3af;display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;padding:0 4px;position:relative;transition:all .15s ease}
+.rail-folder-btn:hover{background:#232537;border-color:#4a4e69;color:#fff}
+.rail-folder-btn.active-folder{border-color:var(--folder-color, #e0150d);box-shadow:0 0 8px rgba(0,0,0,.5)}
+.rail-folder-icon{display:grid;place-items:center;line-height:1}
+.rail-folder-badge{font-size:9.5px;font-weight:800;color:#cbd5e1;line-height:1}
+.rail-folder-chevron{display:grid;place-items:center;transition:transform .18s ease;opacity:.7}
+.rail-folder-btn.expanded .rail-folder-chevron{transform:rotate(90deg)}
+.rail-folder-sheets{display:flex;flex-direction:column;align-items:center;width:100%;padding:2px 0;position:relative}
+.rail-folder-sheets:before{content:"";position:absolute;top:0;bottom:4px;left:18px;width:2px;background:var(--folder-color, #383b4e);opacity:.35;border-radius:1px}
 .custom-context-menu{position:fixed;z-index:2000;background:#161725;border:1px solid #3c3e52;border-radius:7px;padding:5px;box-shadow:0 12px 36px #000000d4;min-width:155px;animation:menu-pop .12s ease}
 .custom-context-menu-header{padding:5px 9px 4px;font-size:9px;font-weight:800;letter-spacing:.08em;color:#7e8194;text-transform:uppercase;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .custom-context-menu button{width:100%;display:flex;align-items:center;gap:8px;padding:7px 9px;background:transparent;border:0;border-radius:4px;color:#d5d7e2;font-size:11px;font-weight:700;font-family:"Hanken Grotesk",sans-serif;text-align:left;cursor:pointer;transition:.15s}

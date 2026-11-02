@@ -7,7 +7,7 @@
     "pv": 22,
     "maxPv": 22,
     "pvTemp": 0,
-    "pd": 1,
+    "pd": 12,
     "maxPd": 12,
     "pdTemp": 0,
     "history": "Filha do ferreiro da vila, Rhiona Mac Tuirenn (RÍ-o-na Mac TÚR-en) é versada nos segredos místicos do ferro e do fogo. Caberá a ela perpetuar o legado de fornecer para as famílias de Ballynyr as ferramentas e armas essenciais para o trabalho e a proteção da vila.\n\nTrabalha batendo o martelo na bigorna e testando em combate as próprias armas que faz. Sua figura feminina empunhando o martelo é vista como uma manifestação de Brígida, antiga deusa da forja, e Rhiona carrega no pescoço uma pequena medalha de Santa Brígida, a versão sincrética da deusa.\n\nUm casamento com Rhiona seria de grande valor, e o interesse da moça tem sido disputado por filhos de fazendeiros e até por guerreiros da nobreza menor. Porém, desde que seu pai caiu doente, ela está mais interessada em administrar o negócio da família, e por isso passa horas debatendo contabilidade com o Irmão Cavan.\n\nQuando se permite descansar, senta-se próximo à fogueira para ouvir as histórias que Malik ibn Qamar traz de um mundo distante. Também é próxima de Rowan, responsável por supri-la de ferro coletado do pântano. Recentemente, ela o avistou patrulhando as fronteiras das terras de seu pai sem que isso fosse solicitado.",
@@ -1280,7 +1280,7 @@
     "backgroundZoom": 100,
     "diceColor": "",
     "themeColor": "",
-    "viewMode": "cinematic",
+    "viewMode": "vigilia",
     "cinematicTokenX": 50,
     "cinematicTokenY": 52,
     "cinematicTokenScale": 100,
@@ -1448,7 +1448,7 @@
         "schema": "abilities",
         "title": "ÍMPETO",
         "type": "Habilidade de Perfil",
-        "content": "Você possui uma **barra de ímpeto, com cinco espaços**. Sempre que **faz um teste e falha**, você preenche um espaço na barra de ímpeto. Como uma ação livre, você pode gastar espaços da barra de ímpeto para receber benefícios:\n• **1 espaço.** Você recebe **+d4** em um teste.\n• **3 espaços.** Você **aumenta um atributo em um passo** até o fim da cena.\n• **3 espaços.** Em cenas de conflito, voc���� faz uma **ação extra**.\n\nNo fim da cena, sua barra de ímpeto esvazia.",
+        "content": "Você possui uma **barra de ímpeto, com cinco espaços**. Sempre que **faz um teste e falha**, você preenche um espaço na barra de ímpeto. Como uma ação livre, você pode gastar espaços da barra de ímpeto para receber benefícios:\n• **1 espaço.** Você recebe **+1d4** em um teste.\n• **3 espaços.** Você **aumenta um atributo em um passo** até o fim da cena.\n• **3 espaços.** Em cenas de conflito, voc�� faz uma **ação extra**.\n\nNo fim da cena, sua barra de ímpeto esvazia.",
         "accent": "#9aa49e",
         "icon": "◆",
         "markers": [
@@ -1461,19 +1461,27 @@
             "maxFormula": "5"
           }
         ],
-        "actions": []
+        "actions": [],
+        "cost": "",
+        "layout": "standard",
+        "collapsed": false,
+        "imageUrl": ""
       },
       {
         "id": "impeto-fervilhante",
         "schema": "abilities",
         "title": "ÍMPETO FERVILHANTE",
         "type": "Habilidade",
-        "content": "No in��������cio de cada cena, você preenche um espaço de sua barra de ímpeto.",
+        "content": "No início de cada cena, você preenche um espaço de sua barra de ímpeto.",
         "accent": "#9aa49e",
         "icon": "◆",
         "markers": [],
         "actions": [],
-        "themeLinked": true
+        "themeLinked": true,
+        "cost": "",
+        "layout": "standard",
+        "collapsed": false,
+        "imageUrl": ""
       },
       {
         "id": "equip-malik",
@@ -1554,7 +1562,10 @@
     ],
     "favorite": false,
     "dadoPavor": null,
-    "pavorEmbraced": false
+    "pavorEmbraced": false,
+    "vigiliaTokenX": 2,
+    "vigiliaTokenY": -7,
+    "vigiliaTokenScale": 112
   },
   {
     "name": "Sira Cissé",

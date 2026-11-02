@@ -1,13 +1,24 @@
 [
   {
-    "id": "folder-characters",
-    "name": "Personagens",
+    "id": "folder-vigilia",
+    "name": "Personagens Vigília",
+    "kind": "characters",
+    "parentId": null,
+    "color": "#34d399",
+    "icon": "shield",
+    "collapsed": true,
+    "order": 0,
+    "system": true
+  },
+  {
+    "id": "fld-mvxb7120-5p5gg",
+    "name": "Ídolo de Pedra",
     "kind": "characters",
     "parentId": null,
     "color": "#e0150d",
     "icon": "user",
-    "collapsed": false,
-    "order": 0,
+    "collapsed": true,
+    "order": 1,
     "system": true
   },
   {
@@ -17,30 +28,19 @@
     "parentId": null,
     "color": "#993ce8",
     "icon": "skull",
-    "collapsed": false,
-    "order": 1,
+    "collapsed": true,
+    "order": 2,
     "system": true
   },
   {
-    "id": "folder-vigilia",
-    "name": "Personagens Vigília",
+    "id": "folder-characters",
+    "name": "Outros Personagens",
     "kind": "characters",
-    "parentId": null,
-    "color": "#34d399",
-    "icon": "shield",
-    "collapsed": false,
-    "order": 1,
-    "system": true
-  },
-  {
-    "id": "fld-mvxb7120-5p5gg",
-    "name": "Ídolo de Pedra",
-    "kind": "custom",
     "parentId": null,
     "color": "#3187ff",
     "icon": "folder",
-    "collapsed": true,
-    "order": 2,
-    "system": false
+    "collapsed": false,
+    "order": 3,
+    "system": true
   }
 ]
