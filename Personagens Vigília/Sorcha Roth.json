@@ -1,0 +1,296 @@
+{
+  "name": "Sorcha Roth",
+  "occupation": "Talentosa",
+  "profile": "Vigilante",
+  "level": 3,
+  "pv": 22,
+  "maxPv": 22,
+  "pvTemp": 0,
+  "pd": 14,
+  "maxPd": 14,
+  "pdTemp": 0,
+  "history": "Sorcha Roth (SÓR-ra RÓT) nasceu em uma pequena aldeia costeira destruída por um ataque viking quando ela era apenas uma garota. Sem lar, vagou pelo interior da Irlanda servindo como batedora e mercenária para chefes locais de clãs gaélicos, até que os anos de sangue e poeira a cansaram. Buscando redenção e um lugar calmo para viver seus dias, fixou residência em Ballynyr, onde assumiu a responsabilidade voluntária de vigiar as estradas e manter o crime longe dos aldeões.\n\nMulher de pouca conversa e gestos calculados, Sorcha enxerga a paz da vila como algo extremamente frágil. Passa os dias checando as paliçadas improvisadas, patrulhando os limites com a floresta e garantindo que eventuais disputas entre camponeses não terminem em tragédia. Ela não confia em estranhos e vê com extrema desconfiança o movimento crescente de desconhecidos na região.\n\nVê em Rhiona uma figura fundamental para a sobrevivência do povoado, garantindo que o ferro do pântano vire lanças e ferramentas úteis. Embora respeite a erudição do Irmão Cavan, teme que a bondade do monge o faça baixar a guarda perante ameaças reais. Recentemente, a presença da náufraga Sira acendeu todos os seus alarmes: Sorcha reconhece os trejeitos de quem já combateu a bordo de um navio pirata e mantém seus olhos cravados nela.",
+  "tokenImage": "/assets/vigilia/token-sorcha-portrait.png",
+  "backgroundImage": "",
+  "backgroundBlur": 0,
+  "backgroundZoom": 100,
+  "diceColor": "",
+  "themeColor": "",
+  "viewMode": "vigilia",
+  "cinematicTokenX": 50,
+  "cinematicTokenY": 52,
+  "cinematicTokenScale": 100,
+  "cinematicOutlineSide": "left",
+  "cinematicOutlineIntensity": 0.5,
+  "cinematicOutlineWidth": 1.8,
+  "cinematicOutlineFade": 1.5,
+  "cinematicCollapsed": {
+    "abilities": false,
+    "items": true,
+    "history": true
+  },
+  "attributes": {
+    "Físico": 8,
+    "Mente": 6,
+    "Emoção": 8
+  },
+  "skills": [
+    {
+      "name": "ACROBACIA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "ANIMAIS",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "APTIDÃO (ERUDIÇÃO)",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "ATLETISMO",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "CRIME",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "DISCIPLINA",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "ENGANAÇÃO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "FURTIVIDADE",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "INSPECIONAR",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "INTIMIDAR",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "INTUIÇÃO",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "LUTA",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "MEDICINA",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "OCULTISMO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "OFÍCIO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "PERCEPÇÃO",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "PERSUASÃO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "PONTARIA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "SOBREVIVÊNCIA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "VIGOR",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Físico",
+      "extra": 0
+    }
+  ],
+  "cards": [
+    {
+      "id": "card-sorcha-prontidao",
+      "schema": "abilities",
+      "title": "PRONTIDÃO",
+      "type": "Habilidade",
+      "cost": "2 PD",
+      "content": "Uma vez por rodada, quando você ou outro ser em alcance curto faz um teste, você pode gastar 2 PD para rolar novamente, ou para fazer o outro ser rolar novamente, um dos dados do teste cujo resultado não tenha sido 1.\n\nAlém disso, em combates, você pode fazer sua ação na fase dela ou em fases posteriores, e após qualquer ação daquela fase já ter sido rolada.",
+      "accent": "#2563eb",
+      "icon": "⚡",
+      "markers": [],
+      "actions": [],
+      "themeLinked": true
+    },
+    {
+      "id": "card-sorcha-guardia",
+      "schema": "abilities",
+      "title": "GUARDIÃ",
+      "type": "Habilidade",
+      "cost": "2 PD",
+      "content": "Você recebe +1 PV por patamar (já anotado na ficha) e, uma vez por rodada, quando um aliado em alcance curto sofre um ataque, pode gastar 2 PD para se tornar o alvo deste ataque.",
+      "accent": "#059669",
+      "icon": "🛡",
+      "markers": [],
+      "actions": [],
+      "themeLinked": true
+    },
+    {
+      "id": "card-sorcha-instinto",
+      "schema": "abilities",
+      "title": "INSTINTO DE SOBREVIVÊNCIA",
+      "type": "Habilidade",
+      "content": "Se você estiver com metade ou menos de seus PV máximos, recebe um aumento de passo em todos os testes.",
+      "accent": "#d97706",
+      "icon": "👁",
+      "markers": [],
+      "actions": [],
+      "themeLinked": true
+    },
+    {
+      "id": "card-sorcha-equip",
+      "schema": "items",
+      "title": "EQUIPAMENTO",
+      "type": "Equipamento",
+      "content": "**Lança** (arma corpo a corpo, dano RA +2, no primeiro ataque contra um inimigo que ainda não o atacou, você recebe um aumento de passo), **escudo** (se perder um teste oposto de ataque, mas seu teste somar pelo menos 7, reduz a sua rolagem baixa do dano recebido), **elmo aberto** (fornece 1 ponto de armadura, mas reduz Percepção em um passo).",
+      "accent": "#94a3b8",
+      "icon": "◆",
+      "markers": [],
+      "actions": [
+        {
+          "id": "atk-lanca",
+          "name": "Ataque Lança (Luta d8 + Físico d8)",
+          "expression": "1d8 + 1d8"
+        },
+        {
+          "id": "dmg-lanca",
+          "name": "Dano Lança (RA + 2)",
+          "expression": "RA + 2"
+        }
+      ],
+      "themeLinked": true
+    }
+  ],
+  "id": "sheet-vigilia-sorcha",
+  "folderId": "folder-vigilia-cruachan",
+  "firstName": "SORCHA",
+  "lastName": "ROTH",
+  "age": 28,
+  "shortBio": "Guarda de Ballynyr. Veterana de lutas contra saqueadores, mantém a ordem com mão firme e poucas palavras. Idade 28.",
+  "armorPoints": 1,
+  "maxArmorPoints": 2,
+  "systemMode": "ordem2",
+  "relations": [
+    {
+      "target": "RHIONA",
+      "degree": 2,
+      "feeling": "RESPEITO",
+      "note": "Admira sua dedicação à forja e depende de suas armas para proteger Ballynyr."
+    },
+    {
+      "target": "ROWAN",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Respeita suas habilidades nos ermos, mas prefere manter distância do lobo…"
+    },
+    {
+      "target": "MUIRENN",
+      "degree": 2,
+      "feeling": "ADMIRAÇÃO",
+      "note": "Reverencia as artes da floresta, e reconhece o valor de seus remédios."
+    },
+    {
+      "target": "CAVAN",
+      "degree": 1,
+      "feeling": "PROTEÇÃO",
+      "note": "Acha o monge ingênuo para o mundo real e busca resguardá-lo."
+    },
+    {
+      "target": "MALIK",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Acha o andarilho curioso demais para o próprio bem, mantendo-o sob vigilância."
+    },
+    {
+      "target": "SIRA",
+      "degree": 0,
+      "feeling": "SUSPEITA",
+      "note": "Reconhece o olhar de uma combatente marítima e não acredita em sua história de fragilidade."
+    },
+    {
+      "target": "CORMAC",
+      "degree": 1,
+      "feeling": "SUSPEITA",
+      "note": "Acha as mãos limpas, a postura nobre e o sotaque estrangeiro do rapaz incompatíveis com a história de simples andarilho."
+    }
+  ],
+  "favorite": false
+}

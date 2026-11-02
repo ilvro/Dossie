@@ -169,43 +169,49 @@ export function renderRailSwitcher(sheets = [], folders = [], activeSheetId = ''
     `;
   }
 
-  // Agrupamento por pastas colapsáveis no Rail lateral
+  // Agrupamento por pastas colapsáveis no Rail lateral (suporte a subpastas aninhadas)
   const tree = buildFolderTree(folders, filtered);
   let folderSectionsHtml = '';
 
-  tree.forEach(node => {
-    const { folder, sheets: folderSheets } = node;
-    // Se o escopo for incompatível ou não houver fichas neste escopo, pula
-    if (scope === 'characters' && folder.kind === 'threats') return;
-    if (scope === 'threats' && folder.kind === 'characters') return;
-    if (!folderSheets || folderSheets.length === 0) return;
+  function renderRailNode(node, depth = 0) {
+    const { folder, sheets: folderSheets = [], children = [] } = node;
+    if (scope === 'characters' && folder.kind === 'threats') return '';
+    if (scope === 'threats' && folder.kind === 'characters') return '';
+    if (node.totalSheets === 0) return '';
 
     const isCollapsed = Boolean(folder.collapsed);
-    const hasActive = folderSheets.some(s => s.id === activeSheetId);
-    const folderIconName = folder.icon || (folder.id === 'folder-threats' ? 'skull' : (folder.id === 'folder-vigilia' ? 'shield' : 'folder'));
+    const hasActive = folderSheets.some(s => s.id === activeSheetId) ||
+      (children.some(c => (c.sheets || []).some(s => s.id === activeSheetId) || ((c.children || []).some(cc => (cc.sheets || []).some(s => s.id === activeSheetId)))));
+    const folderIconName = folder.icon || (folder.id === 'folder-threats' ? 'skull' : (folder.id.includes('vigilia') ? 'shield' : 'folder'));
+    const isMist = folder.color === '#f8fafc' || folder.color === '#e2e8f0' || folder.color === '#cbd5e1' || folder.id.includes('vigilia');
 
-    folderSectionsHtml += `
-      <div class="rail-folder-section ${isCollapsed ? 'collapsed' : 'expanded'}" 
+    return `
+      <div class="rail-folder-section ${isCollapsed ? 'collapsed' : 'expanded'} ${isMist ? 'rail-folder-mist' : ''} depth-${depth}" 
         data-rail-folder-id="${folder.id}"
         style="--folder-color:${safe(folder.color || '#3187ff')};">
         <button type="button" 
-          class="rail-folder-btn ${isCollapsed ? 'collapsed' : 'expanded'} ${hasActive ? 'active-folder' : ''}" 
+          class="rail-folder-btn ${isCollapsed ? 'collapsed' : 'expanded'} ${hasActive ? 'active-folder' : ''} ${isMist ? 'mist-btn' : ''} depth-${depth}" 
           data-toggle-folder-id="${folder.id}" 
-          title="${safe(folder.name)} (${folderSheets.length} fichas · Clique para ${isCollapsed ? 'expandir' : 'recolher'})"
+          title="${safe(folder.name)} (${node.totalSheets} fichas · Clique para ${isCollapsed ? 'expandir' : 'recolher'})"
           aria-label="${safe(folder.name)}">
           <span class="rail-folder-icon" style="color:${safe(folder.color || '#3187ff')};">
-            ${icon(folderIconName, 13)}
+            ${icon(folderIconName, depth > 0 ? 11 : 13)}
           </span>
-          <span class="rail-folder-badge">${folderSheets.length}</span>
+          <span class="rail-folder-badge">${node.totalSheets}</span>
           <span class="rail-folder-chevron">${icon('chevron-right', 8)}</span>
         </button>
         ${!isCollapsed ? `
-          <div class="rail-folder-sheets">
+          <div class="rail-folder-sheets depth-${depth}">
+            ${children.length > 0 ? children.map(c => renderRailNode(c, depth + 1)).join('') : ''}
             ${folderSheets.map(renderSheetAvatar).join('')}
           </div>
         ` : ''}
       </div>
     `;
+  }
+
+  tree.forEach(rootNode => {
+    folderSectionsHtml += renderRailNode(rootNode, 0);
   });
 
   return `

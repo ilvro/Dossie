@@ -1,0 +1,318 @@
+{
+  "name": "Cormac Coluim",
+  "occupation": "Aristocrata",
+  "profile": "Executor",
+  "level": 3,
+  "pv": 17,
+  "maxPv": 17,
+  "pvTemp": 0,
+  "pd": 15,
+  "maxPd": 15,
+  "pdTemp": 0,
+  "history": "Cormac Coluim (KÓR-mac KÓ-lum) é o único herdeiro de uma próspera família no Reino de Strathclyde, no extremo norte da Grã-Bretanha. Desde a infância, foi treinado em esgrima, etiqueta, idiomas e política. Contudo, o peso do destino traçado por seu pai o sufocava.\n\nCormac não desejava governar sobre servos, condenar homens à prisão nem casar-se por conveniência. Assim, na noite em que aconteceria sua consagração oficial como herdeiro, vestiu roupas simples sobre sua túnica nobre, riscou o selo da família de sua espada e fugiu. Cruzou o Mar da Irlanda a bordo de um barco de mercadores, e desapareceu no lugar mais isolado que conseguiu encontrar: Ballynyr. Agora, vive o desafio de esconder sua verdadeira linhagem, apesar de seu vocabulário refinado e da postura impecável ao empunhar a espada.\n\nGosta de conversar com o Irmão Cavan, o qual considera um igual em erudição, embora tema que o religioso reconheça a origem aristocrática de seu sotaque. Vê na ferreira Rhiona um exemplo de liderança genuína que ele próprio rejeitou. Vê em Malik um espelho de sua própria coragem ao deixar para trás sua terra natal — mas não pode contar isso a ele.",
+  "tokenImage": "/assets/vigilia/token-cormac-portrait.png",
+  "backgroundImage": "",
+  "backgroundBlur": 0,
+  "backgroundZoom": 100,
+  "diceColor": "",
+  "themeColor": "",
+  "viewMode": "vigilia",
+  "cinematicTokenX": 50,
+  "cinematicTokenY": 52,
+  "cinematicTokenScale": 100,
+  "cinematicOutlineSide": "left",
+  "cinematicOutlineIntensity": 0.5,
+  "cinematicOutlineWidth": 1.8,
+  "cinematicOutlineFade": 1.5,
+  "cinematicCollapsed": {
+    "abilities": false,
+    "items": true,
+    "history": true
+  },
+  "attributes": {
+    "Físico": 8,
+    "Mente": 8,
+    "Emoção": 6
+  },
+  "skills": [
+    {
+      "name": "ACROBACIA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "ANIMAIS",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "APTIDÃO (ERUDIÇÃO)",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "APTIDÃO (GUERRA)",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "APTIDÃO (NOBREZA)",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "ATLETISMO",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "CRIME",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "DISCIPLINA",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "ENGANAÇÃO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "FURTIVIDADE",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "INSPECIONAR",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "INTIMIDAR",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "INTUIÇÃO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "LUTA",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "MEDICINA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "OCULTISMO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "OFÍCIO",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "PERCEPÇÃO",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "PERSUASÃO",
+      "skillDie": 6,
+      "training": "TREINADO",
+      "attribute": "Emoção",
+      "extra": 0
+    },
+    {
+      "name": "PONTARIA",
+      "skillDie": 4,
+      "training": "DESTREINADO",
+      "attribute": "Físico",
+      "extra": 0
+    },
+    {
+      "name": "SOBREVIVÊNCIA",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Mente",
+      "extra": 0
+    },
+    {
+      "name": "VIGOR",
+      "skillDie": 8,
+      "training": "ESPECIALISTA",
+      "attribute": "Físico",
+      "extra": 0
+    }
+  ],
+  "cards": [
+    {
+      "id": "card-cormac-impeto",
+      "schema": "abilities",
+      "title": "ÍMPETO",
+      "type": "Habilidade",
+      "content": "Você possui uma barra de ímpeto, com cinco espaços. Sempre que faz um teste e falha, você preenche um espaço na barra de ímpeto. Como uma ação livre, você pode gastar espaços da barra de ímpeto para receber benefícios.\n\n• 1 espaço. Você recebe +d4 em um teste.\n• 3 espaços. Você aumenta um atributo em um passo até o fim da cena.\n• 3 espaços. Em cenas de conflito, você faz uma ação extra.\n\nNo fim da cena, sua barra de ímpeto esvazia.",
+      "accent": "#e11d48",
+      "icon": "⚡",
+      "markers": [
+        {
+          "id": "cormac-impeto-marker",
+          "type": "pips",
+          "displayStyle": "rectangles",
+          "label": "Barra de Ímpeto",
+          "current": 5,
+          "maxFormula": "5"
+        }
+      ],
+      "actions": [],
+      "themeLinked": true
+    },
+    {
+      "id": "card-cormac-heranca",
+      "schema": "abilities",
+      "title": "HERANÇA",
+      "type": "Habilidade",
+      "content": "Sua categoria de riqueza aumenta em 1*.\n\n*As regras para compra de itens serão apresentadas futuramente. Na prática, por hora isso significa que Diarmaid começa com itens melhores (veja em \"Equipamento\").",
+      "accent": "#d97706",
+      "icon": "👑",
+      "markers": [],
+      "actions": [],
+      "themeLinked": true
+    },
+    {
+      "id": "card-cormac-plano",
+      "schema": "abilities",
+      "title": "PLANO ESTRATÉGICO",
+      "type": "Habilidade",
+      "cost": "3 PD",
+      "content": "Você pode gastar uma ação e 3 PD para elaborar um plano de ação. Faça um teste de Aptidão (Guerra) contra DT 7. Se passar, você e os seus aliados recebem d6, +d6 para cada 3 pontos pelos quais o resultado do teste exceder a DT, que podem gastar em quaisquer testes até o fim da cena.",
+      "accent": "#2563eb",
+      "icon": "♟",
+      "markers": [],
+      "actions": [],
+      "themeLinked": true
+    },
+    {
+      "id": "card-cormac-equip",
+      "schema": "items",
+      "title": "EQUIPAMENTO",
+      "type": "Equipamento",
+      "content": "**Espada forjada em castelo** (arma corpo a corpo, dano RA +3, quando ataca com ela, você consegue um sucesso crítico com dois valores 5 ou mais), **cota de malha** (fornece 2 pontos de armadura, mas reduz Furtividade em 1 passo).",
+      "accent": "#94a3b8",
+      "icon": "◆",
+      "markers": [],
+      "actions": [
+        {
+          "id": "atk-espada",
+          "name": "Ataque Espada (Luta d8 + Físico d8)",
+          "expression": "1d8 + 1d8"
+        },
+        {
+          "id": "dmg-espada",
+          "name": "Dano Espada (RA + 3)",
+          "expression": "RA + 3"
+        }
+      ],
+      "themeLinked": true
+    }
+  ],
+  "id": "sheet-vigilia-cormac",
+  "folderId": "folder-vigilia-cruachan",
+  "firstName": "CORMAC",
+  "lastName": "COLUIM",
+  "age": 22,
+  "shortBio": "Andarilho com postura e equipamento aristocráticos. Idade 22.",
+  "armorPoints": 2,
+  "maxArmorPoints": 2,
+  "systemMode": "ordem2",
+  "relations": [
+    {
+      "target": "RHIONA",
+      "degree": 1,
+      "feeling": "ADMIRAÇÃO",
+      "note": "Respeita a autoridade natural da ferreira, vendo nela o tipo de líder que ele foi incapaz de ser."
+    },
+    {
+      "target": "ROWAN",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Admira a liberdade total que o caçador tem nos ermos."
+    },
+    {
+      "target": "MUIRENN",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Mantém distância da curandeira, temendo que seus óleos e visões revelem sua verdadeira identidade."
+    },
+    {
+      "target": "CAVAN",
+      "degree": 2,
+      "feeling": "VÍNCULO",
+      "note": "Encontra no monge a única companhia intelectual da vila, embora tema que ele descubra seu segredo."
+    },
+    {
+      "target": "MALIK",
+      "degree": 1,
+      "feeling": "AFINIDADE",
+      "note": "Gosta de ouvir as histórias de quem veio de longe, mas não pode compartilhar seu próprio passado."
+    },
+    {
+      "target": "SIRA",
+      "degree": 0,
+      "feeling": "NEUTRO",
+      "note": "Nota que ela também esconde algo de seu passado e prefere não cruzar seu caminho."
+    },
+    {
+      "target": "SORCHA",
+      "degree": 1,
+      "feeling": "CONFIANÇA",
+      "note": "Aprendeu desde cedo a confiar em soldados."
+    }
+  ],
+  "favorite": false
+}

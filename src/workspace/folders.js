@@ -8,14 +8,36 @@ export const FOLDERS_STORAGE_KEY = 'ordem-ii-folders-v1';
 export const DEFAULT_FOLDERS = [
   {
     id: 'folder-vigilia',
-    name: 'Personagens Vigília',
+    name: 'Vigília',
     kind: 'characters',
     parentId: null,
-    color: '#34d399',
+    color: '#f8fafc',
     icon: 'shield',
     collapsed: false,
     order: 0,
     system: true
+  },
+  {
+    id: 'folder-vigilia-pantano',
+    name: 'O Pântano dos Afogados',
+    kind: 'characters',
+    parentId: 'folder-vigilia',
+    color: '#e2e8f0',
+    icon: 'folder',
+    collapsed: false,
+    order: 0,
+    system: false
+  },
+  {
+    id: 'folder-vigilia-cruachan',
+    name: 'A Caverna de Cruachan',
+    kind: 'characters',
+    parentId: 'folder-vigilia',
+    color: '#cbd5e1',
+    icon: 'folder',
+    collapsed: false,
+    order: 1,
+    system: false
   },
   {
     id: 'fld-mvxb7120-5p5gg',
@@ -26,7 +48,7 @@ export const DEFAULT_FOLDERS = [
     icon: 'user',
     collapsed: false,
     order: 1,
-    system: true
+    system: false
   },
   {
     id: 'folder-threats',
