@@ -3567,6 +3567,7 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   height: 100%;
   object-fit: fill;
   pointer-events: none;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.45));
 }
 
 .vigilia-toolbar {
@@ -4422,10 +4423,27 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
   position: relative;
   display: inline-flex;
   align-items: center;
+  min-width: 160px;
   height: 40px;
   padding: 0 20px 0 12px;
   margin-left: -10px;
   margin-bottom: 8px;
+  transition: filter 0.2s ease;
+}
+
+.profile-banner-wrap,
+.banner-atributos-wrap,
+.banner-pericias-wrap,
+.banner-relacoes-wrap {
+  transition: filter 0.2s ease;
+}
+
+.power-banner-wrap:hover,
+.profile-banner-wrap:hover,
+.banner-atributos-wrap:hover,
+.banner-pericias-wrap:hover,
+.banner-relacoes-wrap:hover {
+  filter: brightness(1.08) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
 }
 
 .power-banner-img {
