@@ -134,21 +134,25 @@ function createDie(scene, world, config, index, total) {
   scene.add(mesh);
 
   const shape = cannonShapeFromGeometry(geometry);
-  const offset = (index - (total - 1) / 2) * .82;
+  const offset = (index - (total - 1) / 2) * .72;
   const body = new CANNON.Body({ mass: .72, shape, material: world.diceMaterial, allowSleep: true, sleepSpeedLimit: .24, sleepTimeLimit: .28 });
   const launch = world.launch;
   if (launch === 0) {
-    body.position.set(-world.boundsX + .7, 1.1 + Math.random() * 2.1 + index * .18, offset + (Math.random() - .5) * .6);
-    body.velocity.set(7.5 + Math.random() * 2.2, -2.5 - Math.random() * 2, (Math.random() - .5) * 3.4);
+    // Lançamento da esquerda em direção ao centro da ficha
+    body.position.set(-world.boundsX * 0.72, 2.0 + Math.random() * 1.2 + index * .15, offset * 0.6 + (Math.random() - .5) * .4);
+    body.velocity.set(4.5 + Math.random() * 1.6, -3.2 - Math.random() * 1.2, (Math.random() - .5) * 2.0);
   } else if (launch === 1) {
-    body.position.set(world.boundsX - .7, 1.1 + Math.random() * 2.1 + index * .18, offset + (Math.random() - .5) * .6);
-    body.velocity.set(-7.5 - Math.random() * 2.2, -2.5 - Math.random() * 2, (Math.random() - .5) * 3.4);
+    // Lançamento da direita em direção ao centro da ficha
+    body.position.set(world.boundsX * 0.72, 2.0 + Math.random() * 1.2 + index * .15, offset * 0.6 + (Math.random() - .5) * .4);
+    body.velocity.set(-4.5 - Math.random() * 1.6, -3.2 - Math.random() * 1.2, (Math.random() - .5) * 2.0);
   } else if (launch === 2) {
-    body.position.set(offset + (Math.random() - .5) * 2.8, 3.45 + index * .16, (Math.random() - .5) * 1.4);
-    body.velocity.set((Math.random() - .5) * 5.5, -5.5 - Math.random() * 2, (Math.random() - .5) * 3.6);
+    // Queda rolada do topo central da ficha
+    body.position.set(offset * 0.6 + (Math.random() - .5) * 0.8, 3.2 + index * .15, (Math.random() - .5) * 0.8);
+    body.velocity.set((Math.random() - .5) * 2.2, -4.5 - Math.random() * 1.2, (Math.random() - .5) * 2.2);
   } else {
-    body.position.set(offset + (Math.random() - .5) * 2.4, 1.2 + Math.random() * 1.4, world.boundsZ - .65);
-    body.velocity.set((Math.random() - .5) * 4.5, -3 - Math.random() * 2, -7.2 - Math.random() * 2);
+    // Lançamento de frente em direção ao fundo da mesa
+    body.position.set(offset * 0.6 + (Math.random() - .5) * 0.8, 1.8 + Math.random() * 1.0, world.boundsZ * 0.7);
+    body.velocity.set((Math.random() - .5) * 2.2, -3.0 - Math.random() * 1.2, -4.5 - Math.random() * 1.5);
   }
   body.angularVelocity.set(13 + Math.random() * 10, 11 + Math.random() * 12, 12 + Math.random() * 11);
   body.angularDamping = .13; body.linearDamping = .035;
@@ -248,22 +252,24 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
 
     const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -25, 0) });
     world.allowSleep = true; world.broadphase = new CANNON.SAPBroadphase(world);
-    world.boundsX = Math.min(5.15, 2.9 * width / height);
-    world.boundsZ = 2.7;
+    world.boundsX = Math.min(2.85, 1.65 * width / height);
+    world.boundsZ = 2.2;
     world.launch = Math.floor(Math.random() * 4);
     world.diceMaterial = new CANNON.Material('dice');
     const floorMaterial = new CANNON.Material('floor');
-    world.addContactMaterial(new CANNON.ContactMaterial(world.diceMaterial, floorMaterial, { friction: .25, restitution: .57 }));
-    world.addContactMaterial(new CANNON.ContactMaterial(world.diceMaterial, world.diceMaterial, { friction: .15, restitution: .42 }));
+    world.addContactMaterial(new CANNON.ContactMaterial(world.diceMaterial, floorMaterial, { friction: .25, restitution: .55 }));
+    world.addContactMaterial(new CANNON.ContactMaterial(world.diceMaterial, world.diceMaterial, { friction: .15, restitution: .40 }));
     const floorBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(), material: floorMaterial });
     floorBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); floorBody.position.y = -1.15; world.addBody(floorBody);
     const wallMaterial = floorMaterial;
+    const wallThickness = 1.0;
+    const wallHeight = 5.0;
     const wallSpecs = [
-      [new CANNON.Vec3(.08, 3.4, world.boundsZ), new CANNON.Vec3(-world.boundsX, 1.8, 0)],
-      [new CANNON.Vec3(.08, 3.4, world.boundsZ), new CANNON.Vec3(world.boundsX, 1.8, 0)],
-      [new CANNON.Vec3(world.boundsX, 3.4, .08), new CANNON.Vec3(0, 1.8, -world.boundsZ)],
-      [new CANNON.Vec3(world.boundsX, 3.4, .08), new CANNON.Vec3(0, 1.8, world.boundsZ)],
-      [new CANNON.Vec3(world.boundsX, .08, world.boundsZ), new CANNON.Vec3(0, 4.15, 0)]
+      [new CANNON.Vec3(wallThickness, wallHeight, world.boundsZ + wallThickness), new CANNON.Vec3(-world.boundsX - wallThickness, 1.8, 0)],
+      [new CANNON.Vec3(wallThickness, wallHeight, world.boundsZ + wallThickness), new CANNON.Vec3(world.boundsX + wallThickness, 1.8, 0)],
+      [new CANNON.Vec3(world.boundsX + wallThickness, wallHeight, wallThickness), new CANNON.Vec3(0, 1.8, -world.boundsZ - wallThickness)],
+      [new CANNON.Vec3(world.boundsX + wallThickness, wallHeight, wallThickness), new CANNON.Vec3(0, 1.8, world.boundsZ + wallThickness)],
+      [new CANNON.Vec3(world.boundsX + wallThickness, wallThickness, world.boundsZ + wallThickness), new CANNON.Vec3(0, 4.8 + wallThickness, 0)]
     ];
     wallSpecs.forEach(([halfExtents, position]) => {
       const wall = new CANNON.Body({ mass: 0, shape: new CANNON.Box(halfExtents), material: wallMaterial });
@@ -277,7 +283,35 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
     function animate(now) {
       const delta = Math.min(.033, (now - last) / 1000); last = now;
       world.step(1 / 60, delta, 3);
+
+      // Trava de segurança física: impede que dados saiam da área da ficha mesmo com tunelamento
+      const pad = 0.5;
+      const minX = -world.boundsX + pad, maxX = world.boundsX - pad;
+      const minZ = -world.boundsZ + pad, maxZ = world.boundsZ - pad;
+      const minY = -1.14 + pad * 0.5;
+
       dice.forEach(die => {
+        if (die.body.position.x < minX) {
+          die.body.position.x = minX;
+          if (die.body.velocity.x < 0) die.body.velocity.x = -die.body.velocity.x * 0.35;
+        } else if (die.body.position.x > maxX) {
+          die.body.position.x = maxX;
+          if (die.body.velocity.x > 0) die.body.velocity.x = -die.body.velocity.x * 0.35;
+        }
+
+        if (die.body.position.z < minZ) {
+          die.body.position.z = minZ;
+          if (die.body.velocity.z < 0) die.body.velocity.z = -die.body.velocity.z * 0.35;
+        } else if (die.body.position.z > maxZ) {
+          die.body.position.z = maxZ;
+          if (die.body.velocity.z > 0) die.body.velocity.z = -die.body.velocity.z * 0.35;
+        }
+
+        if (die.body.position.y < minY) {
+          die.body.position.y = minY;
+          if (die.body.velocity.y < 0) die.body.velocity.y = -die.body.velocity.y * 0.35;
+        }
+
         die.mesh.position.copy(die.body.position);
         die.mesh.quaternion.copy(die.body.quaternion);
       });
