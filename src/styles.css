@@ -2152,29 +2152,33 @@ body.orientation-prompt-active .mobile-orientation-prompt{
 .critical-pv-special.heartbeat-beat .critical-pv-vignette{animation:critical-heartbeat-vignette .36s cubic-bezier(.2,.02,.28,1) both}
 .critical-pd-darkness{
   opacity:0;
-  background:radial-gradient(ellipse at 50% 43%,rgba(10,5,15,.32) 0,rgba(4,1,8,.66) 58%,rgba(1,0,4,.96) 100%);
+  background:radial-gradient(ellipse at center,transparent 35%,rgba(14,3,22,.42) 64%,rgba(5,1,9,.88) 100%);
   transition:opacity .7s ease;will-change:opacity;
 }
 .critical-pd .critical-pd-darkness{opacity:var(--pd-darkness-opacity)}
 .critical-pd-vignette{
   opacity:0;
   background:
-    radial-gradient(ellipse at center,transparent 38%,rgba(18,4,28,.18) 58%,rgba(46,10,65,.7) 100%),
-    conic-gradient(from 18deg at 50% 50%,transparent 0 11%,rgba(65,18,82,.18) 15%,transparent 20% 39%,rgba(39,12,58,.2) 43%,transparent 49% 100%);
-  box-shadow:inset 0 0 95px 25px rgba(48,8,70,.64),inset 0 0 210px 72px rgba(5,1,10,.78);
-  mix-blend-mode:multiply;will-change:opacity,filter,transform;transition:opacity .65s ease;
+    radial-gradient(ellipse at center,transparent 36%,rgba(56,12,78,.28) 60%,rgba(98,22,138,.65) 88%,rgba(42,6,60,.92) 100%),
+    linear-gradient(180deg,rgba(58,12,80,.45) 0%,transparent 16%,transparent 84%,rgba(35,6,50,.6) 100%),
+    linear-gradient(90deg,rgba(65,14,90,.5) 0%,transparent 14%,transparent 86%,rgba(65,14,90,.5) 100%);
+  box-shadow:
+    inset 0 0 75px 20px rgba(110,26,155,.52),
+    inset 0 0 160px 55px rgba(45,8,65,.78),
+    inset 0 0 280px 100px rgba(10,1,16,.92);
+  will-change:opacity,transform;transition:opacity .65s ease;
 }
 .critical-pd .critical-pd-vignette{
   opacity:var(--pd-vignette-opacity);
 }
 .critical-pd-special .critical-pd-vignette{animation:critical-mental-breath 2.9s ease-in-out infinite}
-.critical-tendrils{opacity:0;transition:opacity .6s ease;filter:saturate(.9) contrast(1.12)}
+.critical-tendrils{opacity:0;transition:opacity .6s ease;transform:translateZ(0);will-change:opacity}
 .critical-pd-special .critical-tendrils,.critical-pd-retracting .critical-tendrils{opacity:var(--pd-tendril-opacity)}
 .critical-distortion{
   opacity:0;
   background:repeating-linear-gradient(0deg,transparent 0 5px,rgba(72,25,88,.055) 6px,transparent 8px),linear-gradient(90deg,rgba(34,9,48,.13),transparent 5% 95%,rgba(48,11,65,.14));
   -webkit-mask-image:radial-gradient(ellipse at center,transparent 35%,rgba(0,0,0,.28) 61%,#000 92%);mask-image:radial-gradient(ellipse at center,transparent 35%,rgba(0,0,0,.28) 61%,#000 92%);
-  mix-blend-mode:soft-light;will-change:opacity,transform,filter;
+  mix-blend-mode:soft-light;will-change:opacity;
 }
 .critical-pd-special .critical-distortion{opacity:var(--pd-distortion-opacity);animation:critical-mental-slip 2.1s ease-in-out infinite}
 .critical-combined .critical-distortion{mix-blend-mode:soft-light}
@@ -2224,15 +2228,12 @@ body.critical-pd-zero [data-resource-key="pd"]>b{background:transparent!importan
   72%{transform:translate(0,0) scale(1)}
 }
 @keyframes critical-mental-breath{
-  0%,100%{transform:scale(1);filter:brightness(.88) blur(0)}
-  46%{transform:scale(1.022) rotate(.1deg);filter:brightness(.72) blur(.45px)}
-  56%{transform:scale(1.011) rotate(-.08deg);filter:brightness(.82) blur(.15px)}
+  0%,100%{opacity:var(--pd-vignette-opacity);transform:scale(1)}
+  50%{opacity:calc(var(--pd-vignette-opacity) + .1);transform:scale(1.006)}
 }
 @keyframes critical-mental-slip{
-  0%,100%{transform:translate3d(0,0,0) scale(1);filter:brightness(.9)}
-  22%{transform:translate3d(-.7px,.4px,0) scale(1.002);filter:brightness(.78)}
-  48%{transform:translate3d(.5px,-.6px,0) scale(1.004)}
-  73%{transform:translate3d(-.35px,.3px,0) scale(1.001);filter:brightness(.84)}
+  0%,100%{opacity:var(--pd-distortion-opacity)}
+  50%{opacity:calc(var(--pd-distortion-opacity) * 1.35)}
 }
 @keyframes critical-resource-anxiety{
   0%,100%{transform:translate3d(0,0,0) rotate(0)}
@@ -4062,7 +4063,7 @@ body.warning-pd-state .vigilia-resource-block.resource-pd .vigilia-pip.filled:no
 /* ── PD: Crítico (<= 25% — Pavor / Terror / Aberração Mental) ── */
 body.critical-pd-state .vigilia-resource-block.resource-pd .resource-badge-group {
   filter: drop-shadow(0 0 14px rgba(168, 85, 247, 0.95)) drop-shadow(0 0 26px rgba(107, 33, 168, 0.75));
-  animation: vigilia-pd-critical-anxiety 0.75s ease-in-out infinite;
+  animation: vigilia-pd-critical-glow 3s ease-in-out infinite alternate;
 }
 body.critical-pd-state .vigilia-resource-block.resource-pd .res-tag {
   color: #f3e8ff;
@@ -4081,14 +4082,12 @@ body.critical-pd-state .vigilia-resource-block.resource-pd .vigilia-pip.filled:n
   background: #a855f7 !important;
   border-color: #f3e8ff !important;
   box-shadow: 0 0 10px rgba(168, 85, 247, 0.9), 0 0 22px rgba(126, 34, 206, 0.75);
-  animation: vigilia-pip-pd-pulse 2.2s ease-in-out infinite;
 }
 body.critical-pd-state .vigilia-page {
   box-shadow: inset 0 0 70px 20px rgba(60, 10, 85, 0.45);
 }
 body.critical-pd-state .vigilia-character-portrait {
-  filter: contrast(1.1) drop-shadow(0 0 16px rgba(139, 92, 246, 0.4));
-  animation: vigilia-portrait-sanity-drift 6s ease-in-out infinite;
+  filter: contrast(1.08) drop-shadow(0 0 16px rgba(139, 92, 246, 0.45));
 }
 
 /* ── PD: Zero (0 PD — Colapso Psicológico / Teste de Trauma) ── */
@@ -4132,27 +4131,14 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
   100% { box-shadow: 0 0 14px rgba(255, 18, 46, 1), 0 0 20px rgba(220, 0, 30, 0.7); }
 }
 
-@keyframes vigilia-pd-critical-anxiety {
-  0%, 100% { transform: translate(0, 0) scale(1); filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.8)); }
-  20% { transform: translate(-1.5px, 0.8px) scale(1.01); filter: drop-shadow(0 0 16px rgba(192, 132, 252, 0.95)); }
-  40% { transform: translate(1.2px, -0.6px) scale(0.99); }
-  60% { transform: translate(-0.8px, -1px) scale(1.015); }
-  80% { transform: translate(1px, 0.5px) scale(1); }
-}
-
-@keyframes vigilia-pip-pd-pulse {
-  0%, 100% { box-shadow: 0 0 6px rgba(168, 85, 247, 0.6); }
-  50% { box-shadow: 0 0 16px rgba(192, 132, 252, 1), 0 0 22px rgba(126, 34, 206, 0.8); }
+@keyframes vigilia-pd-critical-glow {
+  0% { filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.8)) drop-shadow(0 0 22px rgba(107, 33, 168, 0.55)); transform: scale(1); }
+  100% { filter: drop-shadow(0 0 18px rgba(192, 132, 252, 0.95)) drop-shadow(0 0 32px rgba(147, 51, 234, 0.8)); transform: scale(1.015); }
 }
 
 @keyframes vigilia-insane-flash {
-  0% { filter: drop-shadow(0 0 12px #3b0764) brightness(0.8); }
-  100% { filter: drop-shadow(0 0 28px #c084fc) drop-shadow(0 0 50px #581c87) brightness(1.2); }
-}
-
-@keyframes vigilia-portrait-sanity-drift {
-  0%, 100% { filter: contrast(1.1) drop-shadow(0 0 12px rgba(107, 33, 168, 0.35)); }
-  50% { filter: contrast(1.16) brightness(0.92) drop-shadow(0 0 24px rgba(147, 51, 234, 0.65)); }
+  0% { filter: drop-shadow(0 0 14px rgba(126, 34, 206, 0.7)) drop-shadow(0 0 25px rgba(88, 28, 135, 0.5)); transform: scale(1); }
+  100% { filter: drop-shadow(0 0 24px rgba(192, 132, 252, 0.95)) drop-shadow(0 0 45px rgba(147, 51, 234, 0.85)); transform: scale(1.02); }
 }
 
 /* ─── CORPO PRINCIPAL EM 3 COLUNAS ───────────────────────────────────────── */
