@@ -16,12 +16,12 @@
   pointer-events: none;
   font-family: "Hanken Grotesk", -apple-system, sans-serif;
   font-weight: 900;
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1;
   color: #fff;
   text-shadow:
     0 2px 10px rgba(0, 0, 0, 0.9),
-    0 0 4px rgba(0, 0, 0, 0.95);
+    0 0 6px rgba(0, 0, 0, 0.95);
   white-space: nowrap;
   user-select: none;
   will-change: transform, opacity;
@@ -52,10 +52,146 @@
   }
 }
 
+/* Fase 2: Pips Fantasmas (perda de PV/PD) */
+.vigilia-pip.ghost,
+.pip.ghost {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.95), 0 0 18px rgba(255, 255, 255, 0.6) !important;
+  opacity: 1 !important;
+  transform: skewX(-14deg) scale(1.08);
+}
+.pip.ghost {
+  transform: scale(1.08);
+}
+
+.vigilia-pip.ghost.ghost-drain,
+.pip.ghost.ghost-drain {
+  transition: opacity 0.45s ease, background 0.45s ease, border-color 0.45s ease, box-shadow 0.45s ease, transform 0.45s ease !important;
+  transition-delay: calc(var(--i, 0) * 40ms) !important;
+  background: rgba(8, 18, 14, 0.85) !important;
+  border-color: #8e9a93 !important;
+  box-shadow: none !important;
+  opacity: 0.3 !important;
+  transform: skewX(-14deg) scale(1);
+}
+.pip.ghost.ghost-drain {
+  transform: scale(1);
+  background: #181924 !important;
+  border-color: #585a69 !important;
+}
+
+/* Fase 2: Ganho de recurso (pip pop) */
+.vigilia-pip.pip-pop,
+.pip.pip-pop {
+  animation: pip-pop-anim 0.45s cubic-bezier(0.18, 0.89, 0.32, 1.28) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+@keyframes pip-pop-anim {
+  0% {
+    transform: scale(0.4);
+    filter: brightness(2.2);
+  }
+  60% {
+    transform: scale(1.22);
+    filter: brightness(1.7);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+/* Fase 2: Tremor no bloco ao perder PV */
+.res-shake {
+  animation: res-shake-anim 160ms ease-in-out;
+}
+
+@keyframes res-shake-anim {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+
+/* Fase 2: Barra fantasma (estilo jogo de luta) */
+.ghost-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: inherit;
+  pointer-events: none;
+  transition: width 0.45s cubic-bezier(0.2, 0.8, 0.25, 1), opacity 0.3s ease;
+  z-index: 1;
+}
+
+/* Fase 3: Sucesso Crítico (brilho e contorno dourado) */
+#dice-stage-result.crit-result {
+  border-color: #fbbf24 !important;
+  box-shadow: 0 0 28px rgba(251, 191, 36, 0.45), 0 15px 45px rgba(0, 0, 0, 0.95) !important;
+}
+
+#dice-stage-result.crit-result strong {
+  color: #fde68a !important;
+  text-shadow: 0 0 16px rgba(251, 191, 36, 0.8), 0 0 30px rgba(245, 158, 11, 0.5);
+  transform: scale(1.08);
+}
+
+#dice-stage-result.crit-result strong.landed {
+  animation: crit-total-punch 220ms cubic-bezier(0.18, 0.89, 0.32, 1.35) both;
+}
+
+@keyframes crit-total-punch {
+  0% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1.08);
+  }
+}
+
+/* Fase 4: Falha Crítica (dessaturação e banner sombrio) */
+.stage-fumble-desat {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, rgba(15, 15, 20, 0.45), rgba(4, 4, 7, 0.88));
+  backdrop-filter: saturate(0.18) contrast(1.15) brightness(0.8);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: 2;
+}
+
+#dice-stage.fumble-desat .stage-fumble-desat {
+  opacity: 1;
+}
+
+#dice-stage-result.fumble-result {
+  border-color: #4b5563 !important;
+  background: #0d0e15f2 !important;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.95), 0 0 16px rgba(185, 28, 28, 0.35) !important;
+}
+
+#dice-stage-result.fumble-result strong {
+  color: #9ca3af !important;
+  text-shadow: 0 0 10px rgba(220, 38, 38, 0.5);
+}
+
 /* Acessibilidade: Movimento Reduzido */
 @media (prefers-reduced-motion: reduce) {
-  #dice-stage-result strong.landed {
+  #dice-stage-result strong.landed,
+  #dice-stage-result.crit-result strong.landed,
+  .vigilia-pip.pip-pop,
+  .pip.pip-pop,
+  .res-shake {
     animation: none !important;
+  }
+  .stage-fumble-desat {
+    transition: none !important;
   }
   .fx-float-text,
   .fx-burst-particle,
@@ -63,4 +199,3 @@
     display: none !important;
   }
 }
-

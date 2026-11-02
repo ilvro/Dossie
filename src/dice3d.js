@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { createDreadSequence } from './dice-dread-fx.js';
+import { createCritSequence, createFumbleSequence } from './fx/dice-crit-fx.js';
 import { countUp, fxEnabled } from './fx/ui-fx.js';
 
 const geometryFactories = {
@@ -33,7 +34,7 @@ let animationFrame;
 let cleanupTimer;
 let audioContext;
 let noiseBuffer;
-let activeDreadSequence = null;
+let activeSequence = null;
 const reducedMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
 
 function getAudioContext() {
@@ -63,16 +64,21 @@ function playTick(progress = 0) {
   const context = getAudioContext();
   if (!context) return;
   try {
+    if (context.state === 'suspended') {
+      context.resume?.().catch(() => {});
+    }
     const now = context.currentTime;
     const osc = context.createOscillator();
     const gain = context.createGain();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(900 + progress * 900, now);
-    gain.gain.setValueAtTime(0.02, now);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.02);
+    osc.type = 'triangle';
+    const freq = 750 + progress * 750;
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.055, now + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.038);
     osc.connect(gain).connect(context.destination);
     osc.start(now);
-    osc.stop(now + 0.025);
+    osc.stop(now + 0.042);
   } catch { /* áudio é opcional */ }
 }
 
@@ -221,7 +227,34 @@ function computeOutcome(dice, values, rollMode, modifier, dreadIndex) {
       total = countedValues.reduce((sum, value) => sum + value, 0) + modifier;
     }
   }
-  return { dreadIndex, dreadValue, vanquished, destroyed, counted, countedValues, total, chosenValue, chosenIndex };
+  return { dreadIndex, dreadValue, vanquished, destroyed, counted, countedValues, total, chosenValue, chosenIndex, values };
+}
+
+/**
+ * Classifica a rolagem quanto a Sucesso Crítico ou Falha Crítica.
+ * Mesma regra da Vigília: sem d20, ≥2 dados, contando apenas os dados válidos (outcome.counted).
+ * critIndices = índices contados com valor RA (máximo 2 primeiros).
+ */
+export function classifyRoll(dice, outcome) {
+  const { counted, countedValues, values } = outcome;
+  if (!countedValues || countedValues.length < 1 || !dice || dice.length < 2 || dice.some(d => d.sides === 20)) {
+    return { crit: false, fumble: false, ra: null, rb: null, critIndices: [], fumbleIndices: [] };
+  }
+  const ra = Math.max(...countedValues);
+  const rb = Math.min(...countedValues);
+  const countHighest = countedValues.filter(v => v === ra).length;
+  const crit = countHighest >= 2 && ra >= 6;
+  const fumble = countedValues.every(v => v === 1);
+
+  const critIndices = crit
+    ? counted.filter(idx => (values ? values[idx] : countedValues[counted.indexOf(idx)]) === ra).slice(0, 2)
+    : [];
+
+  const fumbleIndices = fumble
+    ? counted.slice()
+    : [];
+
+  return { crit, fumble, ra, rb, critIndices, fumbleIndices };
 }
 
 function showResult(resultNode, dice, results, title, modifier = 0, rollMode = 'sum', outcome = computeOutcome(dice, results, rollMode, modifier, -1)) {
@@ -239,14 +272,11 @@ function showResult(resultNode, dice, results, title, modifier = 0, rollMode = '
   const sep = (isPick || dreadIndex >= 0) ? ' ' : '<i>+</i>';
   const diceBreakdownHtml = tags.join(sep) + modifierLabel;
 
-  let vigiliaMetaHtml = '';
-  if (countedValues.length >= 1 && results.length >= 2 && dice.every(d => d.sides !== 20)) {
-    const ra = Math.max(...countedValues);
-    const rb = Math.min(...countedValues);
-    const countHighest = countedValues.filter(v => v === ra).length;
-    const isCritSuccess = countHighest >= 2 && ra >= 6;
-    const isCritFumble = countedValues.every(v => v === 1);
+  const classification = classifyRoll(dice, outcome);
+  const { crit: isCritSuccess, fumble: isCritFumble, ra, rb } = classification;
 
+  let vigiliaMetaHtml = '';
+  if (ra !== null && rb !== null) {
     vigiliaMetaHtml = `
       <div class="vigilia-roll-meta">
         <span class="ra-badge" title="Rolagem Alta (maior dado)">RA: <b>${ra}</b></span>
@@ -271,12 +301,14 @@ function showResult(resultNode, dice, results, title, modifier = 0, rollMode = '
 
   resultNode.innerHTML = `<small>${title}</small><div>${diceBreakdownHtml}</div>${vigiliaMetaHtml}${dreadHtml}${totalHtml}<button type="button" class="btn-dice-open-log" data-open-roll-log title="Ver histórico de rolagens">HISTÓRICO ▾</button>`;
   resultNode.classList.toggle('dread-result', dreadIndex >= 0);
+  resultNode.classList.toggle('crit-result', isCritSuccess);
+  resultNode.classList.toggle('fumble-result', isCritFumble);
   resultNode.classList.add('visible');
 
   if (shouldAnimateTotal) {
     const strong = resultNode.querySelector('strong[data-total]');
     if (strong) {
-      const duration = Math.min(650, 220 + total * 25);
+      const duration = isCritSuccess ? 900 : Math.min(650, 220 + total * 25);
       countUp(strong, total, {
         duration,
         onTick: (progress) => playTick(progress)
@@ -302,11 +334,11 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
   if (!stage || !canvas) return Promise.resolve(null);
   if (sharedAudioContext) audioContext = sharedAudioContext;
   getAudioContext();
-  activeDreadSequence?.finish();
-  activeDreadSequence = null;
+  activeSequence?.finish();
+  activeSequence = null;
   cancelAnimationFrame(animationFrame); clearTimeout(cleanupTimer);
-  stage.classList.remove('dread-active', 'dread-impact', 'dread-vanquished');
-  stage.classList.add('active'); resultNode.classList.remove('visible', 'dread-result');
+  stage.classList.remove('dread-active', 'dread-impact', 'dread-vanquished', 'fumble-desat');
+  stage.classList.add('active'); resultNode.classList.remove('visible', 'dread-result', 'crit-result', 'fumble-result');
 
   return new Promise(resolve => {
     let resolved = false;
@@ -362,19 +394,31 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
     const dice = list.map((config, index) => createDie(scene, world, config, index, list.length));
     const dreadIndex = dice.findIndex(die => die.dread);
     const start = performance.now(); let last = start; let settledAt = 0; let finishedAt = 0; let finished = false;
-    let sequence = null;
+    let sequenceFactories = [];
+    let currentSequence = null;
+    let seqIndex = 0;
+
     function animate(now) {
       const delta = Math.min(.033, (now - last) / 1000); last = now;
-      if (sequence) {
-        // Durante a sequência do pavor a física fica congelada; o FX controla as malhas.
-        const running = sequence.update(now);
+      if (currentSequence) {
+        // Durante a execução de FX os dados são controlados pelas sequências
+        const running = currentSequence.update(now);
         renderer.render(scene, camera);
         if (running) { animationFrame = requestAnimationFrame(animate); return; }
-        // Fim do FX: mantém o último quadro (não volta a sincronizar com a física).
-        sequence = null;
+        currentSequence.finish();
+        seqIndex++;
+        if (seqIndex < sequenceFactories.length) {
+          const isLast = seqIndex === sequenceFactories.length - 1;
+          currentSequence = sequenceFactories[seqIndex](isLast ? revealResult : undefined);
+          activeSequence = currentSequence;
+          animationFrame = requestAnimationFrame(animate);
+          return;
+        }
+        currentSequence = null;
+        activeSequence = null;
         return;
       }
-      if (finished && !sequence && now - finishedAt >= 900) return;
+      if (finished && !currentSequence && now - finishedAt >= 900) return;
       world.step(1 / 60, delta, 3);
 
       // Trava de segurança física: impede que dados saiam da área da ficha mesmo com tunelamento
@@ -415,13 +459,36 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
         finished = true;
         finishedAt = now;
         dice.forEach(die => { die.body.velocity.setZero(); die.body.angularVelocity.setZero(); });
-        const values = dice.map(topFace);
+        let values = dice.map(topFace);
+
+        // Modo de teste dev: força resultados se window.__forceDice estiver definido
+        if (import.meta.env.DEV && Array.isArray(window.__forceDice)) {
+          const forced = window.__forceDice;
+          window.__forceDice = null;
+          forced.forEach((fVal, idx) => {
+            if (fVal !== undefined && dice[idx]) {
+              values[idx] = fVal;
+              const die = dice[idx];
+              const targetFace = die.faces?.find(f => f.value === fVal);
+              if (targetFace && die.mesh) {
+                const q = new THREE.Quaternion().setFromUnitVectors(targetFace.normal.clone(), new THREE.Vector3(0, 1, 0));
+                const rotY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.random() * Math.PI * 2);
+                q.multiply(rotY);
+                die.mesh.quaternion.copy(q);
+                die.body.quaternion.copy(q);
+              }
+            }
+          });
+        }
+
         const outcome = computeOutcome(dice, values, rollMode, modifier, dreadIndex);
         const { total, chosenValue, chosenIndex, destroyed } = outcome;
+        const classification = classifyRoll(dice, outcome);
+
         const revealResult = () => {
           showResult(resultNode, dice, values, title, modifier, rollMode, outcome);
           clearTimeout(cleanupTimer);
-          cleanupTimer = setTimeout(closeDice3d, 4200);
+          cleanupTimer = setTimeout(closeDice3d, classification.crit ? 5200 : 4200);
           finishResolve({
             values,
             total,
@@ -442,23 +509,58 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
             }))
           });
         };
+
+        sequenceFactories = [];
         if (dreadIndex >= 0) {
-          stage.classList.add('dread-active');
-          sequence = createDreadSequence({
-            scene, camera, dice, dreadIndex,
-            victims: [...destroyed],
-            vanquished: outcome.vanquished,
-            lights: { hemi, key },
-            audio: audioContext,
-            reducedMotion: Boolean(reducedMotionQuery?.matches),
-            onImpact: kind => pulseStage(stage, kind === 'vanquished' ? 'dread-vanquished' : 'dread-impact'),
-            onReveal: () => {
-              stage.classList.remove('dread-active');
-              activeDreadSequence = null;
-              revealResult();
-            }
+          sequenceFactories.push((onSeqReveal) => {
+            stage.classList.add('dread-active');
+            return createDreadSequence({
+              scene, camera, dice, dreadIndex,
+              victims: [...destroyed],
+              vanquished: outcome.vanquished,
+              lights: { hemi, key },
+              audio: audioContext,
+              reducedMotion: Boolean(reducedMotionQuery?.matches),
+              onImpact: kind => pulseStage(stage, kind === 'vanquished' ? 'dread-vanquished' : 'dread-impact'),
+              onReveal: () => {
+                stage.classList.remove('dread-active');
+                onSeqReveal?.();
+              }
+            });
           });
-          activeDreadSequence = sequence;
+        }
+
+        if (classification.crit) {
+          sequenceFactories.push((onSeqReveal) => {
+            return createCritSequence({
+              scene, camera, dice,
+              indices: classification.critIndices,
+              lights: { hemi, key },
+              audio: audioContext,
+              reducedMotion: Boolean(reducedMotionQuery?.matches),
+              onReveal: onSeqReveal
+            });
+          });
+        }
+
+        if (classification.fumble) {
+          sequenceFactories.push((onSeqReveal) => {
+            return createFumbleSequence({
+              scene, camera, dice, renderer,
+              indices: classification.fumbleIndices,
+              lights: { hemi, key },
+              audio: audioContext,
+              reducedMotion: Boolean(reducedMotionQuery?.matches),
+              onReveal: onSeqReveal,
+              stage
+            });
+          });
+        }
+
+        if (sequenceFactories.length) {
+          seqIndex = 0;
+          currentSequence = sequenceFactories[0](sequenceFactories.length === 1 ? revealResult : undefined);
+          activeSequence = currentSequence;
         } else {
           revealResult();
         }
@@ -470,9 +572,9 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
 }
 
 export function closeDice3d() {
-  activeDreadSequence?.finish();
-  activeDreadSequence = null;
-  document.querySelector('#dice-stage')?.classList.remove('active', 'dread-active', 'dread-impact', 'dread-vanquished');
-  document.querySelector('#dice-stage-result')?.classList.remove('visible');
+  activeSequence?.finish();
+  activeSequence = null;
+  document.querySelector('#dice-stage')?.classList.remove('active', 'dread-active', 'dread-impact', 'dread-vanquished', 'fumble-desat');
+  document.querySelector('#dice-stage-result')?.classList.remove('visible', 'crit-result', 'dread-result', 'fumble-result');
   cancelAnimationFrame(animationFrame); clearTimeout(cleanupTimer);
 }
