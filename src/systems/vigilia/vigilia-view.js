@@ -889,7 +889,10 @@ export function renderVigiliaSheet(sheet, editMode, options = {}) {
       <aside class="vigilia-floating-dock" aria-label="Ferramentas de Vigília">
         ${dadoPavor ? `
           <div class="dock-pavor-active">
-            <span class="pavor-dock-die">d${dadoPavor}</span>
+            <span class="pavor-dock-die ${sheet.pavorEmbraced ? 'embraced' : ''}" data-sides="${dadoPavor}">
+              ${die(dadoPavor, 'micro', true)}
+              <span class="pavor-dock-label">d${dadoPavor}</span>
+            </span>
             <button type="button" class="dock-btn-pavor" data-pavor-action="control" title="Controlar Pavor (-1 PD)">−1 PD</button>
             <button type="button" class="dock-btn-pavor" data-pavor-action="embrace" title="Abraçar Pavor (-5 PD)">−5 PD</button>
             <button type="button" class="dock-btn-close" data-pavor-action="clear" title="Remover">✕</button>

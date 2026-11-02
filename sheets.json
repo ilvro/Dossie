@@ -17,7 +17,7 @@
     "backgroundZoom": 100,
     "diceColor": "",
     "themeColor": "",
-    "viewMode": "cinematic",
+    "viewMode": "vigilia",
     "cinematicTokenX": 50,
     "cinematicTokenY": 52,
     "cinematicTokenScale": 100,
@@ -313,7 +313,7 @@
       }
     ],
     "favorite": false,
-    "dadoPavor": null,
+    "dadoPavor": 6,
     "traumasCountScene": 2,
     "lesoesCountScene": 1
   },

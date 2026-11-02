@@ -181,6 +181,77 @@
   text-shadow: 0 0 10px rgba(220, 38, 38, 0.5);
 }
 
+/* Fase 5: Dado de Pavor no Dock (Forma real, Materialização e Troca de Passo) */
+.pavor-dock-die {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  position: relative;
+  vertical-align: middle;
+}
+
+.pavor-dock-die .die-svg.micro {
+  width: 22px;
+  height: 23px;
+  --card-accent: #7c3aed;
+  filter: drop-shadow(0 0 6px rgba(124, 58, 237, 0.7));
+  transition: filter 0.3s ease;
+}
+
+.pavor-dock-die.embraced {
+  color: #fecdd3 !important;
+  animation: embraced-pulse 1.6s infinite ease-in-out;
+}
+
+.pavor-dock-die.embraced .die-svg.micro {
+  --card-accent: #f43f5e !important;
+  filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.95));
+}
+
+@keyframes embraced-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px rgba(244, 63, 94, 0.7));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 14px rgba(244, 63, 94, 1));
+    transform: scale(1.06);
+  }
+}
+
+.pavor-dock-die.materialize {
+  animation: pavor-die-materialize 650ms cubic-bezier(0.18, 0.89, 0.32, 1.28) both;
+}
+
+@keyframes pavor-die-materialize {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+    filter: blur(6px) drop-shadow(0 0 18px #a855f7);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0px) drop-shadow(0 0 6px #7c3aed);
+  }
+}
+
+.pavor-morph-old {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.pavor-smoke-particle {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(4px);
+  will-change: transform, opacity;
+  z-index: 10;
+}
+
 /* Acessibilidade: Movimento Reduzido */
 @media (prefers-reduced-motion: reduce) {
   #dice-stage-result strong.landed,

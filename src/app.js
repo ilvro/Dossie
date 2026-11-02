@@ -180,8 +180,9 @@ import {
   renderQuickSwitcherResults,
   renderMobileSheetDrawer
 } from './workspace/workspace-sidebar.js';
-import { setFxEnabledGetter, runPostRenderFx } from './fx/ui-fx.js';
+import { setFxEnabledGetter, runPostRenderFx, queuePostRenderFx } from './fx/ui-fx.js';
 import { trackResources } from './fx/resource-fx.js';
+import { pavorStepFx } from './fx/pavor-fx.js';
 
 let currentOriginalTab = 'habilidades';
 let originalSkillsFilter = '';
@@ -3725,7 +3726,9 @@ function bindVigiliaEvents() {
    e.stopPropagation();
    const action = btn.dataset.pavorAction;
    if (action === 'trigger') {
+    const from = state.dadoPavor;
     state.dadoPavor = stepUpPavor(state.dadoPavor);
+    queuePostRenderFx(() => pavorStepFx(from, state.dadoPavor));
     save(false);
     render();
     const toast = document.querySelector('#save-toast');
@@ -3896,7 +3899,9 @@ function bindVigiliaEvents() {
  const applyTraumaChoice = (outcome, rollLabel = '') => {
   state.traumasCountScene = (state.traumasCountScene || 0) + 1;
   if (outcome.pavor) {
+   const from = state.dadoPavor;
    state.dadoPavor = stepUpPavor(state.dadoPavor);
+   queuePostRenderFx(() => pavorStepFx(from, state.dadoPavor));
   }
   if (outcome.pdBonus) {
    state.pd = Math.max(1, state.pd + outcome.pdBonus);
