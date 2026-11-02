@@ -180,9 +180,9 @@ import {
   renderQuickSwitcherResults,
   renderMobileSheetDrawer
 } from './workspace/workspace-sidebar.js';
-import { setFxEnabledGetter, runPostRenderFx, queuePostRenderFx } from './fx/ui-fx.js';
+import { setFxEnabledGetter, runPostRenderFx, queuePostRenderFx, rectOf, flyParticles } from './fx/ui-fx.js';
 import { trackResources } from './fx/resource-fx.js';
-import { pavorStepFx } from './fx/pavor-fx.js';
+import { pavorStepFx, controlPavorFx, pavorDissipateFx, embracePavorFx } from './fx/pavor-fx.js';
 
 let currentOriginalTab = 'habilidades';
 let originalSkillsFilter = '';
@@ -3739,6 +3739,9 @@ function bindVigiliaEvents() {
     }
    } else if (action === 'control') {
     if (state.pd >= 1) {
+     const fromRect = rectOf('.vigilia-resource-block.resource-pd .res-num') || rectOf('.vigilia-resource-block.resource-pd');
+     const toRect = rectOf('.pavor-dock-die') || rectOf('.dock-pavor-active') || rectOf('.vigilia-floating-dock');
+     const prevSides = state.dadoPavor;
      state.pd -= 1;
      state.dadoPavor = stepDownPavor(state.dadoPavor);
      updateResourceUi('pd');
@@ -3750,11 +3753,29 @@ function bindVigiliaEvents() {
       toast.classList.add('show');
       setTimeout(() => toast.classList.remove('show'), 2000);
      }
+     flyParticles(fromRect, toRect, { count: 6, color: '#c4b5fd', duration: 600 }).then(() => {
+      if (state.dadoPavor) {
+       controlPavorFx(prevSides, state.dadoPavor, toRect);
+      } else {
+       pavorDissipateFx(toRect);
+      }
+     });
     } else {
-     alert('Pontos de Determinação insuficientes para controlar o pavor (necessário 1 PD).');
+     btn.classList.remove('btn-shake-error');
+     void btn.offsetWidth;
+     btn.classList.add('btn-shake-error');
+     setTimeout(() => btn.classList.remove('btn-shake-error'), 450);
+     const toast = document.querySelector('#save-toast');
+     if (toast) {
+      toast.textContent = 'Pontos de Determinação insuficientes para controlar o pavor (necessário 1 PD).';
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+     }
     }
    } else if (action === 'embrace') {
     if (state.pd >= 5) {
+     const fromRect = rectOf('.vigilia-resource-block.resource-pd .res-num') || rectOf('.vigilia-resource-block.resource-pd');
+     const toRect = rectOf('.pavor-dock-die') || rectOf('.dock-pavor-active') || rectOf('.vigilia-floating-dock');
      state.pd -= 5;
      state.pavorEmbraced = true;
      updateResourceUi('pd');
@@ -3766,14 +3787,28 @@ function bindVigiliaEvents() {
       toast.classList.add('show');
       setTimeout(() => toast.classList.remove('show'), 2500);
      }
+     flyParticles(fromRect, toRect, { count: 16, color: '#c4b5fd', duration: 600 }).then(() => {
+      embracePavorFx(toRect);
+     });
     } else {
-     alert('Pontos de Determinação insuficientes para abraçar o pavor (necessário 5 PD).');
+     btn.classList.remove('btn-shake-error');
+     void btn.offsetWidth;
+     btn.classList.add('btn-shake-error');
+     setTimeout(() => btn.classList.remove('btn-shake-error'), 450);
+     const toast = document.querySelector('#save-toast');
+     if (toast) {
+      toast.textContent = 'Pontos de Determinação insuficientes para abraçar o pavor (necessário 5 PD).';
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+     }
     }
    } else if (action === 'clear') {
+    const toRect = rectOf('.pavor-dock-die') || rectOf('.dock-pavor-active') || rectOf('.vigilia-floating-dock');
     state.dadoPavor = null;
     state.pavorEmbraced = false;
     save(false);
     render();
+    if (toRect) pavorDissipateFx(toRect);
     const toast = document.querySelector('#save-toast');
     if (toast) {
      toast.textContent = 'PAVOR SUPERADO!';

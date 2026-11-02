@@ -252,6 +252,20 @@
   z-index: 10;
 }
 
+/* Shake de erro para botões com recurso insuficiente */
+.btn-shake-error {
+  animation: fx-btn-shake 0.4s ease-in-out !important;
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.7) !important;
+  color: #f43f5e !important;
+}
+
+@keyframes fx-btn-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
 /* Acessibilidade: Movimento Reduzido */
 @media (prefers-reduced-motion: reduce) {
   #dice-stage-result strong.landed,
