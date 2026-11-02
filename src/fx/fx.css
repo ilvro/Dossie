@@ -266,14 +266,492 @@
   40%, 80% { transform: translateX(4px); }
 }
 
+/* ================================================================== */
+/* Fase 7: Revelação de Tabela (Roleta + Carta 3D)                    */
+/* ================================================================== */
+
+.table-reveal-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  font-family: inherit;
+}
+
+.table-reveal-modal.show {
+  opacity: 1;
+}
+
+.table-reveal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 3, 6, 0.88);
+  backdrop-filter: blur(8px);
+  transition: background 0.5s ease;
+}
+
+.table-reveal-modal.severity-fatal .table-reveal-backdrop {
+  background: rgba(14, 2, 4, 0.94);
+}
+
+.table-reveal-container {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: 95vw;
+  max-height: 95vh;
+}
+
+/* Roleta vertical estilo caça-níquel */
+.roulette-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 18px;
+  background: #0d0914;
+  border: 1px solid #3b2064;
+  border-radius: 8px;
+  padding: 10px 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(0, 0, 0, 0.9);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.roulette-wrap.fade-out {
+  opacity: 0;
+  transform: scale(0.9);
+  pointer-events: none;
+}
+
+.roulette-header {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #a855f7;
+  font-weight: 800;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.roulette-viewport {
+  position: relative;
+  width: 290px;
+  height: 132px; /* 3 itens de 44px */
+  overflow: hidden;
+  border-radius: 6px;
+  background: #060309;
+  border: 1px solid #23123d;
+  box-shadow: inset 0 6px 12px rgba(0, 0, 0, 0.8), inset 0 -6px 12px rgba(0, 0, 0, 0.8);
+}
+
+.roulette-viewport::before,
+.roulette-viewport::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 38px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.roulette-viewport::before {
+  top: 0;
+  background: linear-gradient(to bottom, #060309 30%, transparent 100%);
+}
+
+.roulette-viewport::after {
+  bottom: 0;
+  background: linear-gradient(to top, #060309 30%, transparent 100%);
+}
+
+.roulette-pointer-box {
+  position: absolute;
+  top: 44px;
+  left: 0;
+  right: 0;
+  height: 44px;
+  border-top: 1px solid #7c3aed;
+  border-bottom: 1px solid #7c3aed;
+  background: rgba(124, 58, 237, 0.12);
+  z-index: 2;
+  pointer-events: none;
+  box-shadow: 0 0 12px rgba(124, 58, 237, 0.35);
+  transition: border-color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.roulette-pointer-box.hit-fatal {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.22);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.6);
+}
+
+.roulette-pointer-box.hit-grave {
+  border-color: #f87171;
+  background: rgba(248, 113, 113, 0.18);
+  box-shadow: 0 0 14px rgba(248, 113, 113, 0.45);
+}
+
+.roulette-pointer-box.hit-moderada {
+  border-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.18);
+  box-shadow: 0 0 14px rgba(251, 191, 36, 0.45);
+}
+
+.roulette-pointer-box.hit-alivio {
+  border-color: #34d399;
+  background: rgba(52, 211, 153, 0.18);
+  box-shadow: 0 0 16px rgba(52, 211, 153, 0.5);
+}
+
+.roulette-reel {
+  position: absolute;
+  top: 44px;
+  left: 0;
+  right: 0;
+  will-change: transform;
+}
+
+.roulette-item {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #c4b5fd;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+}
+
+/* Palco da Carta 3D */
+.table-card-stage {
+  perspective: 1200px;
+  width: 320px;
+  min-height: 440px;
+}
+
+.table-card-flipper {
+  position: relative;
+  width: 100%;
+  min-height: 440px;
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.table-card-flipper.flipped {
+  transform: rotateY(180deg);
+}
+
+.table-card-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
+  box-sizing: border-box;
+}
+
+/* Verso da carta (decorado) */
+.table-card-back {
+  background: radial-gradient(circle at 50% 35%, #180d28 0%, #09040e 100%);
+  border: 2px solid #581c87;
+  padding: 24px;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.table-card-back::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 1px dashed rgba(168, 85, 247, 0.4);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.card-back-sigil {
+  width: 90px;
+  height: 90px;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.6));
+  animation: card-sigil-pulse 3s infinite ease-in-out;
+}
+
+@keyframes card-sigil-pulse {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.8; }
+  50% { transform: scale(1.05) rotate(3deg); opacity: 1; }
+}
+
+.card-back-title {
+  margin-top: 18px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #c4b5fd;
+  text-transform: uppercase;
+}
+
+.card-back-sub {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #7c3aed;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* Frente da carta (revelada) */
+.table-card-front {
+  transform: rotateY(180deg);
+  background: #110d18;
+  border: 2px solid #3b2064;
+  padding: 20px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  position: relative;
+}
+
+.table-card-front::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Severity styles para a carta */
+.table-card-front.severity-fatal {
+  border-color: #b91c1c;
+  background: radial-gradient(circle at 50% 10%, #200508 0%, #0d0103 100%);
+  box-shadow: 0 16px 45px rgba(220, 38, 38, 0.3), inset 0 0 20px rgba(185, 28, 28, 0.2);
+}
+.table-card-front.severity-fatal .card-title {
+  color: #f87171;
+  text-shadow: 0 0 10px rgba(248, 113, 113, 0.5);
+}
+
+.table-card-front.severity-grave {
+  border-color: #ef4444;
+  background: radial-gradient(circle at 50% 10%, #1e090d 0%, #0e0305 100%);
+  box-shadow: 0 16px 40px rgba(239, 68, 68, 0.25);
+}
+.table-card-front.severity-grave .card-title {
+  color: #fca5a5;
+}
+
+.table-card-front.severity-moderada {
+  border-color: #f59e0b;
+  background: radial-gradient(circle at 50% 10%, #1f1404 0%, #0d0901 100%);
+  box-shadow: 0 16px 40px rgba(245, 158, 11, 0.25);
+}
+.table-card-front.severity-moderada .card-title {
+  color: #fde68a;
+}
+
+.table-card-front.severity-alivio {
+  border-color: #10b981;
+  background: radial-gradient(circle at 50% 10%, #032117 0%, #010e0a 100%);
+  box-shadow: 0 16px 40px rgba(16, 185, 129, 0.25);
+}
+.table-card-front.severity-alivio .card-title {
+  color: #a7f3d0;
+  text-shadow: 0 0 12px rgba(52, 211, 153, 0.6);
+}
+
+/* Shake de Fatal */
+.table-card-flipper.shake-fatal {
+  animation: card-fatal-shake 0.55s ease-in-out;
+}
+
+@keyframes card-fatal-shake {
+  0%, 100% { transform: rotateY(180deg) translate(0, 0); }
+  15% { transform: rotateY(180deg) translate(-6px, 3px); }
+  30% { transform: rotateY(180deg) translate(6px, -4px); }
+  45% { transform: rotateY(180deg) translate(-5px, 2px); }
+  60% { transform: rotateY(180deg) translate(4px, -2px); }
+  75% { transform: rotateY(180deg) translate(-2px, 1px); }
+}
+
+/* Brilho de Alívio */
+.table-card-flipper.glow-alivio {
+  animation: card-alivio-glow 1.2s ease-out;
+}
+
+@keyframes card-alivio-glow {
+  0% { filter: drop-shadow(0 0 30px #34d399) brightness(1.3); }
+  100% { filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.4)) brightness(1); }
+}
+
+/* Detalhes internos da carta */
+.card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.card-table-badge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.card-roll-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+  letter-spacing: 0.5px;
+}
+
+.card-severity-badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.card-severity-badge.severity-fatal {
+  background: rgba(220, 38, 38, 0.25);
+  color: #f87171;
+  border: 1px solid rgba(220, 38, 38, 0.6);
+}
+.card-severity-badge.severity-grave {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+}
+.card-severity-badge.severity-moderada {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fde68a;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+}
+.card-severity-badge.severity-alivio {
+  background: rgba(16, 185, 129, 0.2);
+  color: #a7f3d0;
+  border: 1px solid rgba(16, 185, 129, 0.5);
+}
+
+.card-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 0.5px;
+}
+
+.card-desc {
+  font-size: 11px;
+  line-height: 1.5;
+  color: #cbd5e1;
+  margin: 0 0 12px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.card-effects-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.card-mechanic-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+.card-mechanic-tag.fatal {
+  background: rgba(185, 28, 28, 0.25);
+  border-color: #b91c1c;
+  color: #fca5a5;
+}
+.card-mechanic-tag.grave {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+.card-mechanic-tag.moderada {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fde68a;
+}
+.card-mechanic-tag.alivio {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #a7f3d0;
+}
+
+.table-card-apply-btn {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid #7c3aed;
+  background: #581c87;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(88, 28, 135, 0.4);
+}
+
+.table-card-apply-btn:hover {
+  background: #6b21a8;
+  border-color: #a855f7;
+  box-shadow: 0 4px 16px rgba(168, 85, 247, 0.6);
+  transform: translateY(-1px);
+}
+
 /* Acessibilidade: Movimento Reduzido */
 @media (prefers-reduced-motion: reduce) {
   #dice-stage-result strong.landed,
   #dice-stage-result.crit-result strong.landed,
   .vigilia-pip.pip-pop,
   .pip.pip-pop,
-  .res-shake {
+  .res-shake,
+  .table-card-flipper,
+  .table-card-flipper.shake-fatal,
+  .table-card-flipper.glow-alivio,
+  .roulette-wrap {
     animation: none !important;
+    transition: none !important;
   }
   .stage-fumble-desat {
     transition: none !important;

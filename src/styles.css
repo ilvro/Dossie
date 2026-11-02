@@ -4840,21 +4840,38 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
   animation: ghost-fade-out 220ms ease-out forwards, glitch-shake 380ms cubic-bezier(.22, .68, 0, 1.2) both;
 }
 
-/* ─── Dock Flutuante Discreto de A Vigília (Fixo no canto da tela, fora da folha) ── */
+/* ─── Dock Flutuante de Ordem II (Pavor, Lesões, Traumas - Fixo no canto inferior) ── */
 .vigilia-floating-dock {
   position: fixed;
-  bottom: 18px;
-  right: 24px;
-  z-index: 90;
+  bottom: 14px;
+  right: 50px;
+  z-index: 85;
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(8, 16, 12, 0.9);
+  background: rgba(8, 14, 11, 0.94);
   border: 1px solid #2d4538;
   border-radius: 24px;
   padding: 5px 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), 0 0 10px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  user-select: none;
+  transition: bottom 0.2s ease, right 0.2s ease, opacity 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .vigilia-floating-dock {
+    bottom: calc(56px + 10px);
+    right: 10px;
+    padding: 4px 8px;
+    gap: 6px;
+  }
+}
+
+.cinematic-page.presentation-active ~ .vigilia-floating-dock,
+.exporting-cinematic .vigilia-floating-dock {
+  display: none !important;
 }
 
 .vigilia-floating-dock .dock-pill-btn {
@@ -4919,6 +4936,176 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
   cursor: pointer;
   font-size: 11px;
   padding: 0 3px;
+}
+
+/* ─── Cards de Condição (Lesões e Traumas - Ordem II) ───────────────────── */
+.condition-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.condition-lesao .condition-type-badge,
+.cinematic-condition-badge.lesao,
+.dossier-condition-badge.lesao {
+  background: rgba(185, 28, 28, 0.25);
+  border: 1px solid rgba(239, 68, 68, 0.65);
+  color: #fca5a5;
+  box-shadow: 0 0 8px rgba(220, 38, 38, 0.3);
+}
+
+.condition-trauma .condition-type-badge,
+.cinematic-condition-badge.trauma,
+.dossier-condition-badge.trauma {
+  background: rgba(88, 28, 135, 0.3);
+  border: 1px solid rgba(168, 85, 247, 0.65);
+  color: #e9d5ff;
+  box-shadow: 0 0 8px rgba(147, 51, 234, 0.3);
+}
+
+.cinematic-condition-badge,
+.dossier-condition-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-right: 7px;
+  vertical-align: middle;
+}
+
+.btn-remove-condition {
+  background: rgba(220, 38, 38, 0.16);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #fca5a5;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  transition: all 0.15s ease;
+  margin-left: 6px;
+  padding: 0;
+}
+.btn-remove-condition:hover {
+  background: rgba(220, 38, 38, 0.65);
+  border-color: #ef4444;
+  color: #ffffff;
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+}
+
+/* ── A Vigília: Cards de Condição ── */
+.vigilia-power-card.is-condition {
+  background: rgba(14, 18, 16, 0.92);
+  border-radius: 6px;
+  padding: 10px 14px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  margin-bottom: 12px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.vigilia-power-card.is-condition.condition-lesao {
+  background: linear-gradient(135deg, rgba(46, 12, 12, 0.92) 0%, rgba(18, 10, 12, 0.96) 100%);
+  border: 1px solid rgba(220, 38, 38, 0.55);
+  border-left: 4px solid #ef4444;
+  box-shadow: 0 4px 18px rgba(185, 28, 28, 0.2), inset 0 0 24px rgba(185, 28, 28, 0.1);
+}
+.vigilia-power-card.is-condition.condition-lesao:hover {
+  border-color: rgba(239, 68, 68, 0.85);
+  border-left-color: #f87171;
+  box-shadow: 0 6px 24px rgba(220, 38, 38, 0.35), inset 0 0 28px rgba(220, 38, 38, 0.18);
+}
+
+.vigilia-power-card.is-condition.condition-trauma {
+  background: linear-gradient(135deg, rgba(38, 12, 58, 0.92) 0%, rgba(14, 10, 22, 0.96) 100%);
+  border: 1px solid rgba(147, 51, 234, 0.55);
+  border-left: 4px solid #a855f7;
+  box-shadow: 0 4px 18px rgba(126, 34, 206, 0.2), inset 0 0 24px rgba(126, 34, 206, 0.1);
+}
+.vigilia-power-card.is-condition.condition-trauma:hover {
+  border-color: rgba(168, 85, 247, 0.85);
+  border-left-color: #c084fc;
+  box-shadow: 0 6px 24px rgba(147, 51, 234, 0.35), inset 0 0 28px rgba(147, 51, 234, 0.18);
+}
+
+.vigilia-power-card.is-condition .condition-header-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.14);
+  margin-bottom: 8px;
+}
+
+.vigilia-power-card.is-condition .condition-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vigilia-power-card.is-condition .condition-card-title {
+  font-family: 'Cinzel', serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  letter-spacing: 0.04em;
+}
+.vigilia-power-card.is-condition.condition-lesao .condition-card-title {
+  color: #fca5a5;
+}
+.vigilia-power-card.is-condition.condition-trauma .condition-card-title {
+  color: #e9d5ff;
+}
+
+/* ── Cinemático: Cards de Condição ── */
+.cinematic-card.is-condition {
+  position: relative;
+  border-radius: 6px;
+}
+.cinematic-card.is-condition.condition-lesao {
+  background: linear-gradient(135deg, rgba(46, 12, 12, 0.75) 0%, rgba(18, 16, 22, 0.9) 100%) !important;
+  border: 1px solid rgba(220, 38, 38, 0.5) !important;
+  border-left: 4px solid #ef4444 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), inset 0 0 16px rgba(220, 38, 38, 0.15) !important;
+}
+.cinematic-card.is-condition.condition-trauma {
+  background: linear-gradient(135deg, rgba(40, 14, 60, 0.75) 0%, rgba(18, 16, 24, 0.9) 100%) !important;
+  border: 1px solid rgba(147, 51, 234, 0.5) !important;
+  border-left: 4px solid #a855f7 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), inset 0 0 16px rgba(147, 51, 234, 0.15) !important;
+}
+
+/* ── Tradicional / Dossier: Cards de Condição ── */
+.dossier-card.is-condition.condition-lesao {
+  border: 1px solid rgba(220, 38, 38, 0.45) !important;
+  border-left: 4px solid #ef4444 !important;
+  background: linear-gradient(135deg, rgba(45, 12, 12, 0.5) 0%, rgba(17, 18, 29, 0.96) 100%) !important;
+}
+.dossier-card.is-condition.condition-trauma {
+  border: 1px solid rgba(147, 51, 234, 0.45) !important;
+  border-left: 4px solid #a855f7 !important;
+  background: linear-gradient(135deg, rgba(40, 14, 55, 0.5) 0%, rgba(17, 18, 29, 0.96) 100%) !important;
 }
 
 /* Badge de Armadura no Equipamento */

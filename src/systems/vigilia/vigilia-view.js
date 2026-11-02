@@ -406,6 +406,30 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
               const isImpeto = card.id === 'impeto' || card.title?.toUpperCase().includes('ÍMPETO');
               const isAnalise = card.id === 'analise' || card.title?.toUpperCase().includes('ANÁLISE');
               const isProntidao = card.id === 'prontidao' || card.title?.toUpperCase().includes('PRONTIDÃO');
+              const isCondition = card.isCondition || card.type === 'Lesão' || card.type === 'Trauma' || card.type === 'Condição';
+
+              if (isCondition) {
+                const condType = (card.type || '').toLowerCase().includes('trauma') ? 'trauma' : 'lesao';
+                const condBadge = condType === 'trauma' ? 'CONDIÇÃO · TRAUMA' : 'CONDIÇÃO · LESÃO';
+                const condIcon = condType === 'trauma' ? '👁' : '🩸';
+                return `
+                  <article class="vigilia-power-card is-condition condition-${condType}">
+                    <div class="condition-header-strip">
+                      <span class="condition-type-badge">${condIcon} ${condBadge}</span>
+                      <div class="condition-actions">
+                        ${editCardBtn(card)}
+                        <button type="button" class="btn-remove-condition" data-delete-card-direct="${safe(card.id)}" title="Curar / Remover Condição">✕</button>
+                      </div>
+                    </div>
+                    <div class="condition-card-body">
+                      <h3 class="condition-card-title">${safe(card.title)}</h3>
+                      <div class="power-content">
+                        ${formatVigiliaText(card.content)}
+                      </div>
+                    </div>
+                  </article>
+                `;
+              }
 
               let extraBannerControl = '';
               if (isImpeto && impetoCard) {
@@ -646,9 +670,46 @@ function renderVigiliaBack(sheet, editMode, options) {
 }
 
 /**
- * Renderiza os Modais de Regras Oficiais de A Vigília
+ * Renderiza o Dock Flutuante de Pavor, Lesões e Traumas (Ordem II)
  */
-function renderVigiliaModals(sheet) {
+export function renderVigiliaDock(sheet) {
+  if (!sheet) return '';
+  const dadoPavor = sheet.dadoPavor;
+  const lesoesCount = sheet.lesoesCountScene || 0;
+  const traumasCount = sheet.traumasCountScene || 0;
+
+  return `
+    <!-- DOCK FLUTUANTE DISCRETO (FORA DA FOLHA, CANTO INFERIOR) -->
+    <aside class="vigilia-floating-dock" aria-label="Ferramentas de Ordem II">
+      ${dadoPavor ? `
+        <div class="dock-pavor-active">
+          <span class="pavor-dock-die ${sheet.pavorEmbraced ? 'embraced' : ''}" data-sides="${dadoPavor}">
+            ${die(dadoPavor, 'micro', true)}
+            <span class="pavor-dock-label">d${dadoPavor}</span>
+          </span>
+          <button type="button" class="dock-btn-pavor" data-pavor-action="control" title="Controlar Pavor (-1 PD)">−1 PD</button>
+          <button type="button" class="dock-btn-pavor" data-pavor-action="embrace" title="Abraçar Pavor (-5 PD)">−5 PD</button>
+          <button type="button" class="dock-btn-close" data-pavor-action="clear" title="Remover">✕</button>
+        </div>
+      ` : `
+        <button type="button" class="dock-pill-btn" data-pavor-action="trigger" title="Adicionar Dado de Pavor (+d6)">
+          + PAVOR
+        </button>
+      `}
+      <button type="button" class="dock-pill-btn" data-open-vigilia-modal="lesao" title="Testar Lesão (0 PV)">
+        LESÕES (${lesoesCount})
+      </button>
+      <button type="button" class="dock-pill-btn" data-open-vigilia-modal="trauma" title="Testar Trauma (0 PD)">
+        TRAUMAS (${traumasCount})
+      </button>
+    </aside>
+  `;
+}
+
+/**
+ * Renderiza os Modais de Regras Oficiais de A Vigília / Ordem II
+ */
+export function renderVigiliaModals(sheet) {
   const attrs = sheet.attributes || { Físico: 6, Mente: 6, Emoção: 6 };
   const skills = Array.isArray(sheet.skills) ? sheet.skills : [];
   const vigorSkill = skills.find(s => s.name.toUpperCase() === 'VIGOR')?.skillDie || 4;
@@ -885,35 +946,7 @@ export function renderVigiliaSheet(sheet, editMode, options = {}) {
         ${isBack ? renderVigiliaBack(sheet, editMode, options) : renderVigiliaFront(sheet, editMode, options)}
       </div>
 
-      <!-- DOCK FLUTUANTE DISCRETO (FORA DA FOLHA, CANTO INFERIOR) -->
-      <aside class="vigilia-floating-dock" aria-label="Ferramentas de Vigília">
-        ${dadoPavor ? `
-          <div class="dock-pavor-active">
-            <span class="pavor-dock-die ${sheet.pavorEmbraced ? 'embraced' : ''}" data-sides="${dadoPavor}">
-              ${die(dadoPavor, 'micro', true)}
-              <span class="pavor-dock-label">d${dadoPavor}</span>
-            </span>
-            <button type="button" class="dock-btn-pavor" data-pavor-action="control" title="Controlar Pavor (-1 PD)">−1 PD</button>
-            <button type="button" class="dock-btn-pavor" data-pavor-action="embrace" title="Abraçar Pavor (-5 PD)">−5 PD</button>
-            <button type="button" class="dock-btn-close" data-pavor-action="clear" title="Remover">✕</button>
-          </div>
-        ` : `
-          <button type="button" class="dock-pill-btn" data-pavor-action="trigger" title="Adicionar Dado de Pavor (+d6)">
-            + PAVOR
-          </button>
-        `}
-        <button type="button" class="dock-pill-btn" data-open-vigilia-modal="lesao" title="Testar Lesão (0 PV)">
-          LESÕES (${lesoesCount})
-        </button>
-        <button type="button" class="dock-pill-btn" data-open-vigilia-modal="trauma" title="Testar Trauma (0 PD)">
-          TRAUMAS (${traumasCount})
-        </button>
-      </aside>
-
       ${editTools}
-
-      <!-- MODAIS DE MECÂNICAS DE A VIGÍLIA -->
-      ${renderVigiliaModals(sheet)}
     </main>
   `;
 }
