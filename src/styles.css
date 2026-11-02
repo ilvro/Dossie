@@ -2210,21 +2210,21 @@ body.orientation-prompt-active .mobile-orientation-prompt{
 .critical-pv-special.heartbeat-beat .critical-pv-vignette{animation:critical-heartbeat-vignette .36s cubic-bezier(.2,.02,.28,1) both}
 .critical-pd-darkness{
   opacity:0;
-  background:radial-gradient(ellipse at center,transparent 35%,rgba(14,3,22,.42) 64%,rgba(5,1,9,.88) 100%);
+  background:radial-gradient(ellipse at center,transparent 28%,rgba(12,4,24,.52) 54%,rgba(5,1,11,.92) 84%,#020004 100%);
   transition:opacity .7s ease;will-change:opacity;
 }
 .critical-pd .critical-pd-darkness{opacity:var(--pd-darkness-opacity)}
 .critical-pd-vignette{
   opacity:0;
   background:
-    radial-gradient(ellipse at center,transparent 36%,rgba(56,12,78,.28) 60%,rgba(98,22,138,.65) 88%,rgba(42,6,60,.92) 100%),
-    linear-gradient(180deg,rgba(58,12,80,.45) 0%,transparent 16%,transparent 84%,rgba(35,6,50,.6) 100%),
-    linear-gradient(90deg,rgba(65,14,90,.5) 0%,transparent 14%,transparent 86%,rgba(65,14,90,.5) 100%);
+    radial-gradient(ellipse at center,transparent 28%,rgba(20,6,38,.28) 52%,rgba(32,10,60,.62) 76%,rgba(14,4,28,.94) 92%,rgba(2,0,5,.99) 100%),
+    linear-gradient(180deg,rgba(18,5,34,.82) 0%,transparent 18%,transparent 82%,rgba(10,2,20,.9) 100%),
+    linear-gradient(90deg,rgba(22,6,40,.85) 0%,transparent 15%,transparent 85%,rgba(22,6,40,.85) 100%);
   box-shadow:
-    inset 0 0 75px 20px rgba(110,26,155,.52),
-    inset 0 0 160px 55px rgba(45,8,65,.78),
-    inset 0 0 280px 100px rgba(10,1,16,.92);
-  will-change:opacity,transform;transition:opacity .65s ease;
+    inset 0 0 85px 25px rgba(38,10,70,.68),
+    inset 0 0 180px 65px rgba(18,4,34,.88),
+    inset 0 0 320px 120px rgba(2,0,5,.98);
+  will-change:opacity,transform,filter;transition:opacity .65s ease;
 }
 .critical-pd .critical-pd-vignette{
   opacity:var(--pd-vignette-opacity);
@@ -2234,7 +2234,7 @@ body.orientation-prompt-active .mobile-orientation-prompt{
 .critical-pd-special .critical-tendrils,.critical-pd-retracting .critical-tendrils{opacity:var(--pd-tendril-opacity)}
 .critical-distortion{
   opacity:0;
-  background:repeating-linear-gradient(0deg,transparent 0 5px,rgba(72,25,88,.055) 6px,transparent 8px),linear-gradient(90deg,rgba(34,9,48,.13),transparent 5% 95%,rgba(48,11,65,.14));
+  background:repeating-linear-gradient(0deg,transparent 0 5px,rgba(48,15,82,.055) 6px,transparent 8px),linear-gradient(90deg,rgba(20,5,38,.13),transparent 5% 95%,rgba(28,7,50,.14));
   -webkit-mask-image:radial-gradient(ellipse at center,transparent 35%,rgba(0,0,0,.28) 61%,#000 92%);mask-image:radial-gradient(ellipse at center,transparent 35%,rgba(0,0,0,.28) 61%,#000 92%);
   mix-blend-mode:soft-light;will-change:opacity;
 }
@@ -2286,8 +2286,8 @@ body.critical-pd-zero [data-resource-key="pd"]>b{background:transparent!importan
   72%{transform:translate(0,0) scale(1)}
 }
 @keyframes critical-mental-breath{
-  0%,100%{opacity:var(--pd-vignette-opacity);transform:scale(1)}
-  50%{opacity:calc(var(--pd-vignette-opacity) + .1);transform:scale(1.006)}
+  0%,100%{opacity:var(--pd-vignette-opacity);transform:scale(1);filter:brightness(.92) contrast(1.08)}
+  50%{opacity:calc(var(--pd-vignette-opacity) + .12);transform:scale(1.012);filter:brightness(.78) contrast(1.24)}
 }
 @keyframes critical-mental-slip{
   0%,100%{opacity:var(--pd-distortion-opacity)}
@@ -4202,10 +4202,10 @@ body.critical-pd-state .vigilia-resource-block.resource-pd .vigilia-pip.filled:n
   box-shadow: 0 0 10px rgba(168, 85, 247, 0.9), 0 0 22px rgba(126, 34, 206, 0.75);
 }
 body.critical-pd-state .vigilia-page {
-  box-shadow: inset 0 0 70px 20px rgba(60, 10, 85, 0.45);
+  box-shadow: inset 0 0 85px 25px rgba(22, 6, 40, 0.75), inset 0 0 160px 60px rgba(5, 1, 10, 0.88);
 }
 body.critical-pd-state .vigilia-character-portrait {
-  filter: contrast(1.08) drop-shadow(0 0 16px rgba(139, 92, 246, 0.45));
+  filter: contrast(1.15) brightness(0.85) drop-shadow(0 0 18px rgba(45, 12, 75, 0.7));
 }
 
 /* ── PD: Zero (0 PD — Colapso Psicológico / Teste de Trauma) ── */
@@ -4218,12 +4218,12 @@ body.critical-pd-zero .vigilia-resource-block.resource-pd .res-num {
   text-shadow: 0 0 18px #d8b4fe, 0 0 35px #581c87;
 }
 body.critical-pd-zero .vigilia-content-viewport {
-  box-shadow: inset 0 0 70px 25px rgba(35, 8, 55, 0.65), inset 0 0 140px 50px rgba(10, 2, 18, 0.8);
+  box-shadow: inset 0 0 85px 30px rgba(20, 5, 36, 0.85), inset 0 0 180px 70px rgba(3, 0, 6, 0.96);
 }
 
 /* ── Combinação de Ambos os Críticos (PV Crítico + Sanidade Baixa) ── */
 body.critical-pv-state.critical-pd-state .vigilia-page {
-  box-shadow: inset 0 0 70px 25px rgba(160, 0, 20, 0.35), inset 0 0 120px 45px rgba(45, 5, 65, 0.5);
+  box-shadow: inset 0 0 80px 30px rgba(160, 0, 20, 0.45), inset 0 0 150px 65px rgba(18, 4, 30, 0.85);
 }
 
 /* ── Animações Exclusivas de Vigília ── */
