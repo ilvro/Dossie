@@ -183,6 +183,7 @@ import {
 import { setFxEnabledGetter, runPostRenderFx, queuePostRenderFx, rectOf, flyParticles } from './fx/ui-fx.js';
 import { trackResources } from './fx/resource-fx.js';
 import { pavorStepFx, controlPavorFx, pavorDissipateFx, embracePavorFx } from './fx/pavor-fx.js';
+import { revealTableResult } from './fx/table-reveal.js';
 
 let currentOriginalTab = 'habilidades';
 let originalSkillsFilter = '';
@@ -3930,8 +3931,13 @@ function bindVigiliaEvents() {
   }));
   save(false);
   render();
-  const prefix = rollLabel ? `[${rollLabel}] ` : '';
-  alert(`✓ LESÃO APLICADA: ${prefix}${outcome.name.toUpperCase()}\n\n${outcome.desc}\n\n(Adicionada às Habilidades da ficha e DT da próxima lesão na cena aumentada para ${7 + 3 * state.lesoesCountScene})`);
+  const toast = document.querySelector('#save-toast');
+  if (toast) {
+   const prefix = rollLabel ? `[${rollLabel}] ` : '';
+   toast.textContent = `✓ LESÃO APLICADA: ${prefix}${outcome.name.toUpperCase()}`;
+   toast.classList.add('show');
+   setTimeout(() => toast.classList.remove('show'), 2500);
+  }
  };
 
  const applyTraumaChoice = (outcome, rollLabel = '') => {
@@ -3961,12 +3967,17 @@ function bindVigiliaEvents() {
   }));
   save(false);
   render();
-  const prefix = rollLabel ? `[${rollLabel}] ` : '';
-  alert(`✓ TRAUMA APLICADO: ${prefix}${outcome.name.toUpperCase()}\n\n${outcome.desc}\n\n(Adicionado às Habilidades da ficha e DT do próximo trauma na cena aumentada para ${7 + 3 * state.traumasCountScene})`);
+  const toast = document.querySelector('#save-toast');
+  if (toast) {
+   const prefix = rollLabel ? `[${rollLabel}] ` : '';
+   toast.textContent = `✓ TRAUMA APLICADO: ${prefix}${outcome.name.toUpperCase()}`;
+   toast.classList.add('show');
+   setTimeout(() => toast.classList.remove('show'), 2500);
+  }
  };
 
  document.querySelectorAll('[data-select-lesao]').forEach(el => {
-  el.onclick = (e) => {
+  el.onclick = async (e) => {
    e.stopPropagation();
    const idx = Number(el.dataset.selectLesao);
    const row = LESOES_TABLE[idx];
@@ -3974,12 +3985,13 @@ function bindVigiliaEvents() {
    const modal = document.querySelector('#vigilia-lesao-modal');
    if (modal) modal.style.display = 'none';
    const range = `${row.min}${row.max !== row.min ? `–${row.max}` : ''}`;
+   await revealTableResult({ table: 'lesao', rows: LESOES_TABLE, row, rollLabel: range, rolled: false });
    applyLesaoChoice(row, range);
   };
  });
 
  document.querySelectorAll('[data-select-trauma]').forEach(el => {
-  el.onclick = (e) => {
+  el.onclick = async (e) => {
    e.stopPropagation();
    const idx = Number(el.dataset.selectTrauma);
    const row = TRAUMAS_TABLE[idx];
@@ -3987,6 +3999,7 @@ function bindVigiliaEvents() {
    const modal = document.querySelector('#vigilia-trauma-modal');
    if (modal) modal.style.display = 'none';
    const range = `${row.min}${row.max !== row.min ? `–${row.max}` : ''}`;
+   await revealTableResult({ table: 'trauma', rows: TRAUMAS_TABLE, row, rollLabel: range, rolled: false });
    applyTraumaChoice(row, range);
   };
  });
@@ -4002,9 +4015,11 @@ function bindVigiliaEvents() {
     if (res && res.values) {
      const val = res.values[0];
      const outcome = getLesaoResult(val);
-     setTimeout(() => {
-      applyLesaoChoice(outcome, `1d20: ${val}`);
-     }, 700);
+     const { closeDice3d } = await getDiceApi();
+     await new Promise(r => setTimeout(r, 900));
+     closeDice3d();
+     await revealTableResult({ table: 'lesao', rows: LESOES_TABLE, row: outcome, rollLabel: `1d20: ${val}`, rolled: true });
+     applyLesaoChoice(outcome, `1d20: ${val}`);
     }
    } else if (table === 'trauma') {
     const modal = document.querySelector('#vigilia-trauma-modal');
@@ -4013,9 +4028,11 @@ function bindVigiliaEvents() {
     if (res && res.values) {
      const val = res.values[0];
      const outcome = getTraumaResult(val);
-     setTimeout(() => {
-      applyTraumaChoice(outcome, `1d20: ${val}`);
-     }, 700);
+     const { closeDice3d } = await getDiceApi();
+     await new Promise(r => setTimeout(r, 900));
+     closeDice3d();
+     await revealTableResult({ table: 'trauma', rows: TRAUMAS_TABLE, row: outcome, rollLabel: `1d20: ${val}`, rolled: true });
+     applyTraumaChoice(outcome, `1d20: ${val}`);
     }
    }
   };
