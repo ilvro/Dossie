@@ -276,7 +276,7 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
           </svg>
 
           <div class="vigilia-attributes-list">
-            <div class="vigilia-attr-row attr-fisico" data-roll="Físico|${attrs.Físico || 6}">
+            <div class="vigilia-attr-row attr-fisico" data-roll="Físico|${attrs.Físico || 6}" data-roll-labels="FÍSICO">
               <img src="./assets/vigilia/attr-fisico.svg" alt="FÍSICO" class="attr-vector-word word-fisico" draggable="false">
               ${renderVigiliaDie(attrs.Físico || 6, 'attr')}
               ${editMode ? `
@@ -287,7 +287,7 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
               ` : ''}
             </div>
 
-            <div class="vigilia-attr-row attr-mente" data-roll="Mente|${attrs.Mente || 6}">
+            <div class="vigilia-attr-row attr-mente" data-roll="Mente|${attrs.Mente || 6}" data-roll-labels="MENTE">
               <img src="./assets/vigilia/attr-mente.svg" alt="MENTE" class="attr-vector-word word-mente" draggable="false">
               ${renderVigiliaDie(attrs.Mente || 6, 'attr')}
               ${editMode ? `
@@ -298,7 +298,7 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
               ` : ''}
             </div>
 
-            <div class="vigilia-attr-row attr-emocao" data-roll="Emoção|${attrs.Emoção || 6}">
+            <div class="vigilia-attr-row attr-emocao" data-roll="Emoção|${attrs.Emoção || 6}" data-roll-labels="EMOÇÃO">
               <img src="./assets/vigilia/attr-emocao.svg" alt="EMOÇÃO" class="attr-vector-word word-emocao" draggable="false">
               ${renderVigiliaDie(attrs.Emoção || 6, 'attr')}
               ${editMode ? `
@@ -391,6 +391,7 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
               return `
                 <div class="vigilia-skill-row ${sk.skillDie > 4 ? 'is-trained' : ''} ${editMode ? 'editing' : ''}" 
                      data-roll="${safe(rollStr)}" 
+                     data-roll-labels="PERÍCIA|${safe(String(sk.attribute || '').toUpperCase())}" 
                      title="Rolar ${safe(sk.name)} (d${sk.skillDie} + d${attrDie}${sk.extra ? `+${sk.extra}` : ''})">
                   ${nameHtml}
                   <span class="skill-die-col">${renderVigiliaDie(sk.skillDie, 'skill')}</span>

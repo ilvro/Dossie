@@ -224,6 +224,9 @@ export function createCritSequence({
   lights,
   audio,
   reducedMotion = false,
+  zoom = 1,
+  sigilSize = 3.6,
+  sigilCenter = null,
   onReveal
 }) {
   if (!indices || indices.length < 2) {
@@ -260,11 +263,11 @@ export function createCritSequence({
   const initFov = camera.fov;
   const camTarget = initCamPos.clone().lerp(
     new THREE.Vector3(midPoint.x, midPoint.y + 1.2, midPoint.z + 2.3),
-    0.16
+    0.16 * zoom
   );
 
   // Malha 3D do Sigilo de Conhecimento
-  const sigilGeo = new THREE.PlaneGeometry(3.6, 3.6);
+  const sigilGeo = new THREE.PlaneGeometry(sigilSize, sigilSize);
   const sigilMat = new THREE.MeshBasicMaterial({
     map: getKnowledgeSigilTexture(),
     transparent: true,
@@ -275,7 +278,8 @@ export function createCritSequence({
   });
   const sigilMesh = new THREE.Mesh(sigilGeo, sigilMat);
   sigilMesh.rotation.x = -Math.PI / 2;
-  sigilMesh.position.set(midPoint.x, FLOOR_Y + 0.015, midPoint.z);
+  const sigilAt = sigilCenter || midPoint;
+  sigilMesh.position.set(sigilAt.x, FLOOR_Y + 0.015, sigilAt.z);
   sigilMesh.scale.setScalar(0.2);
   scene.add(sigilMesh);
 
@@ -407,12 +411,12 @@ export function createCritSequence({
       if (!reducedMotion) {
         if (elapsed < 900) {
           const tCam = easeOutCubic(elapsed / 900);
-          camera.fov = initFov - tCam * 5;
+          camera.fov = initFov - tCam * 5 * zoom;
           camera.position.lerpVectors(initCamPos, camTarget, tCam);
           camera.updateProjectionMatrix();
         } else if (elapsed < 1450) {
           const tBack = easeInOutCubic((elapsed - 900) / 550);
-          camera.fov = (initFov - 5) + tBack * 5;
+          camera.fov = (initFov - 5 * zoom) + tBack * 5 * zoom;
           camera.position.lerpVectors(camTarget, initCamPos, tBack);
           camera.updateProjectionMatrix();
         }

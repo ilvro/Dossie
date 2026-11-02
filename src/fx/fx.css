@@ -739,6 +739,247 @@
   transform: translateY(-1px);
 }
 
+/* ==========================================================================
+   Cena de rolagem (Fase 8): HUD sobre o palco 3D
+   ========================================================================== */
+.roll-hud {
+  --rh-bone: #ece4d2;
+  --rh-muted: #9c968a;
+  --rh-gold: #f2c96b;
+  --rh-head-bottom: 70vh;
+  --rh-total-top: 66vh;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--rh-bone);
+  font-family: 'Cinzel', serif;
+  opacity: 0;
+  transition: opacity .22s ease;
+}
+.roll-hud.in { opacity: 1; }
+.roll-hud.out { opacity: 0; transition-duration: .18s; }
+
+/* Antecipação: título + fórmula */
+.rh-head {
+  position: absolute;
+  left: 50%;
+  bottom: var(--rh-head-bottom);
+  transform: translate(-50%, 10px);
+  width: min(92vw, 760px);
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity .3s ease, transform .4s cubic-bezier(.2, .9, .3, 1);
+}
+.roll-hud.in .rh-head { opacity: 1; transform: translate(-50%, 0); }
+.rh-orn {
+  width: min(70%, 420px);
+  height: 9px;
+  background:
+    linear-gradient(45deg, transparent 42%, #c0262d 43% 57%, transparent 58%) center / 9px 9px no-repeat,
+    linear-gradient(90deg, transparent, rgba(236, 228, 210, .55) 30%, transparent 47%, transparent 53%, rgba(236, 228, 210, .55) 70%, transparent) center / 100% 1px no-repeat;
+  order: 2;
+}
+.rh-title {
+  margin: 0;
+  font-size: clamp(22px, 3.4vw, 42px);
+  font-weight: 800;
+  letter-spacing: .12em;
+  line-height: 1.05;
+  text-transform: uppercase;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, .9), 0 0 32px rgba(236, 228, 210, .12);
+  order: 1;
+}
+.rh-formula {
+  order: 3;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 10px;
+}
+.rh-formula > i {
+  font-style: normal;
+  color: var(--rh-muted);
+  font-size: 14px;
+}
+.rh-formula .rh-vs { font-size: 11px; letter-spacing: .2em; color: #a78bfa; }
+.rh-term {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--term-color, #fff) 70%, transparent);
+}
+.rh-term b { font: 800 15px "Hanken Grotesk", sans-serif; color: #fff; }
+.rh-term small, .rh-part small, .rh-chip small {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  color: var(--rh-muted);
+}
+.rh-term.mod { border-bottom-color: rgba(147, 197, 253, .6); }
+.rh-term.dread { border-bottom-color: #a855f7; }
+.rh-term.dread b { color: #e9d5ff; }
+.rh-pick {
+  font-size: 10px;
+  letter-spacing: .22em;
+  padding: 3px 7px;
+  border: 1px solid rgba(236, 228, 210, .35);
+  color: var(--rh-bone);
+  margin-right: 4px;
+}
+
+/* Total, composição e veredito */
+.rh-result {
+  position: absolute;
+  left: 50%;
+  top: var(--rh-total-top);
+  transform: translateX(-50%);
+  width: min(94vw, 820px);
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+.rh-total-wrap { position: relative; display: grid; place-items: center; }
+.rh-total {
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  font-size: clamp(64px, 10vh, 116px);
+  line-height: .9;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 4px 28px rgba(0, 0, 0, .95), 0 0 40px rgba(236, 228, 210, .18);
+  transition: opacity .2s ease, color .3s ease;
+}
+.rh-total.idle { opacity: .07; }
+.rh-total.bump { animation: rh-bump .2s cubic-bezier(.2, .9, .3, 1.4); }
+.rh-total.stamp { animation: rh-stamp .42s cubic-bezier(.2, .9, .25, 1); }
+@keyframes rh-bump { 0% { transform: scale(1); } 45% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes rh-stamp {
+  0% { transform: scale(1.5); filter: blur(3px); }
+  55% { transform: scale(.94); filter: blur(0); }
+  100% { transform: scale(1); }
+}
+.rh-ring {
+  position: absolute;
+  width: 1.6em;
+  height: 1.6em;
+  font-size: clamp(64px, 10vh, 116px);
+  border-radius: 50%;
+  border: 2px solid rgba(236, 228, 210, .7);
+  opacity: 0;
+  pointer-events: none;
+}
+.roll-hud.stamped .rh-ring { animation: rh-ring .6s cubic-bezier(.1, .7, .3, 1) forwards; }
+@keyframes rh-ring {
+  0% { transform: scale(.4); opacity: .9; border-width: 6px; }
+  100% { transform: scale(1.6); opacity: 0; border-width: 1px; }
+}
+
+.rh-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 4px 9px;
+  min-height: 22px;
+}
+.rh-part > i { font-style: normal; color: var(--rh-muted); font-size: 13px; margin-right: 4px; }
+.rh-part.pending { visibility: hidden; animation: none; }
+.rh-part {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  animation: rh-part-in .22s ease-out both;
+}
+.rh-part b { font: 800 16px "Hanken Grotesk", sans-serif; color: color-mix(in srgb, var(--part-color, #fff) 45%, #fff); }
+.rh-part.mod b { color: #bfdbfe; }
+@keyframes rh-part-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+.rh-verdict { display: grid; justify-items: center; gap: 6px; min-height: 0; }
+.rh-banner {
+  font-size: clamp(14px, 1.9vw, 22px);
+  font-weight: 800;
+  letter-spacing: .26em;
+  padding: 2px 18px;
+  animation: rh-banner-in .5s cubic-bezier(.2, .9, .3, 1) both;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, .9);
+}
+.rh-banner.crit { color: var(--rh-gold); text-shadow: 0 0 18px rgba(242, 201, 107, .55), 0 2px 10px #000; }
+.rh-banner.fumble { color: #b8b2a8; }
+.rh-banner.dread { color: #c4b5fd; font-size: clamp(11px, 1.3vw, 15px); }
+.rh-banner.dread.vanquished { color: #86efac; }
+.rh-banner.dread.resisted { color: #a5b4fc; }
+.rh-meta { font: 700 10px "Hanken Grotesk", sans-serif; letter-spacing: .18em; color: var(--rh-muted); animation: rh-banner-in .4s .1s both; }
+.rh-meta b { color: var(--rh-bone); }
+@keyframes rh-banner-in { from { opacity: 0; letter-spacing: .6em; } to { opacity: 1; } }
+
+.roll-hud.crit .rh-total { color: #fff4d6; text-shadow: 0 0 34px rgba(242, 201, 107, .7), 0 4px 24px #000; }
+.roll-hud.crit .rh-ring { border-color: var(--rh-gold); }
+.roll-hud.fumble .rh-total { color: #8f8a83; text-shadow: 0 4px 24px #000; }
+.roll-hud.fumble .rh-ring { border-color: rgba(120, 30, 34, .8); }
+
+/* Valores voando dos dados até o total */
+.rh-chips { position: absolute; inset: 0; overflow: hidden; }
+.rh-chip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  padding: 5px 11px 6px;
+  border-radius: 3px;
+  background: rgba(10, 9, 14, .88);
+  border: 1px solid color-mix(in srgb, var(--chip-color, #fff) 75%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--chip-color, #fff) 45%, transparent), 0 6px 18px rgba(0, 0, 0, .6);
+  white-space: nowrap;
+  will-change: transform, opacity;
+  opacity: 0;
+}
+.rh-chip b { font: 900 24px "Hanken Grotesk", sans-serif; color: #fff; line-height: 1; }
+.rh-chip.mod { --chip-color: #93c5fd; }
+.rh-chip.destroyed { --chip-color: #a855f7; }
+.rh-chip.destroyed b { text-decoration: line-through; color: #d8b4fe; }
+.rh-chip.discarded { --chip-color: #6b6f7a; filter: grayscale(1); }
+.rh-chip.dread { --chip-color: #a855f7; }
+.rh-chip.vanquished { --chip-color: #4ade80; }
+
+/* Rodapé */
+.rh-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+.rh-hint { font: 700 9px "Hanken Grotesk", sans-serif; letter-spacing: .24em; color: rgba(236, 228, 210, .38); }
+.rh-log {
+  pointer-events: auto;
+  display: none;
+  font: 800 9px "Hanken Grotesk", sans-serif;
+  letter-spacing: .2em;
+  color: var(--rh-bone);
+  background: transparent;
+  border: 1px solid rgba(236, 228, 210, .3);
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.rh-log:hover { border-color: var(--rh-bone); }
+.roll-hud.stamped .rh-log { display: inline-block; }
+
+@media (max-width: 640px) {
+  .rh-title { letter-spacing: .06em; }
+  .rh-chip b { font-size: 19px; }
+  .rh-foot { bottom: calc(12px + env(safe-area-inset-bottom)); }
+}
+
 /* Acessibilidade: Movimento Reduzido */
 @media (prefers-reduced-motion: reduce) {
   #dice-stage-result strong.landed,

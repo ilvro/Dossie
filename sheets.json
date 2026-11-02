@@ -246,17 +246,6 @@
           }
         ],
         "themeLinked": true
-      },
-      {
-        "id": "card-1793622456197-xbsd1",
-        "schema": "abilities",
-        "title": "Sem Olho",
-        "type": "Lesão",
-        "content": "Você perde o uso de um olho. Sofre –1 permanente em Percepção e Pontaria.",
-        "accent": "#e0150d",
-        "themeLinked": false,
-        "markers": [],
-        "actions": []
       }
     ],
     "id": "sheet-vigilia-rhiona",
@@ -313,9 +302,10 @@
       }
     ],
     "favorite": false,
-    "dadoPavor": 6,
+    "dadoPavor": null,
     "traumasCountScene": 2,
-    "lesoesCountScene": 1
+    "lesoesCountScene": 1,
+    "pavorEmbraced": false
   },
   {
     "name": "Rowan Lobo Castanho",

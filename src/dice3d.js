@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { createDreadSequence } from './dice-dread-fx.js';
 import { createCritSequence, createFumbleSequence } from './fx/dice-crit-fx.js';
-import { countUp, fxEnabled } from './fx/ui-fx.js';
+import { countUp, fxEnabled, rollSceneEnabled } from './fx/ui-fx.js';
+import { createTray } from './fx/dice-tray.js';
+import { createRollHud } from './fx/dice-sum-fx.js';
 
 const geometryFactories = {
   4: () => new THREE.TetrahedronGeometry(.9),
@@ -116,8 +118,8 @@ function numberTexture(value) {
   return texture;
 }
 
-function addFaceNumbers(mesh, faces, sides) {
-  const scale = sides >= 20 ? .25 : sides >= 12 ? .31 : sides >= 10 ? .34 : .43;
+function addFaceNumbers(mesh, faces, sides, sizeFactor = 1) {
+  const scale = (sides >= 20 ? .25 : sides >= 12 ? .31 : sides >= 10 ? .34 : .43) * sizeFactor;
   faces.forEach(face => {
     const material = new THREE.MeshBasicMaterial({ map: numberTexture(face.value), transparent: true, depthWrite: false, side: THREE.DoubleSide });
     const label = new THREE.Mesh(new THREE.PlaneGeometry(scale, scale), material);
@@ -150,7 +152,9 @@ function cannonShapeFromGeometry(geometry) {
 function createDie(scene, world, config, index, total) {
   const sides = Number(config.sides);
   const geometry = (geometryFactories[sides] || geometryFactories[20])();
-  geometry.scale(DIE_SCALE, DIE_SCALE, DIE_SCALE);
+  // Na cena os dados são um pouco menores, para caberem juntos no círculo
+  const dieScale = world.sceneRadius ? .5 : DIE_SCALE;
+  geometry.scale(dieScale, dieScale, dieScale);
   geometry.computeVertexNormals();
   const faces = faceData(geometry).slice(0, sides);
   const material = new THREE.MeshStandardMaterial({ color: config.color || 0xe51b2b, roughness: .42, metalness: .08, flatShading: true });
@@ -158,32 +162,47 @@ function createDie(scene, world, config, index, total) {
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true; mesh.receiveShadow = true;
   mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 12), new THREE.LineBasicMaterial({ color: config.dread ? 0xe9d5ff : 0xffa3aa, transparent: true, opacity: .78 })));
-  addFaceNumbers(mesh, faces, sides);
+  addFaceNumbers(mesh, faces, sides, dieScale / DIE_SCALE);
   scene.add(mesh);
 
   const shape = cannonShapeFromGeometry(geometry);
   const offset = (index - (total - 1) / 2) * .72;
   const body = new CANNON.Body({ mass: .72, shape, material: world.diceMaterial, allowSleep: true, sleepSpeedLimit: .24, sleepTimeLimit: .28 });
   const launch = world.launch;
-  if (launch === 0) {
+  const speedScale = world.boundsX <= 2.0 ? 0.75 : 1.0;
+  if (world.sceneRadius) {
+    // Cena: o arremesso começa dentro do quadro, rente ao chão, e cruza o círculo
+    // Espaçamento de um dado inteiro entre eles: nascer sobrepostos faz a física explodir
+    const r = world.sceneRadius, side = launch % 2 ? 1 : -1, power = r / 1.6;
+    const spread = Math.min(r * 1.4, (total - 1) * .9);
+    const lane = (total > 1 ? (index / (total - 1) - .5) * spread : 0) + (Math.random() - .5) * .3;
+    const stagger = index * .22, drift = (Math.random() - .5) * 2.2, speed = (2.6 + Math.random() * 1.4) * power;
+    if (launch < 2) {
+      body.position.set(side * (r * .78 + stagger), -.2 + Math.random() * .3, lane);
+      body.velocity.set(-side * speed, 1.8 + Math.random() * .8, -lane * .5 + drift);
+    } else {
+      body.position.set(lane, -.2 + Math.random() * .3, r * .78 + stagger);
+      body.velocity.set(-lane * .5 + drift, 2 + Math.random() * .8, -speed);
+    }
+  } else if (launch === 0) {
     // Lançamento da esquerda em direção ao centro da ficha
-    body.position.set(-world.boundsX * 0.72, 2.0 + Math.random() * 1.2 + index * .15, offset * 0.6 + (Math.random() - .5) * .4);
-    body.velocity.set(4.5 + Math.random() * 1.6, -3.2 - Math.random() * 1.2, (Math.random() - .5) * 2.0);
+    body.position.set(-world.boundsX * 0.70, 2.0 + Math.random() * 1.0 + index * .15, offset * 0.4 + (Math.random() - .5) * .3);
+    body.velocity.set((4.2 + Math.random() * 1.2) * speedScale, -3.2 - Math.random() * 1.0, (Math.random() - .5) * 1.6);
   } else if (launch === 1) {
     // Lançamento da direita em direção ao centro da ficha
-    body.position.set(world.boundsX * 0.72, 2.0 + Math.random() * 1.2 + index * .15, offset * 0.6 + (Math.random() - .5) * .4);
-    body.velocity.set(-4.5 - Math.random() * 1.6, -3.2 - Math.random() * 1.2, (Math.random() - .5) * 2.0);
+    body.position.set(world.boundsX * 0.70, 2.0 + Math.random() * 1.0 + index * .15, offset * 0.4 + (Math.random() - .5) * .3);
+    body.velocity.set((-4.2 - Math.random() * 1.2) * speedScale, -3.2 - Math.random() * 1.0, (Math.random() - .5) * 1.6);
   } else if (launch === 2) {
     // Queda rolada do topo central da ficha
-    body.position.set(offset * 0.6 + (Math.random() - .5) * 0.8, 3.2 + index * .15, (Math.random() - .5) * 0.8);
-    body.velocity.set((Math.random() - .5) * 2.2, -4.5 - Math.random() * 1.2, (Math.random() - .5) * 2.2);
+    body.position.set(offset * 0.4 + (Math.random() - .5) * 0.5, 3.0 + index * .15, (Math.random() - .5) * 0.5);
+    body.velocity.set((Math.random() - .5) * 1.8, -4.2 - Math.random() * 1.0, (Math.random() - .5) * 1.8);
   } else {
     // Lançamento de frente em direção ao fundo da mesa
-    body.position.set(offset * 0.6 + (Math.random() - .5) * 0.8, 1.8 + Math.random() * 1.0, world.boundsZ * 0.7);
-    body.velocity.set((Math.random() - .5) * 2.2, -3.0 - Math.random() * 1.2, -4.5 - Math.random() * 1.5);
+    body.position.set(offset * 0.4 + (Math.random() - .5) * 0.5, 1.8 + Math.random() * 0.8, world.boundsZ * 0.65);
+    body.velocity.set((Math.random() - .5) * 1.8, -3.0 - Math.random() * 1.0, (-4.2 - Math.random() * 1.2) * speedScale);
   }
   body.angularVelocity.set(13 + Math.random() * 10, 11 + Math.random() * 12, 12 + Math.random() * 11);
-  body.angularDamping = .13; body.linearDamping = .035;
+  body.angularDamping = .13; body.linearDamping = world.sceneRadius ? .22 : .035;
   body.quaternion.setFromEuler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
   let lastImpact = 0;
   body.addEventListener('collide', event => {
@@ -191,7 +210,8 @@ function createDie(scene, world, config, index, total) {
     if (velocity > .7 && now - lastImpact > 42) { lastImpact = now; playDiceImpact(velocity); }
   });
   world.addBody(body);
-  return { mesh, body, faces, sides, dread: Boolean(config.dread), label: config.label || `d${sides}` };
+  const flashBase = { color: material.emissive.clone(), intensity: material.emissiveIntensity };
+  return { mesh, body, faces, sides, flashBase, color: config.color, dread: Boolean(config.dread), label: config.label || `d${sides}` };
 }
 
 function topFace(die) {
@@ -257,20 +277,44 @@ export function classifyRoll(dice, outcome) {
   return { crit, fumble, ra, rb, critIndices, fumbleIndices };
 }
 
-function showResult(resultNode, dice, results, title, modifier = 0, rollMode = 'sum', outcome = computeOutcome(dice, results, rollMode, modifier, -1)) {
+function safe(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function showResult(resultNode, dice, results, title, modifier = 0, rollMode = 'sum', outcome = computeOutcome(dice, results, rollMode, modifier, -1), options = {}) {
   const { dreadIndex, destroyed, countedValues, total, chosenIndex, vanquished } = outcome;
-  const modifierLabel = modifier ? `<i>${modifier > 0 ? '+' : '−'}</i><span class="modifier">${Math.abs(modifier)}</span>` : '';
+  const modifierParts = Array.isArray(options.modifierParts) ? options.modifierParts : [];
+
+  let modifierLabel = '';
+  if (modifierParts.length > 0) {
+    modifierLabel = modifierParts.map(p => {
+      const sign = p.value >= 0 ? '+' : '−';
+      return `<span class="roll-die-tag mod-tag"><b>${sign}${Math.abs(p.value)}</b><small>${safe(p.label || 'BÔNUS')}</small></span>`;
+    }).join(' ');
+  } else if (modifier) {
+    modifierLabel = `<span class="roll-die-tag mod-tag"><b>${modifier > 0 ? '+' : '−'}${Math.abs(modifier)}</b><small>BÔNUS</small></span>`;
+  }
+
   const isPick = rollMode === 'highest' || rollMode === 'lowest';
+  const hasLabels = dice.some(d => d.label) || modifierParts.length > 0;
   const tags = results.map((value, index) => {
-    const classes = (isPick || dreadIndex >= 0) ? ['roll-die-tag'] : [];
+    const d = dice[index];
+    const classes = (isPick || dreadIndex >= 0 || hasLabels || d.label) ? ['roll-die-tag'] : [];
     if (index === dreadIndex) classes.push('dread', vanquished ? 'vanquished' : 'active');
     else if (destroyed.has(index)) classes.push('destroyed');
     else if (isPick) classes.push(index === chosenIndex ? 'chosen' : 'discarded');
     const prefix = index === dreadIndex ? (vanquished ? '✦ ' : '☠ ') : '';
-    return `<span class="${classes.join(' ')}" style="--tag-i:${index}">${prefix}<b>${value}</b> d${dice[index].sides}</span>`;
+    const labelText = d.label || `d${d.sides}`;
+    return `<span class="${classes.join(' ')}" style="--tag-i:${index}"><b>${prefix}${value}</b><small>${safe(labelText)}</small></span>`;
   });
-  const sep = (isPick || dreadIndex >= 0) ? ' ' : '<i>+</i>';
-  const diceBreakdownHtml = tags.join(sep) + modifierLabel;
+  const sep = (isPick || dreadIndex >= 0 || hasLabels) ? ' ' : '<i>+</i>';
+  const diceBreakdownHtml = tags.join(sep) + (modifierLabel ? ` ${modifierLabel}` : '');
 
   const classification = classifyRoll(dice, outcome);
   const { crit: isCritSuccess, fumble: isCritFumble, ra, rb } = classification;
@@ -326,7 +370,18 @@ function pulseStage(stage, className) {
   stage.classList.add(className);
 }
 
-export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudioContext = null, rollMode = 'sum') {
+let activeTray = null;
+let activeHud = null;
+let stageGestureCleanup = null;
+// Resolve a rolagem em andamento se ela for interrompida (nova rolagem ou fechamento).
+let pendingFinish = null;
+
+function openLogFromScene() {
+  closeDice3d({ immediate: true });
+  document.querySelector('.btn-nav-roll-log, [data-open-roll-log]')?.click();
+}
+
+export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudioContext = null, rollMode = 'sum', options = {}) {
   const list = Array.isArray(configs) ? configs : [{ sides: configs }];
   const stage = document.querySelector('#dice-stage');
   const canvas = document.querySelector('#dice-canvas');
@@ -334,11 +389,17 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
   if (!stage || !canvas) return Promise.resolve(null);
   if (sharedAudioContext) audioContext = sharedAudioContext;
   getAudioContext();
-  activeSequence?.finish();
-  activeSequence = null;
-  cancelAnimationFrame(animationFrame); clearTimeout(cleanupTimer);
+  closeDice3d({ immediate: true });
+
+  const sceneMode = rollSceneEnabled();
   stage.classList.remove('dread-active', 'dread-impact', 'dread-vanquished', 'fumble-desat');
-  stage.classList.add('active'); resultNode.classList.remove('visible', 'dread-result', 'crit-result', 'fumble-result');
+  stage.classList.add('active');
+  if (sceneMode) {
+    stage.classList.add('scene-mode');
+  } else {
+    stage.classList.remove('scene-mode');
+  }
+  resultNode.classList.remove('visible', 'dread-result', 'crit-result', 'fumble-result');
 
   return new Promise(resolve => {
     let resolved = false;
@@ -355,18 +416,42 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     const width = innerWidth, height = innerHeight;
     renderer.setSize(width, height, false);
+    const aspect = width / height;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(34, width / height, .1, 100);
-    camera.position.set(0, 3.3, 9); camera.lookAt(0, .7, 0);
+    const camera = new THREE.PerspectiveCamera(34, aspect, .1, 100);
+    const trayRadius = aspect < 1 ? 1.2 : 1.6;
+    if (sceneMode) {
+      // Enquadra o círculo inteiro na largura e deixa os dados grandes; o deslocamento
+      // vertical sobe o círculo para abrir espaço ao total embaixo.
+      const target = new THREE.Vector3(0, -1.15, 0);
+      const halfTan = Math.tan(THREE.MathUtils.degToRad(17));
+      const elevation = THREE.MathUtils.degToRad(aspect < 1 ? 58 : 52);
+      const frontEdge = new THREE.Vector3(0, -1.15, trayRadius * 1.18);
+      let dist = Math.max(8, (trayRadius * 2.36 + .5) / (2 * halfTan * aspect));
+      // Em telas baixas, recua a câmera até sobrar espaço para o total embaixo do círculo
+      for (let i = 0; i < 12; i++) {
+        camera.position.set(0, target.y + Math.sin(elevation) * dist, Math.cos(elevation) * dist);
+        camera.lookAt(target);
+        camera.setViewOffset(width, height, 0, Math.round(height * .05), width, height);
+        camera.updateMatrixWorld();
+        if ((1 - frontEdge.clone().project(camera).y) / 2 * height <= height - Math.min(225, height * .3)) break;
+        dist *= 1.08;
+      }
+    } else {
+      camera.position.set(0, 3.3, 9);
+      camera.lookAt(0, .7, 0);
+    }
     const hemi = new THREE.HemisphereLight(0xcce1ff, 0x210006, 2.4); scene.add(hemi);
     const key = new THREE.DirectionalLight(0xffffff, 4.5); key.position.set(-4, 8, 5); key.castShadow = true; scene.add(key);
     const accent = new THREE.PointLight(0xff1f47, 15, 10); accent.position.set(4, 2, 4); scene.add(accent);
+    if (sceneMode) {
+      // Na cena, o foco do palco (dice-tray) faz a luz principal e a sombra.
+      hemi.intensity = 1.1; key.intensity = 1.6; key.castShadow = false; accent.intensity = 5;
+    }
 
     const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -25, 0) });
     world.allowSleep = true; world.broadphase = new CANNON.SAPBroadphase(world);
-    world.boundsX = Math.min(2.85, 1.65 * width / height);
-    world.boundsZ = 2.2;
     world.launch = Math.floor(Math.random() * 4);
     world.diceMaterial = new CANNON.Material('dice');
     const floorMaterial = new CANNON.Material('floor');
@@ -375,21 +460,51 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
     const floorBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane(), material: floorMaterial });
     floorBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); floorBody.position.y = -1.15; world.addBody(floorBody);
     const wallMaterial = floorMaterial;
-    const wallThickness = 1.0;
-    const wallHeight = 5.0;
-    const wallSpecs = [
-      [new CANNON.Vec3(wallThickness, wallHeight, world.boundsZ + wallThickness), new CANNON.Vec3(-world.boundsX - wallThickness, 1.8, 0)],
-      [new CANNON.Vec3(wallThickness, wallHeight, world.boundsZ + wallThickness), new CANNON.Vec3(world.boundsX + wallThickness, 1.8, 0)],
-      [new CANNON.Vec3(world.boundsX + wallThickness, wallHeight, wallThickness), new CANNON.Vec3(0, 1.8, -world.boundsZ - wallThickness)],
-      [new CANNON.Vec3(world.boundsX + wallThickness, wallHeight, wallThickness), new CANNON.Vec3(0, 1.8, world.boundsZ + wallThickness)],
-      [new CANNON.Vec3(world.boundsX + wallThickness, wallThickness, world.boundsZ + wallThickness), new CANNON.Vec3(0, 4.8 + wallThickness, 0)]
-    ];
-    wallSpecs.forEach(([halfExtents, position]) => {
-      const wall = new CANNON.Body({ mass: 0, shape: new CANNON.Box(halfExtents), material: wallMaterial });
-      wall.position.copy(position); world.addBody(wall);
-    });
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(world.boundsX * 2, world.boundsZ * 2), new THREE.ShadowMaterial({ color: 0x000000, opacity: .25 }));
-    floor.rotation.x = -Math.PI / 2; floor.position.y = -1.14; floor.receiveShadow = true; scene.add(floor);
+
+    let tray = null;
+    if (sceneMode) {
+      world.sceneRadius = trayRadius;
+      world.boundsX = trayRadius;
+      world.boundsZ = trayRadius;
+
+      // 12 paredes em círculo formando a contenção física da bandeja circular
+      const N = 12;
+      const segLen = 2 * trayRadius * Math.tan(Math.PI / N);
+      for (let i = 0; i < N; i++) {
+        const ang = (i * 2 * Math.PI) / N;
+        const wall = new CANNON.Body({ mass: 0, material: wallMaterial });
+        wall.addShape(new CANNON.Box(new CANNON.Vec3(0.5, 3.0, segLen * 0.58)));
+        wall.position.set(Math.cos(ang) * (trayRadius + 0.48), 1.8, Math.sin(ang) * (trayRadius + 0.48));
+        wall.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), -ang);
+        world.addBody(wall);
+      }
+      // Teto baixo: os dados nunca saem do enquadramento
+      const ceiling = new CANNON.Body({ mass: 0, shape: new CANNON.Box(new CANNON.Vec3(trayRadius * 2, 1.0, trayRadius * 2)), material: wallMaterial });
+      ceiling.position.set(0, 2.7, 0);
+      world.addBody(ceiling);
+
+      tray = createTray({ scene, radius: trayRadius, floorY: -1.14 });
+      tray.enter();
+      activeTray = tray;
+    } else {
+      world.boundsX = Math.min(2.85, 1.65 * width / height);
+      world.boundsZ = 2.2;
+      const wallThickness = 1.0;
+      const wallHeight = 5.0;
+      const wallSpecs = [
+        [new CANNON.Vec3(wallThickness, wallHeight, world.boundsZ + wallThickness), new CANNON.Vec3(-world.boundsX - wallThickness, 1.8, 0)],
+        [new CANNON.Vec3(wallThickness, wallHeight, world.boundsZ + wallThickness), new CANNON.Vec3(world.boundsX + wallThickness, 1.8, 0)],
+        [new CANNON.Vec3(world.boundsX + wallThickness, wallHeight, wallThickness), new CANNON.Vec3(0, 1.8, -world.boundsZ - wallThickness)],
+        [new CANNON.Vec3(world.boundsX + wallThickness, wallHeight, wallThickness), new CANNON.Vec3(0, 1.8, world.boundsZ + wallThickness)],
+        [new CANNON.Vec3(world.boundsX + wallThickness, wallThickness, world.boundsZ + wallThickness), new CANNON.Vec3(0, 4.8 + wallThickness, 0)]
+      ];
+      wallSpecs.forEach(([halfExtents, position]) => {
+        const wall = new CANNON.Body({ mass: 0, shape: new CANNON.Box(halfExtents), material: wallMaterial });
+        wall.position.copy(position); world.addBody(wall);
+      });
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(world.boundsX * 2, world.boundsZ * 2), new THREE.ShadowMaterial({ color: 0x000000, opacity: .25 }));
+      floor.rotation.x = -Math.PI / 2; floor.position.y = -1.14; floor.receiveShadow = true; scene.add(floor);
+    }
 
     const dice = list.map((config, index) => createDie(scene, world, config, index, list.length));
     const dreadIndex = dice.findIndex(die => die.dread);
@@ -397,9 +512,86 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
     let sequenceFactories = [];
     let currentSequence = null;
     let seqIndex = 0;
+    let revealResultFn = null;
+    let skipRequested = false;
+    let stampAt = 0;
+    const baseFov = camera.fov;
+
+    const toScreen = point => {
+      const p = point.clone().project(camera);
+      return { x: (p.x + 1) / 2 * width, y: (1 - p.y) / 2 * height };
+    };
+    const modifierParts = (options.modifierParts || []).filter(part => part.value);
+    const partsSum = modifierParts.reduce((acc, part) => acc + part.value, 0);
+    if (partsSum !== modifier) modifierParts.push({ label: 'BÔNUS', value: modifier - partsSum });
+
+    let hud = null;
+    if (sceneMode) {
+      hud = createRollHud(stage, { title, configs: list, modifierParts, rollMode, audio: audioContext, onOpenLog: openLogFromScene });
+      activeHud = hud;
+      hud.layout({
+        headBottom: toScreen(new THREE.Vector3(0, -1.15, -trayRadius * 1.18)).y - 14,
+        totalTop: toScreen(new THREE.Vector3(0, -1.15, trayRadius * 1.18)).y + 4
+      });
+
+      // 1º gesto pula para o resultado; depois do selo, fecha.
+      const handleGesture = e => {
+        if (e.type === 'keydown') {
+          if (e.key !== ' ' && e.key !== 'Escape') return;
+          e.preventDefault();
+        }
+        if (e.target?.closest?.('.rh-log')) return;
+        e.stopPropagation();
+        if (hud.sum?.stamped) { closeDice3d(); return; }
+        skipRequested = true;
+        if (hud.sum) { hud.sum.skip(); return; }
+        if (!finished) {
+          for (let s = 0; s < 240 && !dice.every(d => d.body.sleepState === CANNON.Body.SLEEPING); s++) world.step(1 / 60, 1 / 60, 1);
+          dice.forEach(die => { die.mesh.position.copy(die.body.position); die.mesh.quaternion.copy(die.body.quaternion); });
+          settledAt = performance.now() - 1000;
+          return;
+        }
+        if (currentSequence) {
+          currentSequence.finish();
+          currentSequence = null; activeSequence = null; sequenceFactories = [];
+          revealResultFn?.();
+        }
+      };
+      stage.addEventListener('click', handleGesture);
+      window.addEventListener('keydown', handleGesture);
+      stageGestureCleanup = () => {
+        stage.removeEventListener('click', handleGesture);
+        window.removeEventListener('keydown', handleGesture);
+      };
+    }
+
+    // Depois do resultado, na cena: brilho no dado de onde o valor saiu e o "tranco" do total.
+    function updateSceneFx(now) {
+      dice.forEach(die => {
+        if (!die.flashAt) return;
+        const material = die.mesh.material;
+        const k = 1 - (now - die.flashAt) / 380;
+        if (k <= 0) { material.emissive.copy(die.flashBase.color); material.emissiveIntensity = die.flashBase.intensity; die.flashAt = 0; return; }
+        material.emissive.set(die.color || '#ffffff');
+        material.emissiveIntensity = die.flashBase.intensity + k * .9;
+      });
+      if (stampAt) {
+        const t = (now - stampAt) / 360;
+        camera.fov = t >= 1 ? baseFov : baseFov - Math.sin(Math.PI * t) * 1.4;
+        camera.updateProjectionMatrix();
+        if (t >= 1) stampAt = 0;
+      }
+    }
 
     function animate(now) {
+      if (tray) tray.update(now);
       const delta = Math.min(.033, (now - last) / 1000); last = now;
+      if (sceneMode && finished && !currentSequence) {
+        updateSceneFx(now);
+        renderer.render(scene, camera);
+        animationFrame = requestAnimationFrame(animate);
+        return;
+      }
       if (currentSequence) {
         // Durante a execução de FX os dados são controlados pelas sequências
         const running = currentSequence.update(now);
@@ -409,49 +601,72 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
         seqIndex++;
         if (seqIndex < sequenceFactories.length) {
           const isLast = seqIndex === sequenceFactories.length - 1;
-          currentSequence = sequenceFactories[seqIndex](isLast ? revealResult : undefined);
+          currentSequence = sequenceFactories[seqIndex](isLast ? revealResultFn : undefined);
           activeSequence = currentSequence;
           animationFrame = requestAnimationFrame(animate);
           return;
         }
         currentSequence = null;
         activeSequence = null;
+        if (sceneMode) animationFrame = requestAnimationFrame(animate);
         return;
       }
-      if (finished && !currentSequence && now - finishedAt >= 900) return;
+      if (!sceneMode && finished && !currentSequence && now - finishedAt >= 900) return;
       world.step(1 / 60, delta, 3);
 
-      // Trava de segurança física: impede que dados saiam da área da ficha mesmo com tunelamento
-      const pad = 0.5;
-      const minX = -world.boundsX + pad, maxX = world.boundsX - pad;
-      const minZ = -world.boundsZ + pad, maxZ = world.boundsZ - pad;
-      const minY = -1.14 + pad * 0.5;
+      // Trava de segurança física: impede que dados saiam da área da bandeja/ficha
+      if (sceneMode) {
+        const maxR = trayRadius - .12;
+        dice.forEach(die => {
+          const r = Math.hypot(die.body.position.x, die.body.position.z);
+          if (r > maxR) {
+            const factor = maxR / (r || 1);
+            die.body.position.x *= factor;
+            die.body.position.z *= factor;
+            if (die.body.velocity.x * die.body.position.x + die.body.velocity.z * die.body.position.z > 0) {
+              die.body.velocity.x *= -0.35;
+              die.body.velocity.z *= -0.35;
+            }
+          }
+          if (die.body.position.y < -1.10) {
+            die.body.position.y = -1.10;
+            if (die.body.velocity.y < 0) die.body.velocity.y = -die.body.velocity.y * 0.35;
+          }
+          die.mesh.position.copy(die.body.position);
+          die.mesh.quaternion.copy(die.body.quaternion);
+        });
+      } else {
+        const pad = 0.5;
+        const minX = -world.boundsX + pad, maxX = world.boundsX - pad;
+        const minZ = -world.boundsZ + pad, maxZ = world.boundsZ - pad;
+        const minY = -1.14 + pad * 0.5;
 
-      dice.forEach(die => {
-        if (die.body.position.x < minX) {
-          die.body.position.x = minX;
-          if (die.body.velocity.x < 0) die.body.velocity.x = -die.body.velocity.x * 0.35;
-        } else if (die.body.position.x > maxX) {
-          die.body.position.x = maxX;
-          if (die.body.velocity.x > 0) die.body.velocity.x = -die.body.velocity.x * 0.35;
-        }
+        dice.forEach(die => {
+          if (die.body.position.x < minX) {
+            die.body.position.x = minX;
+            if (die.body.velocity.x < 0) die.body.velocity.x = -die.body.velocity.x * 0.35;
+          } else if (die.body.position.x > maxX) {
+            die.body.position.x = maxX;
+            if (die.body.velocity.x > 0) die.body.velocity.x = -die.body.velocity.x * 0.35;
+          }
 
-        if (die.body.position.z < minZ) {
-          die.body.position.z = minZ;
-          if (die.body.velocity.z < 0) die.body.velocity.z = -die.body.velocity.z * 0.35;
-        } else if (die.body.position.z > maxZ) {
-          die.body.position.z = maxZ;
-          if (die.body.velocity.z > 0) die.body.velocity.z = -die.body.velocity.z * 0.35;
-        }
+          if (die.body.position.z < minZ) {
+            die.body.position.z = minZ;
+            if (die.body.velocity.z < 0) die.body.velocity.z = -die.body.velocity.z * 0.35;
+          } else if (die.body.position.z > maxZ) {
+            die.body.position.z = maxZ;
+            if (die.body.velocity.z > 0) die.body.velocity.z = -die.body.velocity.z * 0.35;
+          }
 
-        if (die.body.position.y < minY) {
-          die.body.position.y = minY;
-          if (die.body.velocity.y < 0) die.body.velocity.y = -die.body.velocity.y * 0.35;
-        }
+          if (die.body.position.y < minY) {
+            die.body.position.y = minY;
+            if (die.body.velocity.y < 0) die.body.velocity.y = -die.body.velocity.y * 0.35;
+          }
 
-        die.mesh.position.copy(die.body.position);
-        die.mesh.quaternion.copy(die.body.quaternion);
-      });
+          die.mesh.position.copy(die.body.position);
+          die.mesh.quaternion.copy(die.body.quaternion);
+        });
+      }
       renderer.render(scene, camera);
       const slow = dice.every(die => die.body.velocity.length() < .25 && die.body.angularVelocity.length() < .32);
       if (slow) settledAt ||= now; else settledAt = 0;
@@ -485,10 +700,23 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
         const { total, chosenValue, chosenIndex, destroyed } = outcome;
         const classification = classifyRoll(dice, outcome);
 
+        let resultsShown = false;
         const revealResult = () => {
-          showResult(resultNode, dice, values, title, modifier, rollMode, outcome);
+          if (resultsShown) return;
+          resultsShown = true;
+          if (sceneMode) {
+            playSceneSum();
+            return;
+          }
+          showResult(resultNode, dice, values, title, modifier, rollMode, outcome, options);
           clearTimeout(cleanupTimer);
           cleanupTimer = setTimeout(closeDice3d, classification.crit ? 5200 : 4200);
+          resolveRoll();
+        };
+        revealResultFn = revealResult;
+
+        const resolveRoll = () => {
+          pendingFinish = null;
           finishResolve({
             values,
             total,
@@ -502,11 +730,51 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
             breakdown: dice.map((d, i) => ({
               sides: d.sides,
               value: values[i],
+              label: d.label || '',
               isChosen: i === chosenIndex,
               dread: i === dreadIndex,
               destroyed: destroyed.has(i),
               discarded: (chosenIndex >= 0 && i !== chosenIndex) || destroyed.has(i) || i === dreadIndex
             }))
+          });
+        };
+        pendingFinish = resolveRoll;
+
+        const playSceneSum = () => {
+          const items = dice.map((die, i) => {
+            const item = { index: i, value: values[i], label: die.label || `d${die.sides}`, color: die.color };
+            if (i === dreadIndex) return { ...item, kind: outcome.vanquished ? 'vanquished' : 'dread' };
+            if (destroyed.has(i)) return { ...item, kind: 'destroyed' };
+            if (chosenIndex >= 0 && i !== chosenIndex) return { ...item, kind: 'discarded' };
+            return { ...item, kind: 'die' };
+          });
+          modifierParts.forEach(part => items.push({ kind: 'mod', value: part.value, label: part.label }));
+
+          const banners = [];
+          if (classification.crit) banners.push('<span class="rh-banner crit">★ SUCESSO CRÍTICO</span>');
+          if (classification.fumble) banners.push('<span class="rh-banner fumble">☠ FALHA CRÍTICA</span>');
+          if (dreadIndex >= 0) {
+            if (outcome.vanquished) banners.push('<span class="rh-banner dread vanquished">✦ PAVOR VENCIDO</span>');
+            else if (!outcome.countedValues.length) banners.push('<span class="rh-banner dread">☠ O PAVOR CONSUMIU TODOS OS DADOS</span>');
+            else if (destroyed.size) banners.push(`<span class="rh-banner dread">☠ PAVOR DESTRUIU ${destroyed.size} ${destroyed.size === 1 ? 'DADO' : 'DADOS'}</span>`);
+            else banners.push('<span class="rh-banner dread resisted">VOCÊ RESISTIU AO PAVOR</span>');
+          }
+          if (classification.ra !== null) banners.push(`<span class="rh-meta">RA <b>${classification.ra}</b> · RB <b>${classification.rb}</b></span>`);
+
+          const sum = hud.playSum({
+            items, total,
+            quick: options.scene !== 'full',
+            instant: skipRequested,
+            project: i => toScreen(dice[i].mesh.getWorldPosition(new THREE.Vector3())),
+            onLaunch: i => { dice[i].flashAt = performance.now(); },
+            onTick: playTick,
+            verdict: { crit: classification.crit, fumble: classification.fumble, html: banners.join('') },
+            onStamp: () => { stampAt = performance.now(); tray?.pulse(); }
+          });
+          sum.done.then(() => {
+            resolveRoll();
+            clearTimeout(cleanupTimer);
+            cleanupTimer = setTimeout(closeDice3d, (classification.crit || classification.fumble || dreadIndex >= 0) ? 2600 : 1700);
           });
         };
 
@@ -538,6 +806,8 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
               lights: { hemi, key },
               audio: audioContext,
               reducedMotion: Boolean(reducedMotionQuery?.matches),
+              zoom: sceneMode ? .4 : 1,
+              ...(sceneMode ? { sigilSize: trayRadius * 2.2, sigilCenter: new THREE.Vector3(0, 0, 0) } : {}),
               onReveal: onSeqReveal
             });
           });
@@ -557,6 +827,7 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
           });
         }
 
+        if (skipRequested) sequenceFactories = [];
         if (sequenceFactories.length) {
           seqIndex = 0;
           currentSequence = sequenceFactories[0](sequenceFactories.length === 1 ? revealResult : undefined);
@@ -571,10 +842,48 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
   });
 }
 
-export function closeDice3d() {
+export function closeDice3d(opts = {}) {
+  const immediate = typeof opts === 'boolean' ? opts : Boolean(opts?.immediate);
+  pendingFinish?.();
+  pendingFinish = null;
   activeSequence?.finish();
   activeSequence = null;
-  document.querySelector('#dice-stage')?.classList.remove('active', 'dread-active', 'dread-impact', 'dread-vanquished', 'fumble-desat');
-  document.querySelector('#dice-stage-result')?.classList.remove('visible', 'crit-result', 'dread-result', 'fumble-result');
-  cancelAnimationFrame(animationFrame); clearTimeout(cleanupTimer);
+  if (stageGestureCleanup) {
+    stageGestureCleanup();
+    stageGestureCleanup = null;
+  }
+  clearTimeout(cleanupTimer);
+
+  const stage = document.querySelector('#dice-stage');
+  const resultNode = document.querySelector('#dice-stage-result');
+
+  const finalizeDom = () => {
+    cancelAnimationFrame(animationFrame);
+    stage?.classList.remove('active', 'scene-mode', 'stage-closing', 'dread-active', 'dread-impact', 'dread-vanquished', 'fumble-desat');
+    resultNode?.classList.remove('visible', 'crit-result', 'dread-result', 'fumble-result');
+    if (activeTray) {
+      activeTray.dispose();
+      activeTray = null;
+    }
+    activeHud?.destroy();
+    activeHud = null;
+  };
+
+  if (activeTray && !immediate && stage?.classList.contains('scene-mode')) {
+    stage.classList.add('stage-closing');
+    const trayToExit = activeTray;
+    activeTray = null;
+    let done = false;
+    const safeDone = () => {
+      if (done) return;
+      done = true;
+      trayToExit.dispose();
+      finalizeDom();
+    };
+    activeHud?.root.classList.add('out');
+    setTimeout(safeDone, 280);
+    trayToExit.exit().then(safeDone);
+  } else {
+    finalizeDom();
+  }
 }

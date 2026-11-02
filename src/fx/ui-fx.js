@@ -15,6 +15,7 @@ export function isReducedMotion() {
 }
 
 let fxEnabledGetter = () => true;
+let rollSceneGetter = () => true;
 
 export function setFxEnabledGetter(fn) {
   if (typeof fn === 'function') {
@@ -22,8 +23,18 @@ export function setFxEnabledGetter(fn) {
   }
 }
 
+export function setRollSceneGetter(fn) {
+  if (typeof fn === 'function') {
+    rollSceneGetter = fn;
+  }
+}
+
 export function fxEnabled() {
   return Boolean(fxEnabledGetter() && !isReducedMotion());
+}
+
+export function rollSceneEnabled() {
+  return Boolean(fxEnabled() && rollSceneGetter());
 }
 
 /**
