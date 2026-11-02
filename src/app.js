@@ -61,11 +61,9 @@ import { renderVigiliaSheet, setVigiliaSide, getVigiliaSide, VIGILIA_SKILL_GRADE
 import {
   LESOES_TABLE,
   TRAUMAS_TABLE,
-  FALHAS_CRITICAS_TABLE,
   getRelationBenefits,
   getLesaoResult,
   getTraumaResult,
-  getFalhaCriticaResult,
   stepUpPavor,
   stepDownPavor
 } from './systems/vigilia/vigilia-mechanics.js';
@@ -3856,6 +3854,83 @@ function bindVigiliaEvents() {
   };
  });
 
+ const applyLesaoChoice = (outcome, rollLabel = '') => {
+  state.lesoesCountScene = (state.lesoesCountScene || 0) + 1;
+  if (outcome.pvBonus) {
+   state.pv = Math.max(1, state.pv + outcome.pvBonus);
+   updateResourceUi('pv');
+  }
+  state.cards = Array.isArray(state.cards) ? state.cards : [];
+  state.cards.push(normalizeCard({
+   id: makeId('card'),
+   schema: 'abilities',
+   title: outcome.name,
+   type: 'Lesão',
+   content: outcome.desc,
+   accent: '#e0150d',
+   themeLinked: false,
+   markers: [],
+   actions: []
+  }));
+  save(false);
+  render();
+  const prefix = rollLabel ? `[${rollLabel}] ` : '';
+  alert(`✓ LESÃO APLICADA: ${prefix}${outcome.name.toUpperCase()}\n\n${outcome.desc}\n\n(Adicionada às Habilidades da ficha e DT da próxima lesão na cena aumentada para ${7 + 3 * state.lesoesCountScene})`);
+ };
+
+ const applyTraumaChoice = (outcome, rollLabel = '') => {
+  state.traumasCountScene = (state.traumasCountScene || 0) + 1;
+  if (outcome.pavor) {
+   state.dadoPavor = stepUpPavor(state.dadoPavor);
+  }
+  if (outcome.pdBonus) {
+   state.pd = Math.max(1, state.pd + outcome.pdBonus);
+   updateResourceUi('pd');
+  }
+  state.cards = Array.isArray(state.cards) ? state.cards : [];
+  state.cards.push(normalizeCard({
+   id: makeId('card'),
+   schema: 'abilities',
+   title: outcome.name,
+   type: 'Trauma',
+   content: outcome.desc,
+   accent: '#8b5cf6',
+   themeLinked: false,
+   markers: [],
+   actions: []
+  }));
+  save(false);
+  render();
+  const prefix = rollLabel ? `[${rollLabel}] ` : '';
+  alert(`✓ TRAUMA APLICADO: ${prefix}${outcome.name.toUpperCase()}\n\n${outcome.desc}\n\n(Adicionado às Habilidades da ficha e DT do próximo trauma na cena aumentada para ${7 + 3 * state.traumasCountScene})`);
+ };
+
+ document.querySelectorAll('[data-select-lesao]').forEach(el => {
+  el.onclick = (e) => {
+   e.stopPropagation();
+   const idx = Number(el.dataset.selectLesao);
+   const row = LESOES_TABLE[idx];
+   if (!row) return;
+   const modal = document.querySelector('#vigilia-lesao-modal');
+   if (modal) modal.style.display = 'none';
+   const range = `${row.min}${row.max !== row.min ? `–${row.max}` : ''}`;
+   applyLesaoChoice(row, range);
+  };
+ });
+
+ document.querySelectorAll('[data-select-trauma]').forEach(el => {
+  el.onclick = (e) => {
+   e.stopPropagation();
+   const idx = Number(el.dataset.selectTrauma);
+   const row = TRAUMAS_TABLE[idx];
+   if (!row) return;
+   const modal = document.querySelector('#vigilia-trauma-modal');
+   if (modal) modal.style.display = 'none';
+   const range = `${row.min}${row.max !== row.min ? `–${row.max}` : ''}`;
+   applyTraumaChoice(row, range);
+  };
+ });
+
  document.querySelectorAll('[data-roll-table]').forEach(btn => {
   btn.onclick = async (e) => {
    e.stopPropagation();
@@ -3868,7 +3943,7 @@ function bindVigiliaEvents() {
      const val = res.values[0];
      const outcome = getLesaoResult(val);
      setTimeout(() => {
-      alert(`RESULTADO DA LESÃO [${val}]: ${outcome.name.toUpperCase()}\n\n${outcome.desc}`);
+      applyLesaoChoice(outcome, `1d20: ${val}`);
      }, 700);
     }
    } else if (table === 'trauma') {
@@ -3878,24 +3953,8 @@ function bindVigiliaEvents() {
     if (res && res.values) {
      const val = res.values[0];
      const outcome = getTraumaResult(val);
-     if (outcome.pavor) {
-      state.dadoPavor = stepUpPavor(state.dadoPavor);
-      save(false);
-      render();
-     }
      setTimeout(() => {
-      alert(`RESULTADO DO TRAUMA [${val}]: ${outcome.name.toUpperCase()}\n\n${outcome.desc}`);
-     }, 700);
-    }
-   } else if (table === 'fumble') {
-    const modal = document.querySelector('#vigilia-fumble-modal');
-    if (modal) modal.style.display = 'none';
-    const res = await roll('Tabela de Falhas Críticas', [8], 0);
-    if (res && res.values) {
-     const val = res.values[0];
-     const outcome = getFalhaCriticaResult(val);
-     setTimeout(() => {
-      alert(`FALHA CRÍTICA [${val}]: ${outcome.name.toUpperCase()}\n\n${outcome.desc}`);
+      applyTraumaChoice(outcome, `1d20: ${val}`);
      }, 700);
     }
    }

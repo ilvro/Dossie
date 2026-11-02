@@ -8,11 +8,9 @@ import { die } from '../../dice-icon.js';
 import {
   LESOES_TABLE,
   TRAUMAS_TABLE,
-  FALHAS_CRITICAS_TABLE,
   getRelationBenefits,
   getLesaoResult,
-  getTraumaResult,
-  getFalhaCriticaResult
+  getTraumaResult
 } from './vigilia-mechanics.js';
 
 let currentVigiliaSide = 'front'; // 'front' | 'back'
@@ -700,27 +698,34 @@ function renderVigiliaModals(sheet) {
           </div>
 
           <div class="vigilia-modal-section-title">
-            <span>OU ROLE DIRETO NA TABELA DE LESÕES (1d20)</span>
+            <span>OU ESCOLHA / ROLE NA TABELA DE LESÕES (1d20)</span>
             <button type="button" class="btn-vigilia-table-roll" data-roll-table="lesao">
-              ROLAR 1d20
+              ROLAR 1d20 DIGITAL
             </button>
           </div>
+          <p class="vigilia-table-hint">
+            🎲 <strong>Rolou dados físicos na mesa?</strong> Clique diretamente na linha ou no botão <em>ESCOLHER</em> para aplicar a Lesão à ficha.
+          </p>
 
           <div class="vigilia-table-scroll">
             <table class="vigilia-mechanics-table">
               <thead>
                 <tr>
                   <th style="width: 55px;">1d20</th>
-                  <th style="width: 160px;">Lesão</th>
+                  <th style="width: 170px;">Lesão</th>
                   <th>Efeito & Sequela</th>
+                  <th style="width: 90px; text-align: center;">Ação</th>
                 </tr>
               </thead>
               <tbody>
-                ${LESOES_TABLE.map(row => `
-                  <tr>
+                ${LESOES_TABLE.map((row, idx) => `
+                  <tr class="vigilia-table-clickable-row" data-select-lesao="${idx}" title="Clique para escolher ${safe(row.name)}">
                     <td class="col-roll"><b>${row.min}${row.max !== row.min ? `–${row.max}` : ''}</b></td>
                     <td class="col-name"><strong>${row.name}</strong></td>
                     <td class="col-desc">${row.desc}</td>
+                    <td class="col-action" style="text-align: center;">
+                      <button type="button" class="btn-choose-entry" data-select-lesao="${idx}">ESCOLHER</button>
+                    </td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -753,72 +758,34 @@ function renderVigiliaModals(sheet) {
           </div>
 
           <div class="vigilia-modal-section-title">
-            <span>OU ROLE DIRETO NA TABELA DE TRAUMAS (1d20)</span>
+            <span>OU ESCOLHA / ROLE NA TABELA DE TRAUMAS (1d20)</span>
             <button type="button" class="btn-vigilia-table-roll" data-roll-table="trauma">
-              ROLAR 1d20
+              ROLAR 1d20 DIGITAL
             </button>
           </div>
+          <p class="vigilia-table-hint">
+            🎲 <strong>Rolou dados físicos na mesa?</strong> Clique diretamente na linha ou no botão <em>ESCOLHER</em> para aplicar o Trauma à ficha.
+          </p>
 
           <div class="vigilia-table-scroll">
             <table class="vigilia-mechanics-table">
               <thead>
                 <tr>
                   <th style="width: 55px;">1d20</th>
-                  <th style="width: 160px;">Trauma</th>
+                  <th style="width: 170px;">Trauma</th>
                   <th>Efeito & Sequela</th>
+                  <th style="width: 90px; text-align: center;">Ação</th>
                 </tr>
               </thead>
               <tbody>
-                ${TRAUMAS_TABLE.map(row => `
-                  <tr>
+                ${TRAUMAS_TABLE.map((row, idx) => `
+                  <tr class="vigilia-table-clickable-row" data-select-trauma="${idx}" title="Clique para escolher ${safe(row.name)}">
                     <td class="col-roll"><b>${row.min}${row.max !== row.min ? `–${row.max}` : ''}</b></td>
                     <td class="col-name"><strong>${row.name}</strong></td>
                     <td class="col-desc">${row.desc}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL DE TABELA DE FALHAS CRÍTICAS (1d8) -->
-    <div class="vigilia-modal-backdrop" id="vigilia-fumble-modal" style="display: none;">
-      <div class="vigilia-modal-box">
-        <header class="vigilia-modal-head">
-          <h2 class="vigilia-modal-title">TABELA DE FALHAS CRÍTICAS EM COMBATE (1d8)</h2>
-          <button type="button" class="vigilia-modal-close" data-close-vigilia-modal>✕</button>
-        </header>
-        <div class="vigilia-modal-body">
-          <p class="vigilia-modal-intro">
-            Quando todos os dados de um teste resultarem em <strong>1</strong> (ou forem anulados pelo Dado de Pavor), o teste é uma Falha Crítica.
-          </p>
-          <div class="vigilia-roll-trigger-card">
-            <div class="trigger-info">
-              <strong>ROLAR DESFECHO DESASTROSO</strong>
-              <small>Dado de 8 lados (1d8)</small>
-            </div>
-            <button type="button" class="btn-vigilia-table-roll" data-roll-table="fumble">
-              ROLAR 1d8 NA TABELA
-            </button>
-          </div>
-
-          <div class="vigilia-table-scroll">
-            <table class="vigilia-mechanics-table">
-              <thead>
-                <tr>
-                  <th style="width: 55px;">1d8</th>
-                  <th style="width: 170px;">Falha Crítica</th>
-                  <th>Efeito no Combate</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${FALHAS_CRITICAS_TABLE.map(row => `
-                  <tr>
-                    <td class="col-roll"><b>${row.roll}</b></td>
-                    <td class="col-name"><strong>${row.name}</strong></td>
-                    <td class="col-desc">${row.desc}</td>
+                    <td class="col-action" style="text-align: center;">
+                      <button type="button" class="btn-choose-entry" data-select-trauma="${idx}">ESCOLHER</button>
+                    </td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -941,9 +908,6 @@ export function renderVigiliaSheet(sheet, editMode, options = {}) {
         </button>
         <button type="button" class="dock-pill-btn" data-open-vigilia-modal="trauma" title="Testar Trauma (0 PD)">
           TRAUMAS (${traumasCount})
-        </button>
-        <button type="button" class="dock-pill-btn" data-open-vigilia-modal="fumble" title="Tabela de Falhas Críticas (1d8)">
-          FALHAS (1d8)
         </button>
       </aside>
 
