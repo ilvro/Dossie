@@ -7,6 +7,16 @@
  */
 import { getFxLayer, rectOf, burst, fxEnabled, isReducedMotion } from './ui-fx.js';
 import { easeOutCubic } from './dice-fx-primitives.js';
+import { die } from '../dice-icon.js';
+
+function formatRevealDesc(text) {
+  if (!text) return '';
+  return String(text).replace(/(^|[^\w])(\+?)\s*(\d*)d(4|6|8|10|12|20)\b/gi, (_, lead, plus, count, sides) =>
+    `${lead}${plus ? '<span class="dice-plus">+</span>' : ''}${Array.from({ length: Math.min(12, Number(count) || 1) }, () =>
+      die(Number(sides), 'inline-die', Number(sides) > 4)
+    ).join('')}`
+  );
+}
 
 function getAudioCtx() {
   const Context = typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
@@ -206,7 +216,7 @@ export function revealTableResult({ table = 'lesao', rows = [], row = null, roll
               </div>
               <div class="card-severity-badge severity-${severity}">${severityLabel}</div>
               <h2 class="card-title">${row?.name || ''}</h2>
-              <p class="card-desc">${row?.desc || ''}</p>
+              <p class="card-desc">${formatRevealDesc(row?.desc || '')}</p>
               ${renderMechanicTags(row)}
               <button type="button" class="table-card-apply-btn">APLICAR À FICHA (ENTER)</button>
             </div>

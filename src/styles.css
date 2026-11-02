@@ -3926,6 +3926,59 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 .vigilia-poly-die.skill-attr-die.die-12 { width: 19px; height: 18px; }
 .vigilia-poly-die.skill-attr-die.die-20 { width: 19px; height: 18px; }
 
+/* Grupo de dados inline (impede quebras de linha entre sinal, quantidade e dados) */
+.vigilia-dice-group {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+/* Dado Inline embutido nos Textos de A Vigília (Poderes, Habilidades, Itens, Histórico) */
+.vigilia-poly-die.inline-die {
+  color: #ffffff;
+  fill: #ffffff;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.9));
+  margin: 0 2px;
+  vertical-align: -2.5px;
+  display: inline-flex;
+}
+.vigilia-poly-die.inline-die.die-4 { width: 18px; height: 16px; }
+.vigilia-poly-die.inline-die.die-6 { width: 16px; height: 16px; }
+.vigilia-poly-die.inline-die.die-8 { width: 16px; height: 16px; }
+.vigilia-poly-die.inline-die.die-10 { width: 17.5px; height: 16px; }
+.vigilia-poly-die.inline-die.die-12 { width: 17px; height: 16px; }
+.vigilia-poly-die.inline-die.die-20 { width: 15px; height: 17px; }
+
+/* Dado nos Botões de Ação de A Vigília (Ações de poder, itens, relações) */
+.vigilia-poly-die.action-die {
+  color: #ffffff;
+  fill: #ffffff;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+  display: inline-flex;
+}
+.vigilia-poly-die.action-die.die-4 { width: 16px; height: 14px; }
+.vigilia-poly-die.action-die.die-6 { width: 15px; height: 15px; }
+.vigilia-poly-die.action-die.die-8 { width: 15px; height: 15px; }
+.vigilia-poly-die.action-die.die-10 { width: 16px; height: 15px; }
+.vigilia-poly-die.action-die.die-12 { width: 16px; height: 15px; }
+.vigilia-poly-die.action-die.die-20 { width: 14px; height: 16px; }
+
+/* Dado nos Menus Dropdown de A Vigília (Seleção de grau de perícia) */
+.vigilia-poly-die.menu-die {
+  color: #ffffff;
+  fill: #ffffff;
+  display: inline-flex;
+  margin-right: 6px;
+}
+.vigilia-poly-die.menu-die.die-4 { width: 18px; height: 16px; }
+.vigilia-poly-die.menu-die.die-6 { width: 16px; height: 16px; }
+.vigilia-poly-die.menu-die.die-8 { width: 16px; height: 16px; }
+.vigilia-poly-die.menu-die.die-10 { width: 17.5px; height: 16px; }
+.vigilia-poly-die.menu-die.die-12 { width: 17px; height: 16px; }
+.vigilia-poly-die.menu-die.die-20 { width: 15px; height: 17px; }
+
 /* Monitores de PV e PD (empilhados verticalmente como no PDF - Tamanho Grandioso) */
 .vigilia-resources-bar {
   display: flex;
@@ -4520,6 +4573,56 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
 .vigilia-action-btn:hover {
   background: #223f32;
   border-color: #6ee7b7;
+}
+
+/* Dados Físicos embutidos no texto de A Vigília */
+.vigilia-page .die-svg.inline-die,
+.vigilia-modal-box .die-svg.inline-die {
+  width: 21px;
+  height: 22px;
+  margin: 0 2px;
+  vertical-align: -6px;
+  display: inline-block;
+}
+
+.vigilia-page .dice-plus,
+.vigilia-modal-box .dice-plus {
+  font-weight: 800;
+  color: #ffffff;
+  margin-right: 1px;
+}
+
+.vigilia-action-btn .die-svg.micro {
+  width: 17px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.vigilia-action-btn .vigilia-poly-die.action-die,
+.btn-invoke-relation .vigilia-poly-die.action-die,
+.pavor-dock-die .vigilia-poly-die.action-die {
+  flex-shrink: 0;
+}
+
+.btn-invoke-relation {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-invoke-relation .die-svg.micro {
+  width: 15px;
+  height: 16px;
+  vertical-align: -2px;
+  flex-shrink: 0;
+}
+
+.die-svg.inline-die[data-sides="4"] {
+  color: #cbd5e1;
+}
+.die-svg.inline-die[data-sides="4"] .die-face {
+  fill: #64748b;
+  stroke: #94a3b8;
 }
 
 /* Coluna de Habilidades e Perícias sempre na frente do retrato */
