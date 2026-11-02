@@ -614,7 +614,7 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
       // 1º gesto pula para o resultado; depois do selo, fecha.
       const handleGesture = e => {
         if (e.type === 'keydown') {
-          if (e.key !== ' ' && e.key !== 'Escape') return;
+          if (e.key !== ' ' && e.key !== 'Enter' && e.key !== 'Escape') return;
           e.preventDefault();
         }
         if (e.target?.closest?.('.rh-log')) return;
@@ -624,7 +624,11 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
           return;
         }
         if (hand && e.type === 'click' && performance.now() - hand.thrownAt < 400) return;
-        if (hud.sum?.stamped) { closeDice3d(); return; }
+        if (hud.sum?.stamped) {
+          if (performance.now() - stampAt < 200) return;
+          closeDice3d();
+          return;
+        }
         skipRequested = true;
         if (hud.sum) { hud.sum.skip(); return; }
         if (!finished) {
@@ -862,7 +866,6 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
           sum.done.then(() => {
             resolveRoll();
             clearTimeout(cleanupTimer);
-            cleanupTimer = setTimeout(closeDice3d, (classification.crit || classification.fumble || dreadIndex >= 0) ? 2600 : 1700);
           });
         };
 
