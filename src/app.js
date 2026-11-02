@@ -57,7 +57,7 @@ import { die } from './dice-icon.js';
 import { enhanceSelects } from './custom-select.js';
 import { abrirTutorial, fecharTutorial } from './systems/original/original-wizard.js';
 import { icon } from './icons.js';
-import { renderVigiliaSheet, setVigiliaSide, getVigiliaSide } from './systems/vigilia/vigilia-view.js';
+import { renderVigiliaSheet, setVigiliaSide, getVigiliaSide, VIGILIA_SKILL_GRADES } from './systems/vigilia/vigilia-view.js';
 import {
   LESOES_TABLE,
   TRAUMAS_TABLE,
@@ -1127,7 +1127,7 @@ function render(){syncDraftBaseline();syncUnsavedBar();document.querySelectorAll
     : (state.systemMode==='original'
         ? (isCinematic?renderCinematicOriginal(state,editMode,{safeUrl,renderBackgroundLayer,presentationMode,renderPresentationDock,die,accent:getSheetAccent(state),resourceShift:currentResourceShift,pageClass:`cinematic-tab-${cinematicMobileTab} ${presentationMode?'presentation-active':''} ${presentationLockingIn?'presentation-locking-in':''} ${presentationEntering?'presentation-entering':''} ${editTransitionMode?`edit-trans-${editTransitionMode}`:''} ${modeJustChanged?'mode-enter':''}`}):renderTraditionalOriginal(state,editMode,{accent:getSheetAccent(state),currentRight:currentOriginalTab,filterQuery:originalSkillsFilter,safeUrl,renderBackgroundLayer}))
         : (state.viewMode==='vigilia'
-            ? renderVigiliaSheet(state, editMode, { safeUrl, renderBackgroundLayer, modeJustChanged })
+            ? renderVigiliaSheet(state, editMode, { safeUrl, renderBackgroundLayer, modeJustChanged, customSelect, aptidaoOptions, renderMarker })
             : (isCinematic?renderCinematic(trainingOptions,bgIsVideo):renderTraditional(trainingOptions,bgIsVideo,aptidaoOptions,aptidaoCount)))
     )
   }
@@ -3363,8 +3363,216 @@ function bindQuickSwitcherItemEvents() {
  });
 }
 
+// Controles de edição do layout "A Vigília": nome, perícias, relações, retrato e fundo
+const VIGILIA_RANGE_DEFAULTS = { vigiliaTokenScale: 100, vigiliaTokenX: 0, vigiliaTokenY: 0, vigiliaBgBlur: 0, vigiliaBgZoom: 100, vigiliaBgDim: 0 };
+const VIGILIA_RANGE_VARS = {
+ vigiliaTokenScale: ['--vg-token-scale', v => v / 100, v => `${v}%`],
+ vigiliaTokenX: ['--vg-token-x', v => `${v}%`, v => `${v}%`],
+ vigiliaTokenY: ['--vg-token-y', v => `${v}%`, v => `${v}%`],
+ vigiliaBgBlur: ['--vg-bg-blur', v => `${v}px`, v => `${v}px`],
+ vigiliaBgZoom: ['--vg-bg-zoom', v => v / 100, v => `${v}%`],
+ vigiliaBgDim: ['--vg-bg-dim', v => v / 100, v => `${v}%`]
+};
+
+function applyVigiliaRangeVar(key, value) {
+ const cfg = VIGILIA_RANGE_VARS[key];
+ const page = document.querySelector('.vigilia-page');
+ if (!cfg || !page) return;
+ page.style.setProperty(cfg[0], String(cfg[1](value)));
+ const hint = document.querySelector(`[data-vigilia-range="${key}"]`)?.parentElement?.querySelector('em');
+ if (hint) hint.textContent = cfg[2](value);
+}
+
+function bindVigiliaEditEvents() {
+ if (!editMode) return;
+
+ // Nome em duas partes (primeiro nome grande + sobrenome/título)
+ document.querySelectorAll('[data-vigilia-name]').forEach(input => {
+  input.onchange = () => {
+   const first = document.querySelector('[data-vigilia-name="first"]')?.value.trim() || '';
+   const last = document.querySelector('[data-vigilia-name="last"]')?.value.trim() || '';
+   state.firstName = first.toUpperCase();
+   state.lastName = last.toUpperCase();
+   state.name = [first, last].filter(Boolean).join(' ') || 'SEM NOME';
+   save(false);
+   render();
+  };
+ });
+
+ // Controles dentro da linha de perícia não devem disparar a rolagem
+ document.querySelectorAll('.vigilia-skill-row [data-vigilia-stop], .vigilia-skill-row .skill-name-input, .vigilia-skill-row .skill-name-aptidao').forEach(el => {
+  el.addEventListener('click', e => e.stopPropagation());
+ });
+
+ // Seletor de grau do dado da perícia (d4 → d12)
+ document.querySelectorAll('.custom-select[data-select-id^="vigilia-skill-die:"]').forEach(select => {
+  select.querySelectorAll('.select-option').forEach(option => {
+   option.onclick = e => {
+    e.stopPropagation();
+    const idx = Number(select.dataset.selectId.split(':')[1]);
+    const sides = Number(option.dataset.selectValue) || 4;
+    const skill = state.skills?.[idx];
+    if (!skill) return;
+    skill.skillDie = sides;
+    skill.training = (VIGILIA_SKILL_GRADES.find(([v]) => v === sides) || [sides, 'TREINADO'])[1];
+    select.classList.remove('open');
+    save(false);
+    render();
+   };
+  });
+ });
+
+ document.querySelectorAll('[data-vigilia-skill-name]').forEach(input => {
+  input.onchange = () => {
+   const skill = state.skills?.[Number(input.dataset.vigiliaSkillName)];
+   if (!skill) return;
+   skill.name = input.value.trim().toUpperCase() || 'PERÍCIA';
+   save(false);
+   render();
+  };
+ });
+
+ document.querySelectorAll('[data-vigilia-remove-skill]').forEach(btn => {
+  btn.onclick = e => {
+   e.stopPropagation();
+   const idx = Number(btn.dataset.vigiliaRemoveSkill);
+   const skill = state.skills?.[idx];
+   if (!skill || !confirm(`Remover a perícia "${skill.name}"?`)) return;
+   state.skills.splice(idx, 1);
+   save(false);
+   render();
+  };
+ });
+
+ document.querySelectorAll('[data-vigilia-add-skill]').forEach(btn => {
+  btn.onclick = () => {
+   if (!Array.isArray(state.skills)) state.skills = [];
+   state.skills.push({ name: 'NOVA PERÍCIA', skillDie: 4, training: 'DESTREINADO', attribute: 'Mente', extra: 0 });
+   save(false);
+   render();
+   const inputs = document.querySelectorAll('[data-vigilia-skill-name]');
+   const last = inputs[inputs.length - 1];
+   if (last) { last.scrollIntoView({ block: 'nearest' }); last.select(); }
+  };
+ });
+
+ // Relações (verso)
+ document.querySelectorAll('[data-vigilia-rel]').forEach(input => {
+  input.onchange = () => {
+   const [idxStr, field] = input.dataset.vigiliaRel.split(':');
+   const rel = state.relations?.[Number(idxStr)];
+   if (!rel) return;
+   rel[field] = field === 'note' ? input.value.trim() : input.value.trim().toUpperCase();
+   save(false);
+   render();
+  };
+ });
+
+ document.querySelectorAll('[data-vigilia-remove-relation]').forEach(btn => {
+  btn.onclick = e => {
+   e.stopPropagation();
+   const idx = Number(btn.dataset.vigiliaRemoveRelation);
+   const rel = state.relations?.[idx];
+   if (!rel || !confirm(`Remover a relação com "${rel.target || 'sem nome'}"?`)) return;
+   state.relations.splice(idx, 1);
+   save(false);
+   render();
+  };
+ });
+
+ document.querySelectorAll('[data-vigilia-add-relation]').forEach(btn => {
+  btn.onclick = () => {
+   if (!Array.isArray(state.relations)) state.relations = [];
+   state.relations.push({ target: `NOVO ${state.relations.length + 1}`, degree: 0, feeling: 'NEUTRO', note: '' });
+   save(false);
+   render();
+  };
+ });
+
+ // Retrato e fundo
+ document.querySelectorAll('[data-vigilia-remove-token]').forEach(btn => {
+  btn.onclick = () => { state.tokenImage = ''; save(false); render(); };
+ });
+ document.querySelectorAll('[data-vigilia-reset-token]').forEach(btn => {
+  btn.onclick = () => { state.vigiliaTokenScale = 100; state.vigiliaTokenX = 0; state.vigiliaTokenY = 0; save(false); render(); };
+ });
+ document.querySelectorAll('[data-vigilia-reset-bg]').forEach(btn => {
+  btn.onclick = () => {
+   state.vigiliaBackground = '';
+   state.backgroundImage = '';
+   state.vigiliaBgBlur = 0;
+   state.vigiliaBgZoom = 100;
+   state.vigiliaBgDim = 0;
+   save(false);
+   render();
+  };
+ });
+ document.querySelectorAll('[data-vigilia-toggle]').forEach(btn => {
+  btn.onclick = () => { const key = btn.dataset.vigiliaToggle; state[key] = !state[key]; save(false); render(); };
+ });
+ const bgUpload = document.querySelector('#vigilia-bg-upload');
+ if (bgUpload) bgUpload.onchange = () => readImage(bgUpload.files[0], 'vigiliaBackground', 2400);
+
+ document.querySelectorAll('[data-vigilia-range]').forEach(input => {
+  const key = input.dataset.vigiliaRange;
+  input.oninput = () => {
+   state[key] = Number(input.value) || 0;
+   applyVigiliaRangeVar(key, state[key]);
+  };
+  input.onchange = () => save(false);
+  input.ondblclick = () => {
+   state[key] = VIGILIA_RANGE_DEFAULTS[key] ?? 0;
+   input.value = state[key];
+   applyVigiliaRangeVar(key, state[key]);
+   save(false);
+  };
+ });
+
+ // Arrastar o retrato para reposicionar
+ const token = document.querySelector('[data-vigilia-token]');
+ const area = document.querySelector('[data-vigilia-portrait-area]');
+ if (token && area) {
+  token.onpointerdown = event => {
+   event.preventDefault();
+   const rect = area.getBoundingClientRect();
+   const startX = event.clientX, startY = event.clientY;
+   const originX = Number(state.vigiliaTokenX) || 0, originY = Number(state.vigiliaTokenY) || 0;
+   token.setPointerCapture(event.pointerId);
+   token.classList.add('dragging');
+   token.onpointermove = move => {
+    state.vigiliaTokenX = Math.round(Math.max(-60, Math.min(60, originX + (move.clientX - startX) / rect.width * 100)));
+    state.vigiliaTokenY = Math.round(Math.max(-60, Math.min(60, originY + (move.clientY - startY) / rect.height * 100)));
+    applyVigiliaRangeVar('vigiliaTokenX', state.vigiliaTokenX);
+    applyVigiliaRangeVar('vigiliaTokenY', state.vigiliaTokenY);
+    const xIn = document.querySelector('[data-vigilia-range="vigiliaTokenX"]');
+    const yIn = document.querySelector('[data-vigilia-range="vigiliaTokenY"]');
+    if (xIn) xIn.value = state.vigiliaTokenX;
+    if (yIn) yIn.value = state.vigiliaTokenY;
+   };
+   token.onpointerup = () => {
+    token.classList.remove('dragging');
+    token.onpointermove = null;
+    save(false);
+   };
+  };
+  // Roda do mouse sobre o retrato ajusta a escala
+  token.onwheel = e => {
+   e.preventDefault();
+   const cur = Number(state.vigiliaTokenScale) || 100;
+   state.vigiliaTokenScale = Math.max(30, Math.min(200, cur + (e.deltaY < 0 ? 4 : -4)));
+   applyVigiliaRangeVar('vigiliaTokenScale', state.vigiliaTokenScale);
+   const sIn = document.querySelector('[data-vigilia-range="vigiliaTokenScale"]');
+   if (sIn) sIn.value = state.vigiliaTokenScale;
+   clearTimeout(token._wheelSave);
+   token._wheelSave = setTimeout(() => save(false), 300);
+  };
+ }
+}
+
 function bindVigiliaEvents() {
  if (state.viewMode !== 'vigilia') return;
+
+ bindVigiliaEditEvents();
 
  document.querySelectorAll('[data-vigilia-side]').forEach(btn => {
   btn.onclick = () => {

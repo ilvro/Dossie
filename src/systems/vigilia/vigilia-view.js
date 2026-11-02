@@ -17,6 +17,21 @@ import {
 
 let currentVigiliaSide = 'front'; // 'front' | 'back'
 
+// Graus de dado das perícias (d4 = destreinado ... d12 = grão-mestre)
+export const VIGILIA_SKILL_GRADES = [
+  [4, 'DESTREINADO'],
+  [6, 'TREINADO'],
+  [8, 'ESPECIALISTA'],
+  [10, 'MESTRE'],
+  [12, 'GRÃO MESTRE']
+];
+const VIGILIA_DIE_OPTIONS = VIGILIA_SKILL_GRADES.map(([v, label]) => ({
+  value: v,
+  label: `d${v}`,
+  triggerLabel: `d${v}`,
+  html: `${die(v, 'menu-die', v > 4)}<span>d${v} — ${label}</span>`
+}));
+
 export function setVigiliaSide(side) {
   if (side === 'front' || side === 'back') {
     currentVigiliaSide = side;
@@ -35,6 +50,17 @@ function safe(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function formatVigiliaText(str) {
+  return safe(str)
+    .replace(/\*\*(.+?)\*\*/gs, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
+    .replace(/\[u\](.+?)\[\/u\]/gis, '<u>$1</u>')
+    .replace(/\[color=(#[0-9a-f]{6})\](.+?)\[\/color\]/gis, '<span style="color:$1">$2</span>')
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n[•\-]\s+/g, '<br>• ')
+    .replace(/\n/g, '<br>');
 }
 
 /**
@@ -119,7 +145,7 @@ function renderRelationPips(degree = 0, targetName = '') {
  * Renderiza a Frente da Ficha de A Vigília
  */
 function renderVigiliaFront(sheet, editMode, options) {
-  const { safeUrl } = options;
+  const { safeUrl, customSelect, aptidaoOptions = [], renderMarker } = options;
   const armorPoints = sheet.armorPoints ?? (sheet.pontosArmadura ?? 0);
 
   // Nome dividido (Primeiro nome grande, Sobrenome/Título menor)
@@ -143,8 +169,13 @@ function renderVigiliaFront(sheet, editMode, options) {
 
   // Cards de habilidades e equipamentos
   const cards = Array.isArray(sheet.cards) ? sheet.cards : [];
-  const abilities = cards.filter(c => c.schema !== 'items');
-  const items = cards.filter(c => c.schema === 'items');
+  // Mesmo filtro do restante do app: habilidades de perfil só aparecem para o perfil ativo
+  const isVisibleCard = c => !c.profileAbility || c.profileAbility === sheet.profile;
+  const abilities = cards.filter(c => c.schema !== 'items' && isVisibleCard(c));
+  const items = cards.filter(c => c.schema === 'items' && isVisibleCard(c));
+  const editCardBtn = card => editMode ? `
+    <button type="button" class="vigilia-card-edit-btn" data-edit-card="${safe(card.id)}" title="Editar card">${icon('edit', 12)}</button>
+  ` : '';
 
   // Encontra marcadores de ímpeto e análise se presentes
   const impetoCard = cards.find(c => c.id === 'impeto' || c.title?.toUpperCase().includes('ÍMPETO'));
@@ -162,7 +193,8 @@ function renderVigiliaFront(sheet, editMode, options) {
         <div class="vigilia-name-block">
           ${editMode ? `
             <div class="vigilia-name-edit">
-              <input data-field="name" value="${safe(sheet.name)}" placeholder="Nome do Personagem">
+              <input data-vigilia-name="first" value="${safe(firstName)}" placeholder="Nome" class="first-name-input">
+              <input data-vigilia-name="last" value="${safe(lastName)}" placeholder="Sobrenome / título" class="last-name-input">
             </div>
           ` : `
             <h1 class="vigilia-title-name">
@@ -172,18 +204,24 @@ function renderVigiliaFront(sheet, editMode, options) {
           `}
         </div>
 
-        <div class="vigilia-identity-badge">
+        <div class="vigilia-identity-badge ${editMode ? 'is-editing' : ''}">
           <div class="profile-banner-wrap">
             <img src="./assets/vigilia/banner-profile.png" alt="" class="profile-banner-img" draggable="false">
-            <span class="profile-text">${safe(profile)}</span>
+            ${editMode && customSelect
+              ? customSelect({ value: sheet.profile || 'Analista', options: ['Executor', 'Analista', 'Vigilante'].map(v => ({ value: v, label: v.toUpperCase() })), id: 'profile', className: 'vigilia-profile-select' })
+              : `<span class="profile-text">${safe(profile)}</span>`}
           </div>
           <span class="id-dot">•</span>
-          <span class="occupation-text">${safe(occupation)}</span>
+          ${editMode
+            ? `<input class="vigilia-occupation-input" data-field="occupation" value="${safe(sheet.occupation || '')}" placeholder="Ocupação">`
+            : `<span class="occupation-text">${safe(occupation)}</span>`}
           <span class="id-dot">•</span>
           <span class="level-label">NÍVEL</span>
           <div class="level-badge-wrap">
             <img src="./assets/vigilia/badge-level.png" alt="" class="level-badge-img" draggable="false">
-            <span class="level-num">${level}</span>
+            ${editMode
+              ? `<input class="vigilia-level-input" data-field="level" value="${level}" inputmode="numeric">`
+              : `<span class="level-num">${level}</span>`}
           </div>
         </div>
       </header>
@@ -209,8 +247,8 @@ function renderVigiliaFront(sheet, editMode, options) {
               ${renderVigiliaDie(attrs.Físico || 6, true)}
               ${editMode ? `
                 <div class="attr-step-btns">
-                  <button type="button" data-attribute-step="Físico:-2">−</button>
-                  <button type="button" data-attribute-step="Físico:2">+</button>
+                  <button type="button" data-attribute-step="Físico:-1">−</button>
+                  <button type="button" data-attribute-step="Físico:1">+</button>
                 </div>
               ` : ''}
             </div>
@@ -220,8 +258,8 @@ function renderVigiliaFront(sheet, editMode, options) {
               ${renderVigiliaDie(attrs.Mente || 6, true)}
               ${editMode ? `
                 <div class="attr-step-btns">
-                  <button type="button" data-attribute-step="Mente:-2">−</button>
-                  <button type="button" data-attribute-step="Mente:2">+</button>
+                  <button type="button" data-attribute-step="Mente:-1">−</button>
+                  <button type="button" data-attribute-step="Mente:1">+</button>
                 </div>
               ` : ''}
             </div>
@@ -231,8 +269,8 @@ function renderVigiliaFront(sheet, editMode, options) {
               ${renderVigiliaDie(attrs.Emoção || 6, true)}
               ${editMode ? `
                 <div class="attr-step-btns">
-                  <button type="button" data-attribute-step="Emoção:-2">−</button>
-                  <button type="button" data-attribute-step="Emoção:2">+</button>
+                  <button type="button" data-attribute-step="Emoção:-1">−</button>
+                  <button type="button" data-attribute-step="Emoção:1">+</button>
                 </div>
               ` : ''}
             </div>
@@ -256,6 +294,9 @@ function renderVigiliaFront(sheet, editMode, options) {
                 <button type="button" data-resource-adjust="maxPv:-1">−</button>
                 <small>MÁX ${sheet.maxPv}</small>
                 <button type="button" data-resource-adjust="maxPv:1">+</button>
+                <button type="button" data-resource-adjust="pvTemp:-1">−</button>
+                <small>TEMP ${sheet.pvTemp || 0}</small>
+                <button type="button" data-resource-adjust="pvTemp:1">+</button>
               </div>
             ` : ''}
           </div>
@@ -275,6 +316,9 @@ function renderVigiliaFront(sheet, editMode, options) {
                 <button type="button" data-resource-adjust="maxPd:-1">−</button>
                 <small>MÁX ${sheet.maxPd}</small>
                 <button type="button" data-resource-adjust="maxPd:1">+</button>
+                <button type="button" data-resource-adjust="pdTemp:-1">−</button>
+                <small>TEMP ${sheet.pdTemp || 0}</small>
+                <button type="button" data-resource-adjust="pdTemp:1">+</button>
               </div>
             ` : ''}
           </div>
@@ -291,23 +335,45 @@ function renderVigiliaFront(sheet, editMode, options) {
             <span class="banner-text">PERÍCIAS</span>
           </div>
 
-          <div class="vigilia-skills-table">
-            ${skills.map((sk) => {
+          <div class="vigilia-skills-table ${editMode ? 'is-editing' : ''}">
+            ${skills.map((sk, index) => {
               const attrDie = attrs[sk.attribute] || 4;
               const rollStr = `${sk.name}|${sk.skillDie},${attrDie}|${sk.extra || 0}`;
+              const isAptidao = String(sk.name || '').startsWith('APTIDÃO');
+              const aptidaoField = isAptidao ? (sk.name.match(/\(([^)]+)\)/)?.[1] || '') : '';
+              const nameHtml = !editMode
+                ? `<span class="skill-name">${safe(sk.name)}</span>`
+                : (isAptidao && customSelect && aptidaoOptions.length
+                    ? `<span class="skill-name skill-name-aptidao">${customSelect({ value: aptidaoField || 'HUMANAS', options: aptidaoOptions, id: `aptidao-field:${index}`, className: 'vigilia-aptidao-select' })}</span>`
+                    : `<input class="skill-name-input" data-vigilia-skill-name="${index}" value="${safe(sk.name)}" placeholder="NOME">`);
+              const editHtml = editMode && customSelect ? `
+                <div class="vigilia-skill-edit" data-vigilia-stop>
+                  ${customSelect({ value: sk.skillDie, options: VIGILIA_DIE_OPTIONS, id: `vigilia-skill-die:${index}`, className: 'vigilia-mini-select' })}
+                  ${customSelect({ value: sk.attribute, options: ['Físico', 'Mente', 'Emoção'].map(v => ({ value: v, label: v.toUpperCase() })), id: `skill-attribute:${index}`, className: 'vigilia-mini-select' })}
+                  <input data-skill-extra="${index}" type="number" value="${sk.extra || 0}" title="Bônus extra">
+                  <button type="button" class="vigilia-skill-remove" data-vigilia-remove-skill="${index}" title="Remover perícia">${icon('trash', 11)}</button>
+                </div>
+              ` : '';
               return `
-                <div class="vigilia-skill-row ${sk.skillDie > 4 ? 'is-trained' : ''}" 
+                <div class="vigilia-skill-row ${sk.skillDie > 4 ? 'is-trained' : ''} ${editMode ? 'editing' : ''}" 
                      data-roll="${safe(rollStr)}" 
                      title="Rolar ${safe(sk.name)} (d${sk.skillDie} + d${attrDie}${sk.extra ? `+${sk.extra}` : ''})">
-                  <span class="skill-name">${safe(sk.name)}</span>
+                  ${nameHtml}
                   <span class="skill-die-col">${renderVigiliaDie(sk.skillDie, false)}</span>
                   <span class="skill-plus-col">+</span>
                   <span class="skill-attr-die-col">${renderVigiliaDie(attrDie, true)}</span>
-                  <span class="skill-attr-name">${safe(sk.attribute.toUpperCase())}</span>
+                  <span class="skill-attr-name">${safe(String(sk.attribute || '').toUpperCase())}${sk.extra ? ` <b class="skill-extra">${Number(sk.extra) > 0 ? '+' : ''}${sk.extra}</b>` : ''}</span>
+                  ${editHtml}
                 </div>
               `;
             }).join('')}
           </div>
+          ${editMode ? `
+            <div class="vigilia-skill-add-bar">
+              <button type="button" data-vigilia-add-skill>+ PERÍCIA</button>
+              <button type="button" data-add-aptidao>+ APTIDÃO</button>
+            </div>
+          ` : ''}
         </div>
 
         <!-- COLUNA 2: HABILIDADES E EQUIPAMENTO -->
@@ -359,13 +425,16 @@ function renderVigiliaFront(sheet, editMode, options) {
                     <img src="./assets/vigilia/banner-power.png" alt="" class="power-banner-img" draggable="false">
                     <span class="power-title">${safe(card.title)}</span>
                     ${extraBannerControl}
+                    ${editCardBtn(card)}
                   </div>
                   <div class="power-content">
-                    ${safe(card.content)
-                      .replace(/\n\n/g, '<br><br>')
-                      .replace(/\n• /g, '<br>• ')
-                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}
+                    ${formatVigiliaText(card.content)}
                   </div>
+                  ${(!isImpeto && !isAnalise && renderMarker && Array.isArray(card.markers) && card.markers.length > 0) ? `
+                    <div class="vigilia-card-markers">
+                      ${card.markers.map(m => renderMarker(card, m)).join('')}
+                    </div>
+                  ` : ''}
                   ${Array.isArray(card.actions) && card.actions.length > 0 ? `
                     <div class="power-actions-bar">
                       ${card.actions.map(act => `
@@ -380,6 +449,10 @@ function renderVigiliaFront(sheet, editMode, options) {
                 </article>
               `;
             }).join('')}
+
+            ${editMode ? `
+              <button type="button" class="vigilia-add-card-btn" data-cinematic-add="abilities">+ HABILIDADE</button>
+            ` : ''}
 
             <!-- Bloco de Equipamento -->
             <div class="vigilia-equipment-section">
@@ -403,7 +476,12 @@ function renderVigiliaFront(sheet, editMode, options) {
               </div>
               <div class="equipment-content">
                 ${items.map(it => `
-                  <p><strong>${safe(it.title)}:</strong> ${safe(it.content).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>
+                  <p>${editCardBtn(it)}<strong>${safe(it.title)}:</strong> ${formatVigiliaText(it.content)}</p>
+                  ${(renderMarker && Array.isArray(it.markers) && it.markers.length > 0) ? `
+                    <div class="vigilia-card-markers">
+                      ${it.markers.map(m => renderMarker(it, m)).join('')}
+                    </div>
+                  ` : ''}
                   ${Array.isArray(it.actions) && it.actions.length > 0 ? `
                     <div class="item-actions-bar">
                       ${it.actions.map(act => `
@@ -416,6 +494,9 @@ function renderVigiliaFront(sheet, editMode, options) {
                     </div>
                   ` : ''}
                 `).join('')}
+                ${editMode ? `
+                  <button type="button" class="vigilia-add-card-btn" data-cinematic-add="items">+ ITEM</button>
+                ` : ''}
               </div>
             </div>
 
@@ -425,11 +506,12 @@ function renderVigiliaFront(sheet, editMode, options) {
 
         <!-- COLUNA 3: RETRATO RECORTADO DO PERSONAGEM -->
         <div class="vigilia-col-right">
-          <div class="vigilia-portrait-container">
+          <div class="vigilia-portrait-container" data-vigilia-portrait-area>
             ${sheet.tokenImage ? `
               <img src="${safeUrl(sheet.tokenImage)}" 
                    alt="${safe(sheet.name)}" 
-                   class="vigilia-character-portrait" 
+                   class="vigilia-character-portrait ${sheet.vigiliaTokenFlip ? 'is-flipped' : ''}" 
+                   data-vigilia-token
                    draggable="false">
             ` : `
               <div class="vigilia-portrait-placeholder">
@@ -504,9 +586,22 @@ function renderVigiliaBack(sheet, editMode, options) {
         </div>
 
         <div class="vigilia-relations-list">
-          ${relations.map(rel => {
+          ${relations.map((rel, relIdx) => {
             const degree = Number(rel.degree) || 0;
             const isInvoked = !!rel.invoked;
+            if (editMode) {
+              return `
+                <div class="vigilia-relation-row is-editing" data-target="${safe(rel.target)}">
+                  <input class="relation-edit-target" data-vigilia-rel="${relIdx}:target" value="${safe(rel.target)}" placeholder="NOME">
+                  ${renderRelationPips(degree, rel.target)}
+                  <div class="relation-desc-block relation-edit-block">
+                    <input class="relation-edit-feeling" data-vigilia-rel="${relIdx}:feeling" value="${safe(rel.feeling)}" placeholder="SENTIMENTO">
+                    <input class="relation-edit-note" data-vigilia-rel="${relIdx}:note" value="${safe(rel.note)}" placeholder="Descrição da relação">
+                  </div>
+                  <button type="button" class="vigilia-relation-remove" data-vigilia-remove-relation="${relIdx}" title="Remover relação">${icon('trash', 12)}</button>
+                </div>
+              `;
+            }
             return `
               <div class="vigilia-relation-row ${isInvoked ? 'is-invoked' : ''}" data-target="${safe(rel.target)}">
                 <span class="relation-target-name">${safe(rel.target)}</span>
@@ -525,6 +620,7 @@ function renderVigiliaBack(sheet, editMode, options) {
               </div>
             `;
           }).join('')}
+          ${editMode ? `<button type="button" class="vigilia-add-card-btn" data-vigilia-add-relation>+ RELAÇÃO</button>` : ''}
         </div>
       </div>
     </div>
@@ -720,14 +816,70 @@ export function renderVigiliaSheet(sheet, editMode, options = {}) {
   const lesoesCount = sheet.lesoesCountScene || 0;
   const traumasCount = sheet.traumasCountScene || 0;
   const modeJustChanged = options.modeJustChanged;
+  const safeUrl = options.safeUrl || (u => u);
+
+  // Personalização visual (fundo, moldura e retrato) — aceita vigiliaBackground ou backgroundImage da ficha
+  const rawBg = sheet.vigiliaBackground || (sheet.backgroundImage && !String(sheet.backgroundImage).startsWith('data:video/') ? sheet.backgroundImage : '');
+  const customBg = rawBg ? safeUrl(rawBg) : '';
+  const bgUrl = customBg || './assets/vigilia/vigilia-bg.png';
+  const bgBlur = Number(sheet.vigiliaBgBlur ?? sheet.backgroundBlur) || 0;
+  const bgZoom = Number(sheet.vigiliaBgZoom ?? sheet.backgroundZoom) || 100;
+  const bgDim = Number(sheet.vigiliaBgDim) || 0;
+  const tokenScale = Number(sheet.vigiliaTokenScale) || 100;
+  const tokenX = Number(sheet.vigiliaTokenX) || 0;
+  const tokenY = Number(sheet.vigiliaTokenY) || 0;
+  const frameHidden = !!sheet.vigiliaFrameHidden;
+  const pageStyle = [
+    `--vg-bg-blur:${bgBlur}px`,
+    `--vg-bg-zoom:${bgZoom / 100}`,
+    `--vg-bg-dim:${bgDim / 100}`,
+    `--vg-token-scale:${tokenScale / 100}`,
+    `--vg-token-x:${tokenX}%`,
+    `--vg-token-y:${tokenY}%`
+  ].join(';');
+
+  const editTools = editMode ? `
+    <aside class="vigilia-edit-tools" aria-label="Personalização do layout Vigília">
+      <div class="vet-group">
+        <span class="vet-title">${icon('user', 13)} RETRATO</span>
+        <label class="vet-btn">${icon('image', 13)} TROCAR<input id="token-upload-cinematic" type="file" accept="image/*"></label>
+        ${sheet.tokenImage ? `<button type="button" class="vet-btn" data-vigilia-remove-token>REMOVER</button>` : ''}
+        <button type="button" class="vet-btn ${sheet.vigiliaTokenFlip ? 'active' : ''}" data-vigilia-toggle="vigiliaTokenFlip">ESPELHAR</button>
+        <label class="vet-range" title="Duplo clique para 100%">ESCALA
+          <input type="range" min="30" max="200" step="1" value="${tokenScale}" data-vigilia-range="vigiliaTokenScale"><em>${tokenScale}%</em></label>
+        <label class="vet-range" title="Duplo clique para zerar">HORIZ.
+          <input type="range" min="-60" max="60" step="1" value="${tokenX}" data-vigilia-range="vigiliaTokenX"><em>${tokenX}%</em></label>
+        <label class="vet-range" title="Duplo clique para zerar">VERT.
+          <input type="range" min="-60" max="60" step="1" value="${tokenY}" data-vigilia-range="vigiliaTokenY"><em>${tokenY}%</em></label>
+        <button type="button" class="vet-btn" data-vigilia-reset-token>RECENTRALIZAR</button>
+      </div>
+      <div class="vet-group">
+        <span class="vet-title">${icon('image', 13)} FUNDO</span>
+        <label class="vet-btn">${icon('image', 13)} TROCAR<input id="vigilia-bg-upload" type="file" accept="image/*"></label>
+        ${customBg ? `<button type="button" class="vet-btn" data-vigilia-reset-bg>FUNDO PADRÃO</button>` : ''}
+        <button type="button" class="vet-btn ${frameHidden ? '' : 'active'}" data-vigilia-toggle="vigiliaFrameHidden">MOLDURA</button>
+        <label class="vet-range" title="Duplo clique para zerar">BLUR
+          <input type="range" min="0" max="30" step="1" value="${bgBlur}" data-vigilia-range="vigiliaBgBlur"><em>${bgBlur}px</em></label>
+        <label class="vet-range" title="Duplo clique para 100%">ZOOM
+          <input type="range" min="50" max="250" step="5" value="${bgZoom}" data-vigilia-range="vigiliaBgZoom"><em>${bgZoom}%</em></label>
+        <label class="vet-range" title="Duplo clique para zerar">ESCURECER
+          <input type="range" min="0" max="90" step="5" value="${bgDim}" data-vigilia-range="vigiliaBgDim"><em>${bgDim}%</em></label>
+      </div>
+      <small class="vet-hint">Arraste o retrato para reposicionar · Duplo clique nos sliders para redefinir</small>
+    </aside>
+  ` : '';
 
   return `
-    <main class="vigilia-page ${isBack ? 'view-back' : 'view-front'} ${modeJustChanged ? 'mode-enter' : ''}">
-      <!-- FUNDO E MOLDURA CELTA OFICIAL -->
-      <div class="vigilia-bg-layer" style="background-image: url('./assets/vigilia/vigilia-bg.png');"></div>
+    <main class="vigilia-page ${isBack ? 'view-back' : 'view-front'} ${editMode ? 'is-editing' : ''} ${modeJustChanged ? 'mode-enter' : ''}" style="${pageStyle}">
+      <!-- FUNDO E MOLDURA CELTA OFICIAL (personalizáveis no modo de edição) -->
+      <div class="vigilia-bg-clip">
+        <div class="vigilia-bg-layer ${customBg ? 'is-custom' : ''}" style="background-image: url('${bgUrl}');"></div>
+        <div class="vigilia-bg-dim"></div>
+      </div>
+      ${frameHidden ? '' : `
       <div class="vigilia-frame-layer">
         <img src="./assets/vigilia/vigilia-frame.png" alt="" class="vigilia-frame-img" draggable="false">
-      </div>
+      </div>`}
 
       <!-- BARRA DE CONTROLE SUPERIOR (FLIP ENTRE FRENTE E VERSO + MECÂNICAS DA VIGÍLIA) -->
       <div class="vigilia-toolbar">
@@ -770,6 +922,8 @@ export function renderVigiliaSheet(sheet, editMode, options = {}) {
           FALHAS (1d8)
         </button>
       </aside>
+
+      ${editTools}
 
       <!-- MODAIS DE MECÂNICAS DE A VIGÍLIA -->
       ${renderVigiliaModals(sheet)}
