@@ -4018,16 +4018,40 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   text-shadow: 0 2px 4px #000;
 }
 
-/* Tabela de Perícias — Se estende amplamente pela coluna, fiel à folha oficial */
+/* Tabela de Perícias — Se estende amplamente pela coluna, com rolagem fluida e scrollbar estilizada */
 .vigilia-skills-table {
   display: flex;
   flex-direction: column;
   gap: 3.5px;
   width: 340px;
-  max-height: none;
+  max-height: min(500px, calc(100vh - 420px));
   min-height: 0;
-  overflow: visible;
-  padding-right: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: #52665a rgba(20, 32, 26, 0.4);
+}
+
+.vigilia-skills-table::-webkit-scrollbar {
+  width: 6px;
+}
+
+.vigilia-skills-table::-webkit-scrollbar-track {
+  background: rgba(20, 32, 26, 0.4);
+  border-radius: 4px;
+}
+
+.vigilia-skills-table::-webkit-scrollbar-thumb {
+  background: #52665a;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vigilia-skills-table::-webkit-scrollbar-thumb:hover {
+  background: #738e7f;
 }
 
 .vigilia-skill-row {
