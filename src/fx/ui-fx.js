@@ -16,6 +16,7 @@ export function isReducedMotion() {
 
 let fxEnabledGetter = () => true;
 let rollSceneGetter = () => true;
+let manualThrowGetter = () => true;
 
 export function setFxEnabledGetter(fn) {
   if (typeof fn === 'function') {
@@ -27,6 +28,16 @@ export function setRollSceneGetter(fn) {
   if (typeof fn === 'function') {
     rollSceneGetter = fn;
   }
+}
+
+export function setManualThrowGetter(fn) {
+  if (typeof fn === 'function') {
+    manualThrowGetter = fn;
+  }
+}
+
+export function manualThrowEnabled() {
+  return Boolean(manualThrowGetter());
 }
 
 export function fxEnabled() {

@@ -183,127 +183,87 @@ No handler `data-pavor-action` (app.js ~l.3708), para `control` e `embrace`:
 
 ## Fase 8 — Mesa de dados: a rolagem vira uma cena
 
-Referência: Baldur's Gate 3. Em vez de os dados caírem soltos sobre a ficha, uma **bandeja** entra na tela, os dados são jogados dentro dela e cada valor **voa até um placar**, somando com rótulo de origem ("d8 PERÍCIA 5 → + d6 FÍSICO 3 → + EXTRA 2 = 10"). A cena deve ser **mais rápida que no BG3** e é **opcional** (configuração própria). Sem verificação contra DT: a cena termina no total.
+Referência: Baldur's Gate 3. Os dados são jogados num círculo ritual em destaque e cada valor **voa até um total grande**, somando com rótulo de origem ("5 PERÍCIA + 9 FÍSICO + 2 EXTRA = 16"). A cena é **mais rápida que no BG3** e **opcional** (configuração "CENA DE ROLAGEM"). Sem DT: a cena termina no total.
 
-A fase é dividida em quatro subfases, nesta ordem. Cada uma é entregue e testada separadamente.
-
-| Subfase | Entrega | Depende de |
+| Subfase | Entrega | Situação |
 |---|---|---|
-| 8.1 | Rótulos de origem em cada dado/bônus | — |
-| 8.2 | Bandeja 3D + configuração "CENA DE ROLAGEM" + pular/fechar | 8.1 (só para o modo da cena) |
-| 8.3 | Soma cinemática (valores voando até o placar) | 8.1, 8.2 |
-| 8.4 | Rolar arrastando para dentro da bandeja | 8.2 |
+| 8.1 | Rótulos de origem em cada dado/bônus | ✅ feita |
+| 8.2 | Círculo ritual, câmera, configuração, pular/fechar | ✅ feita (reescrita depois da primeira versão) |
+| 8.3 | Soma cinemática + selo do total + veredito | ✅ feita |
+| 8.4 | Rolar arrastando para dentro do círculo | ✅ feita |
 
-### Orçamento de tempo (vale para 8.2–8.3)
+**Não reescreva 8.1–8.4.** As seções abaixo descrevem como o código ficou.
 
-A cena inteira não deve passar de ~3,5 s numa rolagem comum de 2 dados (BG3 leva ~5 s).
+### Como a cena funciona hoje (8.1–8.3)
 
-| Trecho | Duração |
-|---|---|
-| Bandeja entra | 220 ms (em paralelo com os dados caindo) |
-| Física até assentar | a atual (~1,2–1,8 s; teto de 4,2 s já existe) |
-| Sequências de pavor/crítico/falha | as atuais (Fases 3–4) |
-| Soma | 450–1000 ms (ver 8.3) |
-| Total em destaque | 1,4 s |
-| Bandeja sai | 220 ms |
+**Fluxo de dados (8.1)**
+- `roll(name, sides, modifier, rollMode, meta)` em `app.js` (~l.4672) recebe `meta.dieLabels`, `meta.modifierParts` e `meta.scene` (`'full'` para testes, `'quick'` para dano/cards/tabelas).
+- Monta `options = { modifierParts, scene }` e chama `rollDice3d(diceConfigs, name, modifier, soundContext, rollMode, options)`.
+- **A 8.4 acrescenta `options.throw` nesse mesmo objeto.**
 
-Pular é sempre possível (ver 8.2).
+**Palco 3D (`src/dice3d.js`, `rollDice3d`)**
+- `sceneMode = rollSceneEnabled()` (de `ui-fx.js`). Desligado, tudo segue o caminho antigo (`world.launch` com 4 lançamentos aleatórios, paredes retangulares, pílula `#dice-stage-result`).
+- No modo cena:
+  - `trayRadius` = 1,6 (paisagem) ou 1,2 (retrato), guardado em `world.sceneRadius`.
+  - Física: 12 paredes invisíveis em círculo e teto baixo em y = 2,7, para os dados nunca saírem do quadro.
+  - Trava de segurança radial no `animate` (`maxR = trayRadius - .12`).
+  - Câmera: elevação de 52° (58° no retrato), com distância calculada para caber o círculo na largura. Um laço recua a câmera até a borda da frente do círculo deixar `min(225px, 30% da altura)` livres embaixo. `setViewOffset` sobe o círculo 5% da tela.
+  - Dados com escala .5 (fora da cena, .62).
+  - Lançamento da cena em `createDie`, no ramo `if (world.sceneRadius)`: os dados nascem rentes ao chão numa borda do círculo, espaçados em "pistas" (`lane`), com velocidade de 2,6–4,0 e `linearDamping .22`.
+  - Luz: o foco (`SpotLight`) do `dice-tray.js` faz a sombra; a `key` não projeta sombra na cena.
+- `src/fx/dice-tray.js`: `createTray({ scene, radius, floorY })` → `{ enter, exit, update, pulse, dispose }`.
+  - É um decalque plano (anel rúnico que gira devagar, selo interno, poça de luz e sombra), não um objeto com bordas.
+  - `pulse()` dá um brilho curto no selo.
 
----
+**HUD e soma (`src/fx/dice-sum-fx.js`)**
+- `createRollHud(stage, { title, configs, modifierParts, rollMode, audio, onOpenLog })` cria `.roll-hud` dentro do `#dice-stage`:
+  - título + fórmula (antecipação);
+  - camada de chips;
+  - total, composição e veredito;
+  - rodapé com "CLIQUE PARA PULAR/FECHAR" e "HISTÓRICO".
+- `hud.layout({ headBottom, totalTop })` posiciona título e total a partir das bordas do círculo projetadas na tela.
+- `hud.playSum({ items, total, quick, instant, project, onLaunch, onTick, verdict, onStamp })` → `{ done, skip, cancel, stamped }`.
+  - Os itens `die`/`mod` voam e somam.
+  - `destroyed`/`discarded`/`dread`/`vanquished` só aparecem sobre o dado e somem.
+  - A composição reserva lugares na ordem da fórmula.
+- Em `rollDice3d`, `playSceneSum()` monta os itens e as faixas (crítico, falha, pavor, RA/RB) e entra no lugar de `showResult` no modo cena. A Promise da rolagem resolve no selo (`sum.done`).
 
-### Fase 8.1 — Rótulos de origem (fundação)
+**Gestos e fechamento**
+- No modo cena, `handleGesture` é instalado **no início da rolagem**, com `click` no `#dice-stage` e `keydown` Espaço/Esc no `window`.
+  - Antes do resultado: acelera a física até assentar, encerra as sequências e mostra a soma instantânea (`skipRequested`).
+  - Depois do selo: `closeDice3d()`.
+- O `#dice-stage.scene-mode` tem `z-index: 160` e `pointer-events: auto`. Enquanto a cena está aberta, ele cobre a ficha.
+- `closeDice3d({ immediate })` chama `pendingFinish` (resolve a rolagem interrompida, para o histórico não perder a entrada), encerra a sequência ativa, remove o HUD e faz o círculo sair.
 
-Hoje `roll(name, sides, modifier, rollMode)` (`app.js` l.4656) recebe o modificador como um número só, e o `data-roll` das perícias da Vigília (`nome|dadoPerícia,dadoAtributo|extra`) perde a informação de qual dado é qual. Esta subfase só carrega essa informação até o resultado — sem animação nova.
+**Sequências de crítico na cena:** `createCritSequence` recebe `zoom: .4` e `sigilSize/sigilCenter` (o sigilo dourado ocupa o círculo ritual). Fora da cena, os valores padrão mantêm o efeito antigo.
 
-1. **Assinatura:** `roll(name, sides, modifier = 0, rollMode = 'sum', meta = {})` com
-   - `meta.dieLabels`: array alinhado com `sides` (ex. `['PERÍCIA', 'FÍSICO']`);
-   - `meta.modifierParts`: `[{ label: 'TREINO', value: 5 }, { label: 'EXTRA', value: 2 }]`. Se a soma das partes não bater com `modifier`, acrescentar a diferença como `{ label: 'BÔNUS' }`; se `meta.modifierParts` não vier, usar `[{ label: 'BÔNUS', value: modifier }]` quando `modifier ≠ 0`;
-   - `meta.scene`: `'full' | 'quick'` (usado na 8.3; default `'quick'`).
-   Copiar `dieLabels[i]` para `diceConfigs[i].label` (o campo `label` já existe para o pavor). O dado de pavor e o "Bônus Pavor" abraçado mantêm os rótulos atuais, mas curtos: `PAVOR` e `PAVOR ABRAÇADO`.
-2. **Passar adiante:** `rollDice3d(diceConfigs, name, modifier, soundContext, rollMode, options = {})` com `options.modifierParts` e `options.scene`. (A 8.4 acrescenta `options.throw` no mesmo objeto.)
-3. **Chamadores** (procurar `roll(` e `rollExpression(` em `app.js`):
-   - Handler `[data-roll]` (l.5095): ler um novo atributo `data-roll-labels="PERÍCIA|FÍSICO"`; `scene: 'full'`. Adicionar `data-roll-labels` onde o `data-roll` é gerado: atributos e perícias em `vigilia-view.js` (l.267–289, l.381), `renderTraditional` e `renderCinematic` em `app.js`. Atributo sozinho → `[nomeDoAtributo]`; perícia → `['PERÍCIA', skill.attribute]`. O valor do campo extra → `modifierParts: [{ label: 'EXTRA', value }]`.
-   - `rollOriginalSkill` (l.4706): `modifierParts` = treino / extra / poder (`totalMod` já é a soma deles, l.4716); `scene: 'full'`. Mesmo tratamento para atributo, resistência, sentidos e ataque (`scene: 'full'`).
-   - Dano, `rollExpression`, ações de cards, invocações, tabelas de Lesão/Trauma, "Preencher Espaço": `scene: 'quick'`. Nas expressões, a parte fixa vira `{ label: 'BÔNUS' }`.
-4. **`showResult`** (`dice3d.js` l.260): em cada `roll-die-tag`, mostrar o rótulo abaixo do valor (`<b>5</b><small>PERÍCIA</small>`, 8px, maiúsculas, `letter-spacing:.12em`) e trocar o `modifierLabel` único por um chip por parte (`+5 TREINO`). As tags passam a ter `roll-die-tag` sempre que houver rótulo.
-5. **Histórico:** incluir `label` em cada item de `dice` passado para `addRollLogEntry` e as `modifierParts`; o render do histórico mostra os rótulos se existirem (entradas antigas continuam funcionando sem eles).
-
-**Verificação:** rolar perícia na Vigília → a pílula mostra "5 PERÍCIA + 3 FÍSICO + 2 EXTRA"; perícia no Ordem 1 → "TREINO"/"EXTRA" separados; pavor continua com o rótulo e o visual atuais; histórico antigo abre sem erro.
-
----
-
-### Fase 8.2 — Bandeja 3D e configuração
-
-1. **Configuração:** `appSettings.rollScene` (default `true`) com `appRow('rollScene', 'CENA DE ROLAGEM', 'Bandeja de dados e soma animada dos bônus. Desligada, os dados rolam soltos sobre a ficha.')` em `renderCriticalSettings()`, logo abaixo de "ANIMAÇÕES DE JOGO". Helper em `ui-fx.js`: `rollSceneEnabled()` = `fxEnabled() && rollScene` (registrar o getter como em `setFxEnabledGetter`). **Com ela desligada, o comportamento tem de ser idêntico ao atual.**
-2. **Módulo novo `src/fx/dice-tray.js`:** `createTray({ scene, boundsX, boundsZ, floorY, accent })` → `{ group, enter(), exit() → Promise, update(now), dispose() }`.
-   - Fundo: `PlaneGeometry(boundsX*2, boundsZ*2)` com `MeshStandardMaterial` escuro (`#14121b`, `roughness .95`), `receiveShadow`, e uma `CanvasTexture` gerada uma vez (256×256): ruído sutil de feltro + um selo circular apagado no centro (traço `accent` com alpha .08). Substitui o `ShadowMaterial` atual (l.391) **só no modo cena**.
-   - Borda: moldura com `Shape` retangular arredondada + furo (`ExtrudeGeometry`, `depth .28`, `bevelEnabled`), cor `#1d1b24`, com um filete fino no topo (`LineSegments` ou um segundo extrude fino) na cor `accent` com `emissive` leve. A borda interna deve coincidir com `boundsX`/`boundsZ`: as paredes da física (l.380–389) **não mudam**, a bandeja só as torna visíveis.
-   - `enter()`: `group.position.y` de −2,5 → 0 e `scale` .92 → 1 em 220 ms (easeOutCubic). Os dados são lançados ao mesmo tempo: a bandeja chega antes do primeiro contato.
-   - `exit()`: desce e some (opacity dos materiais → 0) em 220 ms; resolve a Promise ao fim.
-   - `dispose()`: libera geometrias, materiais e a textura.
-3. **Integração em `rollDice3d`:** `const sceneMode = rollSceneEnabled()`. No modo cena:
-   - `#dice-stage.scene-mode`: fundo `#05060b8c` com `backdrop-filter: blur(2px)` (transição de 180 ms) e `pointer-events: auto` (para o pular). Sem `scene-mode`, manter o estilo atual (l.300 do `styles.css`).
-   - Câmera mais alta para enxergar o fundo da bandeja (ponto de partida: `position(0, 5.4, 7.6)`, `lookAt(0, -.7, 0)`; ajustar até a bandeja ocupar ~70% da largura em 1440×900 e caber inteira em 390×844 retrato). As sequências de crítico (zoom) devem partir da câmera atual, não de valores fixos.
-   - Fechamento automático: 1,4 s depois do total final (8.3) em vez dos 4,2 s atuais; `closeDice3d` vira `closeDice3d({ immediate = false })`: no modo cena chama `tray.exit()` e só então limpa; `immediate` (nova rolagem começando) limpa na hora.
-4. **Pular / fechar** (só modo cena): clique no palco, `Espaço` ou `Esc`.
-   - 1º gesto antes do resultado: acelerar — `world.step` com passo 3× até assentar, chamar `finish()` na sequência ativa e nas da fila, e mostrar a soma já no valor final (8.3: `skipToEnd()`).
-   - Gesto depois do resultado: fecha (`exit()`).
-   - O clique no botão "HISTÓRICO" da pílula não conta como gesto.
-   - Listener de teclado instalado só enquanto o palco está ativo; removido em `closeDice3d`.
-5. **Movimento reduzido:** bandeja aparece/sai sem deslocamento (só opacidade, 120 ms).
-
-**Verificação:** com a configuração ligada → bandeja entra, dados quicam nas bordas visíveis, fecha sozinha ~1,4 s após o total; clicar acelera e um segundo clique fecha; Esc idem. Desligada → igual a hoje. Desktop e celular retrato: a bandeja cabe. 10 rolagens seguidas: `renderer.info.memory` estável.
+**Tempos medidos:**
+- Rolagem comum de 2 dados: dados assentam em ~1,8 s, soma de ~0,8 s, selo, fechamento automático 1,7 s depois.
+- Com pavor ou crítico, somam-se as sequências das Fases 3–4, e o fechamento vem 2,6 s depois do selo.
 
 ---
 
-### Fase 8.3 — Soma cinemática
+### Fase 8.4 — Arremesso manual (como ficou)
 
-**Módulo novo `src/fx/dice-sum-fx.js`:** `createSumSequence({ camera, canvasRect, dice, outcome, modifierParts, title, rollMode, reducedMotion, onDone })` → `{ update(now), finish(), skipToEnd() }`, mesma interface das outras sequências. Os elementos DOM vivem em `getFxLayer()` (sobrevivem a `render()`; conferir que o z-index do `#fx-layer` fica acima do `#dice-stage` no modo cena).
+A primeira versão (arrastar a partir da perícia na ficha, com seta de mira) **não era o que o usuário queria**. Ficou valendo o arremesso dentro da cena:
 
-1. **Quando roda:** só com `rollSceneEnabled()` e `options.scene === 'full'`. Entra **no fim da fila** de sequências (`pavor → crítico/falha → soma`); o `onReveal` passa a ser dela. Com `scene: 'quick'`, nada muda (contagem da Fase 1).
-2. **Placar:** aparece acima da bandeja (posição = borda de trás da bandeja projetada para a tela), com o título da rolagem em cima e o total em `0`. Entra com fade + `translateY(-8px → 0)`, 160 ms.
-3. **Ordem dos itens:** dados contados na ordem do `diceConfigs` (perícia, atributo, pavor abraçado...), depois as `modifierParts`. Ritmo: `step = clamp(600 / nItens, 110, 220)` ms entre o início de cada item, sobrepostos.
-4. **Cada dado:**
-   - Posição na tela: `mesh.position.clone().project(camera)` → pixels via `canvasRect`.
-   - Um chip (`<b>5</b><small>PERÍCIA</small>`, cor de fundo = cor do dado) surge sobre o dado (scale .4 → 1, 120 ms) e voa até o placar (bezier como `flyParticles`, 260 ms, easeInCubic).
-   - Ao chegar: `countUp` do total parcial anterior para o novo (`duration: 140`), tick (`playTick`), "punch" no placar e um brilho curto no dado 3D (emissive na cor do dado, 200 ms).
-5. **Casos especiais:**
-   - **Dado destruído pelo pavor:** o chip sai roxo e, no meio do caminho, racha e se desfaz (`burst` roxo pequeno); não soma.
-   - **Dado de pavor que não destruiu nada:** não voa (o pavor não soma); só pulsa uma vez.
-   - **`highest`/`lowest` (Ordem 1):** todos os chips surgem; os descartados ficam cinza e caem 20 px com fade; só o escolhido voa. O placar mostra "MAIOR"/"MENOR" no lugar do título por 400 ms.
-   - **`modifierParts`:** chips `+5 TREINO` entram pela lateral do placar (slide 160 ms) e somam; valores negativos em vermelho (`−2 PENALIDADE`).
-   - **Crítico/falha:** depois do último item, o placar recebe `.crit` (brilho dourado + punch maior) ou `.fumble` (dessaturado); os sons já são das Fases 3–4.
-6. **Fim:** `onDone()` → `showResult` com o total já final (passar `skipCount: true` para não contar de novo) e o placar se funde na pílula: o placar faz fade enquanto a pílula aparece; a pílula mantém o botão de histórico. O fechamento automático (8.2) conta a partir daqui.
-7. **`skipToEnd()`:** remove chips em voo e escreve o total final direto no placar.
-8. **Movimento reduzido:** sem voo; os chips aparecem já no placar em sequência rápida (60 ms) e o total é escrito direto.
-9. **Limpeza:** todo nó criado é removido no `finish()`; `closeDice3d` chama `finish()` da sequência ativa (já acontece com `activeSequence`).
-
-**Verificação:** `window.__forceDice = [5,3]` numa perícia com extra 2 → "5 PERÍCIA", "3 FÍSICO", "+2 EXTRA" voam, placar 0 → 5 → 8 → 10; `[6,6]` → crítico primeiro, depois a soma com placar dourado; pavor destruindo um dado → chip roxo se desfaz; perícia do Ordem 1 com 3d20 → 2 descartados caem, 1 voa; dano de arma (`quick`) → sem soma cinemática; clicar no meio → total final na hora. Cronometrar uma perícia comum: ≤ 3,5 s do clique ao fechamento.
+- **Fluxo:** nos testes (`options.scene === 'full'`), com a cena e a opção **"ARREMESSO MANUAL"** (`appSettings.manualThrow`, default ligado) ativas, a cena abre com os dados flutuando sobre o círculo e o convite "PEGUE OS DADOS E ARREMESSE".
+  - O jogador pega os dados com o ponteiro em qualquer lugar do palco. Eles seguem o cursor chacoalhando, com som de dados batendo.
+  - Ao soltar, a velocidade do gesto (últimos ~90ms, convertida da tela para o chão) vira direção e força.
+  - Clique simples, Espaço ou Esc jogam automaticamente.
+  - Dano, cards e tabelas (`'quick'`) rolam na hora, como antes.
+- **Código:**
+  - `src/fx/dice-hand.js`: `createDiceHand({ camera, dice, radius, size, stage, onRattle, onThrow })` → `{ update, throwAuto, dispose, thrown, thrownAt }`.
+  - Em `rollDice3d`, enquanto `hand && !hand.thrown`, o `animate` não roda física: só `hand.update`.
+  - `onThrow` copia posição, rotação e velocidades para os corpos e reinicia `start`/`settledAt`.
+  - O `handleGesture` ignora o click que vem logo depois de soltar (400ms).
+  - Durante a espera, `pendingFinish` resolve a rolagem com `null` se a cena for fechada.
+  - HUD: `hud.setHolding(bool)` troca o total pelo convite (`.roll-hud.holding`).
+- **`src/fx/drag-roll.js`** (arrasto a partir da ficha) continua instalado, mas só funciona com a cena desligada (`isDisabled: () => rollSceneEnabled()` em `app.js`).
 
 ---
 
-### Fase 8.4 — Rolar arrastando (força e direção)
-
-1. **Captura do gesto** em `src/fx/drag-roll.js`, instalado uma vez com listeners no `document` (sobrevive ao `render()`):
-   - Seletor de gatilhos de rolagem: `[data-roll], [data-expression], [data-roll-table], [data-roll-lesao-check], [data-roll-trauma-check], [data-threat-roll-pericia]` (procure em `app.js` por outros `data-*roll*` e inclua; ignore os excluídos pelo próprio handler de `[data-roll]`, ex. `.custom-select`, inputs).
-   - `pointerdown` num gatilho: guardar ponto inicial e tempo. Mouse/caneta: entra em modo "mira" ao mover > 12px. Toque: só entra em mira após segurar 250ms sem mover (não quebrar o scroll no celular).
-   - Em mira: desenhar em `#fx-layer` uma seta/linha do ponto inicial até o ponteiro, com anel de força preenchendo (`power = clamp(dist / 220, .15, 1)`), cor do dado (`state.diceColor`). Adicionar `.drag-aiming` ao `body` (cursor `grabbing`, `user-select:none`).
-   - `pointerup`: guardar `pendingThrow = { dx, dy, power }` (normalizado em pixels de tela; `dy` positivo = para cima) e disparar `trigger.click()` manualmente; suprimir o click nativo seguinte (flag + `click` capture com `stopImmediatePropagation` uma vez). `pointercancel`/Esc cancela sem rolar.
-   - Exportar `takePendingThrow()` (retorna e zera).
-2. **`roll()` em app.js:** `const throwVec = takePendingThrow()` e incluir em `options.throw` (o mesmo objeto de opções criado na 8.1).
-3. **`dice3d.js`:** se `options.throw`, colocar `world.throwVec`; em `createDie`, quando existir:
-   - direção no mundo: `dir = normalize(dx, 0, -dy)` (arrastar para cima = jogar para o fundo da bandeja);
-   - posição inicial: junto da borda oposta à direção, **dentro da bandeja** (`-dir * boundsX*.7` em x, `-dir * boundsZ*.7` em z), altura 1.8–2.6, espalhando por `offset` perpendicular a `dir`;
-   - velocidade: `dir * (3.5 + power * 7)` + `y = -2.5 - power * 2`; `angularVelocity` escalado por `.6 + power * .8`;
-   - a trava de segurança dos limites (já existente em `animate`) continua valendo.
-   - Sem `throw`: manter os 4 lançamentos aleatórios atuais.
-4. **Com a cena ligada:** um arremesso forte faz a bandeja dar um tranco curto no primeiro impacto contra a borda (`group.position` ±0,04 em 120 ms, sem tremor de câmera com movimento reduzido).
-
-**Verificação:** clicar normalmente → igual a hoje; arrastar para a direita forte → dados vêm da esquerda rápidos e batem na borda direita da bandeja; arrasto curto → fraco; no celular, rolar a página não dispara mira; segurar e arrastar dispara; com a cena desligada o arrasto funciona igual (sem bandeja visível).
-
----
-
-## Modo de teste (dev) — necessário para as fases 3, 4, 6, 7 e 8.3
+## Modo de teste (dev) — necessário para as fases 3, 4, 6, 7 e 8
 
 Em `dice3d.js`, apenas com `import.meta.env.DEV`: se `window.__forceDice` for um array (ex. `[6,6]`, `[1,1]`, `[3,5,4]` com pavor no último), usar esses valores no lugar de `dice.map(topFace)` e, para coerência visual, rotacionar cada malha/corpo para que a face com o valor forçado fique para cima (quaternion de `face.normal` → `(0,1,0)` multiplicado por uma rotação aleatória em Y) **antes** de iniciar as sequências. Limpar após uso (`window.__forceDice = null`). Nunca ativo no build.
 
@@ -314,8 +274,9 @@ Em `dice3d.js`, apenas com `import.meta.env.DEV`: se `window.__forceDice` for um
 3. DevTools → Rendering → `prefers-reduced-motion: reduce` e toggle "ANIMAÇÕES DE JOGO" desligado: tudo funciona, sem animações decorativas.
 4. Console sem erros; após 10 rolagens seguidas a memória/FPS não degrada (conferir `renderer.info.memory` para vazamento de geometrias).
 5. `npm run build` passa.
-6. Entregar um resumo da fase (o que mudou, arquivos, como testar). Não commitar.
+6. **Cuidado com dados reais:** rolar um teste com Dado de Pavor que tire 1 ("PAVOR VENCIDO") grava a ficha no `sheets.json` via dev server. Para testar, use `window.__forceDice` com valores que não vençam o pavor; se algo for gravado sem querer, confira `git diff sheets.json` e restaure só essa mudança.
+7. Entregar um resumo da fase (o que mudou, arquivos, como testar). Não commitar.
 
 ## Ordem recomendada
 
-0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8.1 → 8.2 → 8.3 → 8.4. As fases 1–2 são as de maior impacto com menor risco; 3–4 dependem da fila de sequências; 6 depende de 2 e 5. Na Fase 8, a 8.1 é independente e já melhora a pílula de resultado; 8.3 depende de 8.1 e 8.2; 8.4 só depende de 8.2.
+0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8.1 → 8.2 → 8.3 → 8.4. Todas as fases (0 a 8.4) estão concluídas.

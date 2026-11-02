@@ -98,6 +98,7 @@ export function createRollHud(stage, { title, configs, modifierParts = [], rollM
     </header>
     <div class="rh-chips" aria-hidden="true"></div>
     <section class="rh-result">
+      <div class="rh-prompt"><b>PEGUE OS DADOS E ARREMESSE</b><small class="rh-prompt-fine">ARRASTE E SOLTE · CLIQUE OU ESPAÇO PARA ROLAR</small><small class="rh-prompt-touch">ARRASTE E SOLTE · TOQUE PARA ROLAR</small></div>
       <div class="rh-total-wrap"><i class="rh-ring" aria-hidden="true"></i><strong class="rh-total idle">0</strong></div>
       <div class="rh-breakdown"></div>
       <div class="rh-verdict"></div>
@@ -292,5 +293,10 @@ export function createRollHud(stage, { title, configs, modifierParts = [], rollM
     root.remove();
   }
 
-  return { root, layout, playSum, destroy, get sum() { return sum; } };
+  // Fase de arremesso manual: o convite ocupa o lugar do total
+  function setHolding(holding) {
+    root.classList.toggle('holding', holding);
+  }
+
+  return { root, layout, playSum, setHolding, destroy, get sum() { return sum; } };
 }

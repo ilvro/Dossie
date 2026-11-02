@@ -844,6 +844,17 @@
   gap: 8px;
 }
 .rh-total-wrap { position: relative; display: grid; place-items: center; }
+.rh-prompt { display: none; justify-items: center; gap: 6px; text-align: center; }
+.rh-prompt b { font-size: clamp(14px, 1.8vw, 20px); font-weight: 800; letter-spacing: .24em; text-shadow: 0 2px 14px #000; animation: rh-prompt-pulse 1.6s ease-in-out infinite; }
+.rh-prompt small { font: 700 9px "Hanken Grotesk", sans-serif; letter-spacing: .22em; color: var(--rh-muted); }
+.rh-prompt-touch { display: none; }
+@media (hover: none) { .rh-prompt-fine { display: none; } .rh-prompt-touch { display: inline; } }
+@keyframes rh-prompt-pulse { 0%, 100% { opacity: .65; } 50% { opacity: 1; } }
+.roll-hud.holding .rh-prompt { display: grid; }
+.roll-hud.holding .rh-total-wrap, .roll-hud.holding .rh-foot { display: none; }
+#dice-stage.scene-mode { touch-action: none; }
+#dice-stage.scene-mode:has(.roll-hud.holding) { cursor: grab; }
+#dice-stage.scene-mode.grabbing { cursor: grabbing; }
 .rh-total {
   font-family: 'Cinzel', serif;
   font-weight: 900;
@@ -978,6 +989,18 @@
   .rh-title { letter-spacing: .06em; }
   .rh-chip b { font-size: 19px; }
   .rh-foot { bottom: calc(12px + env(safe-area-inset-bottom)); }
+}
+
+/* Fase 8.4: Rolar arrastando */
+body.drag-aiming {
+  cursor: grabbing !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  touch-action: none !important;
+}
+body.drag-aiming * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
 }
 
 /* Acessibilidade: Movimento Reduzido */

@@ -180,10 +180,11 @@ import {
   renderQuickSwitcherResults,
   renderMobileSheetDrawer
 } from './workspace/workspace-sidebar.js';
-import { setFxEnabledGetter, setRollSceneGetter, runPostRenderFx, queuePostRenderFx, rectOf, flyParticles } from './fx/ui-fx.js';
+import { setFxEnabledGetter, setRollSceneGetter, setManualThrowGetter, rollSceneEnabled, runPostRenderFx, queuePostRenderFx, rectOf, flyParticles } from './fx/ui-fx.js';
 import { trackResources } from './fx/resource-fx.js';
 import { pavorStepFx, controlPavorFx, pavorDissipateFx, embracePavorFx } from './fx/pavor-fx.js';
 import { revealTableResult } from './fx/table-reveal.js';
+import { installDragRoll, takePendingThrow } from './fx/drag-roll.js';
 
 let currentOriginalTab = 'habilidades';
 let originalSkillsFilter = '';
@@ -418,6 +419,7 @@ const APP_SETTINGS_KEY='ordem-ii-app-settings-v1';
 let appSettings={
   gameFx:true,
   rollScene:true,
+  manualThrow:true,
   tutorialOriginal:true,
   sidebarScope:'all',
   sidebarNavigatorOpen:false,
@@ -438,6 +440,7 @@ try{appSettings={...appSettings,...JSON.parse(localStorage.getItem(APP_SETTINGS_
 function saveAppSettings(){try{localStorage.setItem(APP_SETTINGS_KEY,JSON.stringify(appSettings))}catch{}}
 setFxEnabledGetter(()=>appSettings.gameFx!==false);
 setRollSceneGetter(()=>appSettings.rollScene!==false);
+setManualThrowGetter(()=>appSettings.manualThrow!==false);
 
 let sidebarNavigatorOpen = Boolean(appSettings.sidebarNavigatorOpen);
 let sidebarNavigatorPinned = Boolean(appSettings.sidebarNavigatorPinned);
@@ -542,7 +545,7 @@ function getCriticalState(){
  return{pv,pd,active:pv.critical||pd.critical};
 }
 function renderCriticalAtmosphere(){return `<div class="critical-atmosphere" data-critical-atmosphere aria-hidden="true"><div class="critical-pd-darkness"></div><div class="critical-pv-vignette"></div><div class="critical-pd-vignette"></div><canvas class="critical-tendrils" data-critical-tendrils></canvas><div class="critical-distortion"></div></div>`}
-function renderCriticalSettings(){const row=(key,title,copy)=>`<div class="critical-setting-row"><span><b>${title}</b><small>${copy}</small></span><button type="button" class="critical-effect-toggle ${criticalEffects[key]?'active':''}" data-critical-effect="${key}" aria-pressed="${criticalEffects[key]}"><i></i><em>${criticalEffects[key]?'ATIVO':'DESATIVADO'}</em></button></div>`;const appRow=(key,title,copy)=>`<div class="critical-setting-row"><span><b>${title}</b><small>${copy}</small></span><button type="button" class="critical-effect-toggle ${appSettings[key]!==false?'active':''}" data-app-setting="${key}" aria-pressed="${appSettings[key]!==false}"><i></i><em>${appSettings[key]!==false?'ATIVO':'DESATIVADO'}</em></button></div>`;return `<div class="modal critical-settings-modal" id="critical-settings-modal"><div class="backdrop critical-settings-backdrop"></div><section><button type="button" class="critical-settings-close">${icon('close')}</button><small>IMERSÃO & ACESSIBILIDADE</small><h2>EFEITOS CRÍTICOS</h2><p>Escolha quais efeitos atmosféricos podem aparecer. As cores e bordas informativas de PV e PD continuam visíveis.</p>${row('pv','ESTADO CRÍTICO DE PV','Vinheta pulsante e batimento cardíaco sincronizado.')}${row('pd','ESTADO CRÍTICO DE PD','Escurecimento, vibração e formas paranormais.')}<h2 style="margin-top:22px">EXPERIÊNCIA DE JOGO</h2>${appRow('gameFx','ANIMAÇÕES DE JOGO','Efeitos visuais, contagem dinâmica de dados e partículas.')}${appRow('rollScene','CENA DE ROLAGEM','Os dados rolam num círculo em destaque e cada bônus voa até o total. Desligada, os dados rolam soltos sobre a ficha.')}<h2 style="margin-top:22px">CRIAÇÃO DE FICHA</h2>${appRow('tutorialOriginal','TUTORIAL DE ORDEM PARANORMAL 1','Ao criar uma ficha, guia a escolha de aprimoramento, origem, atributos, perícias e poder geral.')}</section></div>`}
+function renderCriticalSettings(){const row=(key,title,copy)=>`<div class="critical-setting-row"><span><b>${title}</b><small>${copy}</small></span><button type="button" class="critical-effect-toggle ${criticalEffects[key]?'active':''}" data-critical-effect="${key}" aria-pressed="${criticalEffects[key]}"><i></i><em>${criticalEffects[key]?'ATIVO':'DESATIVADO'}</em></button></div>`;const appRow=(key,title,copy)=>`<div class="critical-setting-row"><span><b>${title}</b><small>${copy}</small></span><button type="button" class="critical-effect-toggle ${appSettings[key]!==false?'active':''}" data-app-setting="${key}" aria-pressed="${appSettings[key]!==false}"><i></i><em>${appSettings[key]!==false?'ATIVO':'DESATIVADO'}</em></button></div>`;return `<div class="modal critical-settings-modal" id="critical-settings-modal"><div class="backdrop critical-settings-backdrop"></div><section><button type="button" class="critical-settings-close">${icon('close')}</button><small>IMERSÃO & ACESSIBILIDADE</small><h2>EFEITOS CRÍTICOS</h2><p>Escolha quais efeitos atmosféricos podem aparecer. As cores e bordas informativas de PV e PD continuam visíveis.</p>${row('pv','ESTADO CRÍTICO DE PV','Vinheta pulsante e batimento cardíaco sincronizado.')}${row('pd','ESTADO CRÍTICO DE PD','Escurecimento, vibração e formas paranormais.')}<h2 style="margin-top:22px">EXPERIÊNCIA DE JOGO</h2>${appRow('gameFx','ANIMAÇÕES DE JOGO','Efeitos visuais, contagem dinâmica de dados e partículas.')}${appRow('rollScene','CENA DE ROLAGEM','Os dados rolam num círculo em destaque e cada bônus voa até o total. Desligada, os dados rolam soltos sobre a ficha.')}${appRow('manualThrow','ARREMESSO MANUAL','Nos testes, os dados esperam na cena: pegue, arraste e solte para arremessar, ou clique para rolar. Desligado, rolam na hora.')}<h2 style="margin-top:22px">CRIAÇÃO DE FICHA</h2>${appRow('tutorialOriginal','TUTORIAL DE ORDEM PARANORMAL 1','Ao criar uma ficha, guia a escolha de aprimoramento, origem, atributos, perícias e poder geral.')}</section></div>`}
 
 function getCardCost(card){
  if(card.cost !== undefined && card.cost !== null) {
@@ -4670,6 +4673,7 @@ function bindSheetInteractions() {
 }
 function parseRollExpression(expression){const vars=formulaVariables();let expanded=String(expression||'').replace(/@\{([^}]+)\}/g,(_,key)=>String(vars[formulaKey(key)]??0));const dice=[];expanded=expanded.replace(/(\d*)d(4|6|8|10|12|20)/gi,(_,count,sides)=>{for(let i=0;i<Math.min(12,Number(count)||1);i++)dice.push(Number(sides));return '0'});let modifier=0;try{if(/^[\d+\-*/().\s]+$/.test(expanded))modifier=Math.floor(Function(`"use strict";return (${expanded||0})`)())}catch{}return{dice,modifier}}
 async function roll(name,sides,modifier=0,rollMode='sum',meta={}){
+ const throwVec = takePendingThrow();
  const list=Array.isArray(sides)?sides:String(sides).split(',').map(Number).filter(side=>DICE_STEPS.includes(side));
  if(!list.length)return null;
  const soundContext=getUiAudioContext(),{rollDice3d}=await getDiceApi(),color=state.diceColor||getSheetAccent(state);
@@ -4699,7 +4703,8 @@ async function roll(name,sides,modifier=0,rollMode='sum',meta={}){
  }
  const options = {
   modifierParts,
-  scene: meta?.scene || 'quick'
+  scene: meta?.scene || 'quick',
+  throw: throwVec
  };
  const res=await rollDice3d(diceConfigs,name,numMod,soundContext,rollMode,options);
  if(res&&Array.isArray(res.values)){
@@ -5773,5 +5778,11 @@ initOriginalCompendium({
   isLocked:()=>presentationMode,
   saveAndRender:()=>{save(false);render();},
  }),
+});
+installDragRoll({
+ getColor: () => state.diceColor || getSheetAccent(state),
+ isPresentation: () => presentationMode,
+ // Com a cena ligada o arremesso acontece dentro dela (dice-hand.js)
+ isDisabled: () => rollSceneEnabled()
 });
 render();

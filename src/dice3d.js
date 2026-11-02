@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { createDreadSequence } from './dice-dread-fx.js';
 import { createCritSequence, createFumbleSequence } from './fx/dice-crit-fx.js';
-import { countUp, fxEnabled, rollSceneEnabled } from './fx/ui-fx.js';
+import { countUp, fxEnabled, rollSceneEnabled, manualThrowEnabled } from './fx/ui-fx.js';
 import { createTray } from './fx/dice-tray.js';
 import { createRollHud } from './fx/dice-sum-fx.js';
+import { createDiceHand } from './fx/dice-hand.js';
 
 const geometryFactories = {
   4: () => new THREE.TetrahedronGeometry(.9),
@@ -170,7 +171,42 @@ function createDie(scene, world, config, index, total) {
   const body = new CANNON.Body({ mass: .72, shape, material: world.diceMaterial, allowSleep: true, sleepSpeedLimit: .24, sleepTimeLimit: .28 });
   const launch = world.launch;
   const speedScale = world.boundsX <= 2.0 ? 0.75 : 1.0;
-  if (world.sceneRadius) {
+
+  let angScale = 1.0;
+  if (world.throwVec) {
+    const { dx, dy, power } = world.throwVec;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = dx / len;
+    const nz = -dy / len;
+    const dir = new THREE.Vector3(nx, 0, nz);
+    const perp = new THREE.Vector3(-nz, 0, nx);
+    angScale = 0.6 + power * 0.8;
+
+    if (world.sceneRadius) {
+      const r = world.sceneRadius;
+      const spread = Math.min(r * 1.4, (total - 1) * .9);
+      const lane = (total > 1 ? (index / (total - 1) - .5) * spread : 0) + (Math.random() - .5) * .3;
+      const stagger = index * .22;
+      const startPos = dir.clone().multiplyScalar(-r * 0.78 - stagger)
+        .add(perp.clone().multiplyScalar(lane));
+      body.position.set(startPos.x, -0.2 + Math.random() * 0.3, startPos.z);
+      const speed = (2.2 + power * 3.6) * (r / 1.6);
+      const vel = dir.clone().multiplyScalar(speed);
+      body.velocity.set(vel.x, 1.6 + power * 1.2, vel.z);
+    } else {
+      const spread = Math.min(world.boundsX * 1.4, (total - 1) * .72);
+      const lane = total > 1 ? (index / (total - 1) - .5) * spread : 0;
+      const startPos = new THREE.Vector3(
+        -dir.x * world.boundsX * 0.7,
+        0,
+        -dir.z * world.boundsZ * 0.7
+      ).add(perp.clone().multiplyScalar(lane));
+      body.position.set(startPos.x, 1.8 + Math.random() * 0.8, startPos.z);
+      const speed = 3.5 + power * 7;
+      const vel = dir.clone().multiplyScalar(speed);
+      body.velocity.set(vel.x, -2.5 - power * 2, vel.z);
+    }
+  } else if (world.sceneRadius) {
     // Cena: o arremesso começa dentro do quadro, rente ao chão, e cruza o círculo
     // Espaçamento de um dado inteiro entre eles: nascer sobrepostos faz a física explodir
     const r = world.sceneRadius, side = launch % 2 ? 1 : -1, power = r / 1.6;
@@ -201,13 +237,16 @@ function createDie(scene, world, config, index, total) {
     body.position.set(offset * 0.4 + (Math.random() - .5) * 0.5, 1.8 + Math.random() * 0.8, world.boundsZ * 0.65);
     body.velocity.set((Math.random() - .5) * 1.8, -3.0 - Math.random() * 1.0, (-4.2 - Math.random() * 1.2) * speedScale);
   }
-  body.angularVelocity.set(13 + Math.random() * 10, 11 + Math.random() * 12, 12 + Math.random() * 11);
+  body.angularVelocity.set((13 + Math.random() * 10) * angScale, (11 + Math.random() * 12) * angScale, (12 + Math.random() * 11) * angScale);
   body.angularDamping = .13; body.linearDamping = world.sceneRadius ? .22 : .035;
   body.quaternion.setFromEuler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
   let lastImpact = 0;
   body.addEventListener('collide', event => {
     const now = performance.now(), velocity = Math.abs(event.contact?.getImpactVelocityAlongNormal?.() || 0);
     if (velocity > .7 && now - lastImpact > 42) { lastImpact = now; playDiceImpact(velocity); }
+    if (velocity > 2.8 && world.onHardImpact) {
+      world.onHardImpact();
+    }
   });
   world.addBody(body);
   const flashBase = { color: material.emissive.clone(), intensity: material.emissiveIntensity };
@@ -372,6 +411,7 @@ function pulseStage(stage, className) {
 
 let activeTray = null;
 let activeHud = null;
+let activeHand = null;
 let stageGestureCleanup = null;
 // Resolve a rolagem em andamento se ela for interrompida (nova rolagem ou fechamento).
 let pendingFinish = null;
@@ -506,9 +546,19 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
       floor.rotation.x = -Math.PI / 2; floor.position.y = -1.14; floor.receiveShadow = true; scene.add(floor);
     }
 
+    world.throwVec = options.throw || null;
+    if (tray && options.throw && options.throw.power > 0.7) {
+      let hardImpactTriggered = false;
+      world.onHardImpact = () => {
+        if (hardImpactTriggered) return;
+        hardImpactTriggered = true;
+        tray.pulse();
+      };
+    }
+
     const dice = list.map((config, index) => createDie(scene, world, config, index, list.length));
     const dreadIndex = dice.findIndex(die => die.dread);
-    const start = performance.now(); let last = start; let settledAt = 0; let finishedAt = 0; let finished = false;
+    let start = performance.now(); let last = start; let settledAt = 0; let finishedAt = 0; let finished = false;
     let sequenceFactories = [];
     let currentSequence = null;
     let seqIndex = 0;
@@ -526,6 +576,7 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
     if (partsSum !== modifier) modifierParts.push({ label: 'BÔNUS', value: modifier - partsSum });
 
     let hud = null;
+    let hand = null;
     if (sceneMode) {
       hud = createRollHud(stage, { title, configs: list, modifierParts, rollMode, audio: audioContext, onOpenLog: openLogFromScene });
       activeHud = hud;
@@ -533,6 +584,32 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
         headBottom: toScreen(new THREE.Vector3(0, -1.15, -trayRadius * 1.18)).y - 14,
         totalTop: toScreen(new THREE.Vector3(0, -1.15, trayRadius * 1.18)).y + 4
       });
+
+      // Testes com arremesso manual: os dados esperam na mão até o jogador jogar
+      if (options.scene === 'full' && manualThrowEnabled() && !options.throw) {
+        hand = createDiceHand({
+          camera, dice, radius: trayRadius, size: { width, height }, stage,
+          onRattle: playDiceImpact,
+          onThrow: throws => {
+            throws.forEach((t, i) => {
+              const body = dice[i].body;
+              body.position.set(t.position.x, t.position.y, t.position.z);
+              body.quaternion.set(t.quaternion.x, t.quaternion.y, t.quaternion.z, t.quaternion.w);
+              body.velocity.set(t.velocity.x, t.velocity.y, t.velocity.z);
+              body.angularVelocity.set(t.angularVelocity.x, t.angularVelocity.y, t.angularVelocity.z);
+              body.wakeUp();
+              dice[i].mesh.scale.setScalar(1);
+            });
+            start = last = performance.now();
+            settledAt = 0;
+            hud.setHolding(false);
+          }
+        });
+        activeHand = hand;
+        hud.setHolding(true);
+        // Se a cena for fechada antes do arremesso, a rolagem termina sem resultado
+        pendingFinish = () => finishResolve(null);
+      }
 
       // 1º gesto pula para o resultado; depois do selo, fecha.
       const handleGesture = e => {
@@ -542,6 +619,11 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
         }
         if (e.target?.closest?.('.rh-log')) return;
         e.stopPropagation();
+        if (hand && !hand.thrown) {
+          if (e.type === 'keydown') hand.throwAuto();
+          return;
+        }
+        if (hand && e.type === 'click' && performance.now() - hand.thrownAt < 400) return;
         if (hud.sum?.stamped) { closeDice3d(); return; }
         skipRequested = true;
         if (hud.sum) { hud.sum.skip(); return; }
@@ -586,6 +668,12 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
     function animate(now) {
       if (tray) tray.update(now);
       const delta = Math.min(.033, (now - last) / 1000); last = now;
+      if (hand && !hand.thrown) {
+        hand.update(now, delta);
+        renderer.render(scene, camera);
+        animationFrame = requestAnimationFrame(animate);
+        return;
+      }
       if (sceneMode && finished && !currentSequence) {
         updateSceneFx(now);
         renderer.render(scene, camera);
@@ -846,6 +934,8 @@ export function closeDice3d(opts = {}) {
   const immediate = typeof opts === 'boolean' ? opts : Boolean(opts?.immediate);
   pendingFinish?.();
   pendingFinish = null;
+  activeHand?.dispose();
+  activeHand = null;
   activeSequence?.finish();
   activeSequence = null;
   if (stageGestureCleanup) {
