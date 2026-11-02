@@ -56,6 +56,80 @@ function playStampSound(audio) {
   } catch { /* áudio é opcional */ }
 }
 
+function playFumbleStampSound(audio) {
+  if (!audio) return;
+  try {
+    const now = audio.currentTime;
+    // 1. Sino fúnebre dissonante (trítono: 110Hz e 155.6Hz decrescendo)
+    [110, 155.6].forEach((freq, idx) => {
+      const osc = audio.createOscillator(), gain = audio.createGain();
+      osc.type = idx === 0 ? 'sine' : 'triangle';
+      osc.frequency.setValueAtTime(freq, now);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.62, now + 1.2);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.3);
+      osc.connect(gain).connect(audio.destination);
+      osc.start(now); osc.stop(now + 1.35);
+    });
+
+    // 2. Estalo oco de fratura metálica
+    const length = Math.floor(audio.sampleRate * 0.18);
+    const buf = audio.createBuffer(1, length, audio.sampleRate), data = buf.getChannelData(0);
+    for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 3);
+    const snap = audio.createBufferSource(), filter = audio.createBiquadFilter(), snapGain = audio.createGain();
+    snap.buffer = buf;
+    filter.type = 'bandpass'; filter.frequency.setValueAtTime(450, now); filter.Q.value = 2.5;
+    snapGain.gain.setValueAtTime(0.14, now);
+    snapGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+    snap.connect(filter).connect(snapGain).connect(audio.destination);
+    snap.start(now); snap.stop(now + 0.18);
+
+    // 3. Sub-grave oco descendente
+    const sub = audio.createOscillator(), subGain = audio.createGain();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(65, now);
+    sub.frequency.exponentialRampToValueAtTime(24, now + 0.9);
+    subGain.gain.setValueAtTime(0.0001, now);
+    subGain.gain.exponentialRampToValueAtTime(0.24, now + 0.015);
+    subGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.0);
+    sub.connect(subGain).connect(audio.destination);
+    sub.start(now); sub.stop(now + 1.05);
+  } catch { /* áudio é opcional */ }
+}
+
+function playDreadConsumedStampSound(audio) {
+  if (!audio) return;
+  try {
+    const now = audio.currentTime;
+    // 1. Drone abissal profundo (colapso no vazio)
+    const drone = audio.createOscillator(), sub = audio.createOscillator(), filter = audio.createBiquadFilter(), gain = audio.createGain();
+    drone.type = 'sawtooth'; sub.type = 'sine';
+    drone.frequency.setValueAtTime(58, now); drone.frequency.exponentialRampToValueAtTime(26, now + 1.4);
+    sub.frequency.setValueAtTime(42, now); sub.frequency.exponentialRampToValueAtTime(18, now + 1.5);
+    filter.type = 'lowpass'; filter.frequency.setValueAtTime(320, now); filter.frequency.exponentialRampToValueAtTime(60, now + 1.2);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.28, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.5);
+    drone.connect(filter); sub.connect(filter); filter.connect(gain).connect(audio.destination);
+    drone.start(now); sub.start(now); drone.stop(now + 1.55); sub.stop(now + 1.55);
+
+    // 2. Chiado espectral fantasmagórico
+    const len = Math.floor(audio.sampleRate * 0.9);
+    const buf = audio.createBuffer(1, len, audio.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * i / len);
+    const wind = audio.createBufferSource(), bp = audio.createBiquadFilter(), wg = audio.createGain();
+    wind.buffer = buf;
+    bp.type = 'bandpass'; bp.Q.value = 3.0;
+    bp.frequency.setValueAtTime(480, now); bp.frequency.exponentialRampToValueAtTime(140, now + 0.8);
+    wg.gain.setValueAtTime(0.0001, now);
+    wg.gain.exponentialRampToValueAtTime(0.12, now + 0.04);
+    wg.gain.exponentialRampToValueAtTime(0.0001, now + 0.85);
+    wind.connect(bp).connect(wg).connect(audio.destination);
+    wind.start(now); wind.stop(now + 0.9);
+  } catch { /* áudio é opcional */ }
+}
+
 function playWhoosh(audio, strength = 1) {
   if (!audio) return;
   try {
@@ -187,9 +261,16 @@ export function createRollHud(stage, { title, configs, modifierParts = [], rollM
       root.classList.add('stamped');
       if (verdict?.crit) root.classList.add('crit');
       if (verdict?.fumble) root.classList.add('fumble');
+      if (verdict?.dreadConsumedAll) root.classList.add('dread-consumed');
       verdictEl.innerHTML = verdict?.html || '';
       hintEl.textContent = 'CLIQUE PARA FECHAR';
-      playStampSound(audio);
+      if (verdict?.fumble) {
+        playFumbleStampSound(audio);
+      } else if (verdict?.dreadConsumedAll) {
+        playDreadConsumedStampSound(audio);
+      } else {
+        playStampSound(audio);
+      }
       onStamp?.();
       resolveDone();
     }

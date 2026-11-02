@@ -930,8 +930,17 @@
 
 .roll-hud.crit .rh-total { color: #fff4d6; text-shadow: 0 0 34px rgba(242, 201, 107, .7), 0 4px 24px #000; }
 .roll-hud.crit .rh-ring { border-color: var(--rh-gold); }
-.roll-hud.fumble .rh-total { color: #8f8a83; text-shadow: 0 4px 24px #000; }
-.roll-hud.fumble .rh-ring { border-color: rgba(120, 30, 34, .8); }
+.roll-hud.fumble .rh-total { color: #7f7972; text-shadow: 0 0 24px rgba(180, 20, 30, .45), 0 4px 24px #000; animation: rh-fumble-shake .42s ease; }
+.roll-hud.fumble .rh-ring { border-color: rgba(180, 24, 30, .9); box-shadow: 0 0 30px rgba(180, 24, 30, .35); }
+.roll-hud.dread-consumed .rh-total { color: #c084fc; text-shadow: 0 0 32px rgba(168, 85, 247, .75), 0 4px 24px #000; animation: rh-fumble-shake .42s ease; }
+.roll-hud.dread-consumed .rh-ring { border-color: rgba(168, 85, 247, .9); box-shadow: 0 0 35px rgba(168, 85, 247, .4); }
+@keyframes rh-fumble-shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-3px, 2px); }
+  40% { transform: translate(3px, -2px); }
+  60% { transform: translate(-2px, -1px); }
+  80% { transform: translate(2px, 1px); }
+}
 
 /* Valores voando dos dados até o total */
 .rh-chips { position: absolute; inset: 0; overflow: hidden; }

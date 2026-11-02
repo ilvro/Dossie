@@ -5,7 +5,14 @@
  * físicas (invisíveis) ficam em dice3d.js.
  */
 import * as THREE from 'three';
-import { clamp01, easeOutCubic } from './dice-fx-primitives.js';
+import {
+  clamp01,
+  easeOutCubic,
+  easeInCubic,
+  rand,
+  createDust,
+  createShockwave
+} from './dice-fx-primitives.js';
 
 const BONE = '#e9e1cf';
 const EMBER = '#c0262d';
@@ -157,6 +164,9 @@ export function createTray({ scene, radius = 1.7, floorY = -1.14 }) {
 
   const base = { outer: .8, inner: .9, pool: 1 };
   let enterStart = 0, exitStart = 0, exiting = false, pulseStart = -Infinity, exitResolve = null;
+  let disintegrating = false, disintegrateStart = 0, disintegrateKind = 'fumble';
+  const trayEffects = [];
+  let lastNow = performance.now();
   const ENTER = 280, EXIT = 220, PULSE = 650;
 
   function setFade(alpha, boost = 0) {
@@ -180,10 +190,129 @@ export function createTray({ scene, radius = 1.7, floorY = -1.14 }) {
 
   // Brilho curto no selo: usado quando o total "pousa".
   function pulse() {
+    if (disintegrating) return;
     pulseStart = performance.now();
   }
 
+  // Desintegração dramática do círculo ritual (falha crítica ou pavor consome tudo)
+  function disintegrate({ kind = 'fumble' } = {}) {
+    if (disintegrating) return;
+    disintegrating = true;
+    disintegrateStart = performance.now();
+    disintegrateKind = kind;
+
+    const center = new THREE.Vector3(0, floorY, 0);
+    if (kind === 'fumble') {
+      // Onda de choque escura e cinzas de invocação destruída
+      trayEffects.push(createShockwave(scene, center, {
+        color: new THREE.Color('#3b1114'),
+        maxScale: radius * 12,
+        life: 1.1
+      }));
+      trayEffects.push(createDust(scene, new THREE.Vector3(0, floorY + 0.04, 0), {
+        count: 220,
+        colors: [new THREE.Color('#141418'), new THREE.Color('#2e1114'), new THREE.Color('#7f1d1d'), new THREE.Color('#383842')],
+        rise: 1.2,
+        speed: 2.2,
+        life: 1.4,
+        size: 0.12
+      }));
+      for (let i = 0; i < 6; i++) {
+        const ang = (i / 6) * Math.PI * 2;
+        const px = Math.cos(ang) * radius * 0.95, pz = Math.sin(ang) * radius * 0.95;
+        trayEffects.push(createDust(scene, new THREE.Vector3(px, floorY + 0.04, pz), {
+          count: 45,
+          colors: [new THREE.Color('#141418'), new THREE.Color('#4a151b'), new THREE.Color('#222228')],
+          rise: 0.8,
+          speed: 1.6,
+          life: 1.1,
+          size: 0.09
+        }));
+      }
+    } else {
+      // Pavor consome tudo: sobrecarga abissal roxa e brasas espectrais
+      trayEffects.push(createShockwave(scene, center, {
+        color: new THREE.Color('#a855f7'),
+        maxScale: radius * 14,
+        life: 1.2
+      }));
+      trayEffects.push(createShockwave(scene, center, {
+        color: new THREE.Color('#c084fc'),
+        maxScale: radius * 8,
+        life: 0.85
+      }));
+      trayEffects.push(createDust(scene, new THREE.Vector3(0, floorY + 0.04, 0), {
+        count: 260,
+        colors: [new THREE.Color('#a855f7'), new THREE.Color('#c084fc'), new THREE.Color('#1a0b2e'), new THREE.Color('#4c1d95')],
+        rise: 2.2,
+        speed: 2.8,
+        life: 1.6,
+        size: 0.13
+      }));
+      for (let i = 0; i < 6; i++) {
+        const ang = (i / 6) * Math.PI * 2;
+        const px = Math.cos(ang) * radius * 0.95, pz = Math.sin(ang) * radius * 0.95;
+        trayEffects.push(createDust(scene, new THREE.Vector3(px, floorY + 0.04, pz), {
+          count: 50,
+          colors: [new THREE.Color('#7c3aed'), new THREE.Color('#c084fc'), new THREE.Color('#1e0b36')],
+          rise: 1.6,
+          speed: 1.9,
+          life: 1.2,
+          size: 0.10
+        }));
+      }
+    }
+  }
+
   function update(now) {
+    const dt = Math.min(0.05, (now - lastNow) / 1000);
+    lastNow = now;
+
+    for (let i = trayEffects.length - 1; i >= 0; i--) {
+      if (!trayEffects[i].update(dt)) {
+        trayEffects[i].dispose();
+        trayEffects.splice(i, 1);
+      }
+    }
+
+    if (disintegrating) {
+      const DURATION = 1200;
+      const t = clamp01((now - disintegrateStart) / DURATION);
+
+      // Tremor nos anéis que quebram
+      const shake = (1 - t) * (t < 0.35 ? 0.09 : 0.035);
+      outer.position.x = rand(-1, 1) * shake;
+      outer.position.z = rand(-1, 1) * shake;
+      inner.position.x = rand(-1, 1) * shake;
+      inner.position.z = rand(-1, 1) * shake;
+      outer.rotation.z += (rand(-1, 1) * shake * 0.4);
+
+      // SpotLight falha e apaga
+      const flicker = (Math.sin(now * 0.06) + Math.cos(now * 0.11)) * 0.5;
+      spot.intensity = Math.max(0, 60 * (1 - easeInCubic(t)) * (0.35 + 0.65 * Math.max(0, flicker)));
+
+      // Corrupção e desvanecimento das runas
+      const fade = Math.max(0, 1 - easeInCubic(t));
+      outerMat.opacity = base.outer * fade;
+      innerMat.opacity = base.inner * fade;
+      poolMat.opacity = base.pool * Math.max(0, 1 - easeInCubic(t * 1.6));
+      shadowMat.opacity = 0.5 * fade;
+
+      if (disintegrateKind === 'fumble') {
+        outerMat.color.lerp(new THREE.Color('#221517'), 0.08);
+        innerMat.color.lerp(new THREE.Color('#181113'), 0.08);
+      } else {
+        outerMat.color.lerp(new THREE.Color('#6b21a8'), 0.12);
+        innerMat.color.lerp(new THREE.Color('#3b0764'), 0.12);
+      }
+
+      if (t >= 1) {
+        outer.visible = inner.visible = pool.visible = false;
+        spot.intensity = 0;
+      }
+      return;
+    }
+
     outer.rotation.z = now * .00005;
     const pulseT = clamp01((now - pulseStart) / PULSE);
     const boost = pulseT < 1 ? (1 - easeOutCubic(pulseT)) * .6 : 0;
@@ -202,6 +331,8 @@ export function createTray({ scene, radius = 1.7, floorY = -1.14 }) {
 
   function dispose() {
     exitResolve?.(); exitResolve = null;
+    trayEffects.forEach(fx => fx.dispose());
+    trayEffects.length = 0;
     scene.remove(group);
     shadowGeo.dispose(); shadowMat.dispose();
     poolGeo.dispose(); poolMat.dispose();
@@ -210,5 +341,5 @@ export function createTray({ scene, radius = 1.7, floorY = -1.14 }) {
     spot.dispose?.();
   }
 
-  return { group, enter, exit, update, pulse, dispose };
+  return { group, enter, exit, update, pulse, disintegrate, dispose };
 }

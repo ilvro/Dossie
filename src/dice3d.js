@@ -844,6 +844,13 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
           });
           modifierParts.forEach(part => items.push({ kind: 'mod', value: part.value, label: part.label }));
 
+          const dreadConsumedAll = dreadIndex >= 0 && !outcome.countedValues.length;
+          if (classification.fumble) {
+            tray?.disintegrate({ kind: 'fumble' });
+          } else if (dreadConsumedAll) {
+            tray?.disintegrate({ kind: 'dread' });
+          }
+
           const banners = [];
           if (classification.crit) banners.push('<span class="rh-banner crit">★ SUCESSO CRÍTICO</span>');
           if (classification.fumble) banners.push('<span class="rh-banner fumble">☠ FALHA CRÍTICA</span>');
@@ -862,8 +869,18 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
             project: i => toScreen(dice[i].mesh.getWorldPosition(new THREE.Vector3())),
             onLaunch: i => { dice[i].flashAt = performance.now(); },
             onTick: playTick,
-            verdict: { crit: classification.crit, fumble: classification.fumble, html: banners.join('') },
-            onStamp: () => { stampAt = performance.now(); tray?.pulse(); }
+            verdict: {
+              crit: classification.crit,
+              fumble: classification.fumble,
+              dreadConsumedAll,
+              html: banners.join('')
+            },
+            onStamp: () => {
+              stampAt = performance.now();
+              if (!classification.fumble && !dreadConsumedAll) {
+                tray?.pulse();
+              }
+            }
           });
           sum.done.then(() => {
             resolveRoll();
@@ -872,9 +889,13 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
         };
 
         sequenceFactories = [];
+        const dreadConsumedAll = dreadIndex >= 0 && !outcome.countedValues.length;
         if (dreadIndex >= 0) {
           sequenceFactories.push((onSeqReveal) => {
             stage.classList.add('dread-active');
+            if (dreadConsumedAll) {
+              tray?.disintegrate({ kind: 'dread' });
+            }
             return createDreadSequence({
               scene, camera, dice, dreadIndex,
               victims: [...destroyed],
@@ -908,6 +929,7 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
 
         if (classification.fumble) {
           sequenceFactories.push((onSeqReveal) => {
+            tray?.disintegrate({ kind: 'fumble' });
             return createFumbleSequence({
               scene, camera, dice, renderer,
               indices: classification.fumbleIndices,
