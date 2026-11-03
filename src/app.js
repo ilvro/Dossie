@@ -899,6 +899,26 @@ function bindPresentationEvents(){
 function readMedia(file,key){if(!file)return;const type=file.type;if(type.startsWith('video/')||type==='image/gif'){if(state[key]?.startsWith('blob:'))URL.revokeObjectURL(state[key]);blobBgType=type.startsWith('video/')?'video':'gif';state[key]=URL.createObjectURL(file);render()}else{blobBgType='';readImage(file,key,1920)}}
 
 
+function renderMobileHeaderBar(){
+ if(presentationMode) return '';
+ const modeLabel = state.viewMode === 'vigilia' ? 'A VIGÍLIA' : (state.viewMode === 'cinematic' ? 'CINEMA' : 'TRADICIONAL');
+ const modeIcon = state.viewMode === 'vigilia' ? 'shield' : (state.viewMode === 'cinematic' ? 'film' : 'grid');
+ return `<header class="mobile-top-header">
+  <button type="button" class="mobile-top-header-btn btn-fichas" data-sheet-drawer aria-label="Fichas" title="Abrir Fichas e Pastas">
+   ${state.tokenImage ? `<img src="${safeUrl(state.tokenImage)}" class="mobile-header-avatar" alt="">` : icon('folder', 15)}
+   <span>FICHAS</span>
+  </button>
+  <div class="mobile-top-header-title">
+   <strong>${safe(state.name || 'AGENTE')}</strong>
+  </div>
+  <button type="button" class="mobile-top-header-btn btn-layout" data-sheet-drawer aria-label="Mudar Modelo de Ficha" title="Mudar Modelo de Ficha">
+   ${icon(modeIcon, 15)}
+   <span>${modeLabel}</span>
+   <i class="header-arrow">▾</i>
+  </button>
+ </header>`;
+}
+
 function renderBottomNav(){
  if(presentationMode) return '';
  const isVigilia=state.viewMode==='vigilia';
@@ -930,6 +950,7 @@ function renderBottomNav(){
  return `<nav class="mobile-bottom-nav">
   <button class="mobile-drawer-btn" data-sheet-drawer aria-label="Fichas" title="Abrir Fichas e Pastas">${state.tokenImage?`<img src="${safeUrl(state.tokenImage)}" alt="" class="mobile-avatar-thumb">`:icon('sheet',20)}<span>FICHAS</span></button>
   ${tabs.map(t=>`<button class="mobile-tab-btn ${activeId===t.id?'active':''}" ${tabAttr}="${t.id}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${t.svg}</svg><span>${t.label}</span></button>`).join('')}
+  <button class="mobile-tab-btn" data-sheet-drawer aria-label="Modelo da Ficha" title="Trocar Modelo da Ficha">${icon('grid',20)}<span>MODELO</span></button>
   <button class="mobile-tab-btn btn-mobile-roll-log" data-open-roll-log aria-label="Histórico">${icon('history',20)}<span>ROLAGENS</span></button>
   <button class="mobile-tab-btn ${editMode?'active edit-active':''}" data-toggle-edit aria-label="Editar">${editMode?icon('close',20):icon('edit',20)}<span>${editMode?'FECHAR':'EDITAR'}</span></button>
  </nav>`;
@@ -1162,6 +1183,7 @@ function render(){syncDraftBaseline();syncUnsavedBar();document.querySelectorAll
 
    ${renderWorkspaceNavigator(folders,sheets,state.id,{open:sidebarNavigatorOpen,pinned:sidebarNavigatorPinned,searchQuery:sidebarSearchQuery,scope:sidebarScope,visibleFolderIds:appSettings.sidebarVisibleFolderIds,recentSheetIds:appSettings.recentSheetIds,threatElement:threatFilterElement,threatVdRange:threatFilterVdRange,threatVdMin:threatFilterVdMin,threatVdMax:threatFilterVdMax,threatCategory:threatFilterCategory,threatSort:threatSort,threatGroupBy:threatGroupBy,threatFiltersOpen:threatFiltersOpen,virtualGroupsCollapsed:virtualGroupsCollapsed,safeUrl})}
    ${quickSwitcherOpen?renderQuickSwitcherModal(sheets,folders,quickSwitcherQuery,quickSwitcherIndex,safeUrl):''}
+   ${renderMobileHeaderBar()}
 
   ${state.systemMode==='threat'
     ? renderThreatBook(state, editMode, { safeUrl, renderBackgroundLayer })
