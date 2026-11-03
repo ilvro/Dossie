@@ -899,26 +899,6 @@ function bindPresentationEvents(){
 function readMedia(file,key){if(!file)return;const type=file.type;if(type.startsWith('video/')||type==='image/gif'){if(state[key]?.startsWith('blob:'))URL.revokeObjectURL(state[key]);blobBgType=type.startsWith('video/')?'video':'gif';state[key]=URL.createObjectURL(file);render()}else{blobBgType='';readImage(file,key,1920)}}
 
 
-function renderMobileHeaderBar(){
- if(presentationMode) return '';
- const modeLabel = state.viewMode === 'vigilia' ? 'A VIGÍLIA' : (state.viewMode === 'cinematic' ? 'CINEMA' : 'TRADICIONAL');
- const modeIcon = state.viewMode === 'vigilia' ? 'shield' : (state.viewMode === 'cinematic' ? 'film' : 'grid');
- return `<header class="mobile-top-header">
-  <button type="button" class="mobile-top-header-btn btn-fichas" data-sheet-drawer aria-label="Fichas" title="Abrir Fichas e Pastas">
-   ${state.tokenImage ? `<img src="${safeUrl(state.tokenImage)}" class="mobile-header-avatar" alt="">` : icon('folder', 15)}
-   <span>FICHAS</span>
-  </button>
-  <div class="mobile-top-header-title">
-   <strong>${safe(state.name || 'AGENTE')}</strong>
-  </div>
-  <button type="button" class="mobile-top-header-btn btn-layout" data-sheet-drawer aria-label="Mudar Modelo de Ficha" title="Mudar Modelo de Ficha">
-   ${icon(modeIcon, 15)}
-   <span>${modeLabel}</span>
-   <i class="header-arrow">▾</i>
-  </button>
- </header>`;
-}
-
 function renderBottomNav(){
  if(presentationMode) return '';
  const isVigilia=state.viewMode==='vigilia';
@@ -1183,7 +1163,6 @@ function render(){syncDraftBaseline();syncUnsavedBar();document.querySelectorAll
 
    ${renderWorkspaceNavigator(folders,sheets,state.id,{open:sidebarNavigatorOpen,pinned:sidebarNavigatorPinned,searchQuery:sidebarSearchQuery,scope:sidebarScope,visibleFolderIds:appSettings.sidebarVisibleFolderIds,recentSheetIds:appSettings.recentSheetIds,threatElement:threatFilterElement,threatVdRange:threatFilterVdRange,threatVdMin:threatFilterVdMin,threatVdMax:threatFilterVdMax,threatCategory:threatFilterCategory,threatSort:threatSort,threatGroupBy:threatGroupBy,threatFiltersOpen:threatFiltersOpen,virtualGroupsCollapsed:virtualGroupsCollapsed,safeUrl})}
    ${quickSwitcherOpen?renderQuickSwitcherModal(sheets,folders,quickSwitcherQuery,quickSwitcherIndex,safeUrl):''}
-   ${renderMobileHeaderBar()}
 
   ${state.systemMode==='threat'
     ? renderThreatBook(state, editMode, { safeUrl, renderBackgroundLayer })

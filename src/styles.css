@@ -909,10 +909,6 @@ body.orientation-prompt-active .mobile-orientation-prompt{
  }
 }
 
-/* ── Botões Móveis na Barra Superior de A Vigília ─────────────────────────── */
-.vigilia-mobile-btn {
- display: none;
-}
 .vigilia-side-label-short {
  display: none;
 }
@@ -923,29 +919,6 @@ body.orientation-prompt-active .mobile-orientation-prompt{
  }
  .vigilia-side-label-short {
   display: inline;
- }
- .vigilia-mobile-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 32px;
-  padding: 0 8px;
-  border-radius: 4px;
-  background: #0f1c16;
-  border: 1px solid #2d4538;
-  color: #c0d1c7;
-  font-family: 'Cinzel', serif;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  touch-action: manipulation;
-  flex-shrink: 0;
- }
- .vigilia-mobile-btn:active {
-  background: #193125;
-  border-color: #527965;
-  color: #ffffff;
  }
  .vigilia-toolbar {
   gap: 6px;
@@ -961,83 +934,6 @@ body.orientation-prompt-active .mobile-orientation-prompt{
  }
  .vigilia-page {
   padding-bottom: 74px;
- }
-}
-
-/* ── Barra Superior Mobile (Universal) ────────────────────────────────────── */
-.mobile-top-header {
- display: none;
-}
-
-@media (max-width: 768px) {
- .mobile-top-header {
-  display: flex;
-  position: sticky;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 65;
-  height: 44px;
-  background: rgba(13, 14, 25, 0.96);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid #232537;
-  padding: 0 10px;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
- }
- .mobile-top-header-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 10px;
-  border-radius: 6px;
-  background: #181a2b;
-  border: 1px solid #2c2f46;
-  color: #d1d4e4;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  touch-action: manipulation;
-  flex-shrink: 0;
- }
- .mobile-top-header-btn:active {
-  background: #252840;
-  color: #fff;
-  border-color: var(--red);
- }
- .mobile-header-avatar {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  object-fit: cover;
-  border: 1px solid var(--red);
- }
- .mobile-top-header-title {
-  flex: 1;
-  text-align: center;
-  overflow: hidden;
-  padding: 0 8px;
- }
- .mobile-top-header-title strong {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: #ffffff;
-  font-family: Georgia, serif;
- }
- .header-arrow {
-  font-style: normal;
-  font-size: 9px;
-  opacity: 0.7;
-  margin-left: 2px;
  }
 }
 
@@ -1068,7 +964,7 @@ body.orientation-prompt-active .mobile-orientation-prompt{
 
  /* ── Modo Tradicional — Tabs ────────────────────────────────────────────── */
  .page{margin-left:0;padding-bottom:66px;height:auto;min-height:calc(100svh - 56px);display:block}
- .view-mode-switch{left:10px;right:auto;bottom:64px;top:auto;z-index:50}
+ .view-mode-switch{display:none!important}
  .edit-status{left:10px;bottom:64px}
  .floating{display:none}
 

@@ -980,11 +980,8 @@ export function renderVigiliaSheet(sheet, editMode, options = {}) {
         <img src="./assets/vigilia/vigilia-frame.png" alt="" class="vigilia-frame-img" draggable="false">
       </div>`}
 
-      <!-- BARRA DE CONTROLE SUPERIOR (FLIP ENTRE FRENTE E VERSO + MECÂNICAS DA VIGÍLIA) -->
+      <!-- BARRA DE CONTROLE SUPERIOR (FLIP ENTRE FRENTE E VERSO) -->
       <div class="vigilia-toolbar">
-        <button type="button" class="vigilia-mobile-btn vigilia-mobile-drawer" data-sheet-drawer title="Abrir Fichas e Modelos">
-          ${icon('folder', 14)} <span>FICHAS</span>
-        </button>
         <div class="vigilia-side-switch">
           <button type="button" class="side-btn ${!isBack ? 'active' : ''}" data-vigilia-side="front">
             ${icon('sheet', 14)} <span class="vigilia-side-label-long">FRENTE (MECÂNICAS)</span><span class="vigilia-side-label-short">FRENTE</span>
@@ -993,9 +990,6 @@ export function renderVigiliaSheet(sheet, editMode, options = {}) {
             ${icon('book', 14)} <span class="vigilia-side-label-long">VERSO (HISTÓRIA &amp; RELAÇÕES)</span><span class="vigilia-side-label-short">VERSO</span>
           </button>
         </div>
-        <button type="button" class="vigilia-mobile-btn vigilia-mobile-mode" data-toggle-view-switch title="Alternar Modelo da Ficha">
-          ${icon('grid', 14)} <span>MODO</span>
-        </button>
       </div>
 
       <!-- CONTAINER COM PROPORÇÃO 1624:1211 -->
