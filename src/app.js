@@ -3606,8 +3606,12 @@ function bindVigiliaEvents() {
 
  document.querySelectorAll('[data-vigilia-side]').forEach(btn => {
   btn.onclick = () => {
-   setVigiliaSide(btn.dataset.vigiliaSide);
-   render();
+   const nextSide = btn.dataset.vigiliaSide;
+   if (nextSide === getVigiliaSide()) return;
+   triggerGlitchTransition(() => {
+    setVigiliaSide(nextSide);
+    render();
+   });
   };
  });
 
@@ -4990,23 +4994,23 @@ function triggerGlitchTransition(callback){
  let oldClone=null,cloneRect=null;
  if(oldContents){
   const isThreat=oldContents.classList.contains('threat-contents');
+  const isVigilia=oldContents.classList.contains('vigilia-content-viewport');
   oldClone=oldContents.cloneNode(true);
   oldClone.classList.add('cinematic-ghost-exit');
-  if(isThreat&&oldPage){
-   // a ficha de ameaça rola dentro da página: o fantasma fica na mesma posição visual
+  if((isThreat||isVigilia)&&oldPage){
    const r=oldContents.getBoundingClientRect(),pr=oldPage.getBoundingClientRect();
    cloneRect={left:r.left-pr.left+oldPage.scrollLeft,top:r.top-pr.top+oldPage.scrollTop,width:r.width,height:r.height};
   }
-  const oldScrollables=oldContents.querySelectorAll('.cinematic-scroll, .cinematic-skills>div, .flow-intro'),cloneScrollables=oldClone.querySelectorAll('.cinematic-scroll, .cinematic-skills>div, .flow-intro');
+  const oldScrollables=oldContents.querySelectorAll('.cinematic-scroll, .cinematic-skills>div, .flow-intro, .vigilia-skills-table, textarea'),cloneScrollables=oldClone.querySelectorAll('.cinematic-scroll, .cinematic-skills>div, .flow-intro, .vigilia-skills-table, textarea');
   oldScrollables.forEach((el,i)=>{if(cloneScrollables[i])cloneScrollables[i].scrollTop=el.scrollTop});
   oldClone.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
-  oldClone.querySelectorAll('[data-cinematic-token]').forEach(el=>el.removeAttribute('data-cinematic-token'));
+  oldClone.querySelectorAll('[data-cinematic-token], [data-vigilia-token]').forEach(el=>el.removeAttribute('data-cinematic-token'));
   oldClone.querySelectorAll('input,button,select,textarea').forEach(el=>el.disabled=true);
  }
  try{callback()}catch(err){console.error('Glitch transition callback error:',err)}
  const page=document.querySelector(PAGE_SEL),newContents=document.querySelector(CONTENT_SEL);
  if(page&&oldClone){
-  if(cloneRect&&page.classList.contains('threat-book-page'))Object.assign(oldClone.style,{position:'absolute',left:cloneRect.left+'px',top:cloneRect.top+'px',width:cloneRect.width+'px',height:cloneRect.height+'px',inset:'auto'});
+  if(cloneRect&&(page.classList.contains('threat-book-page')||page.classList.contains('vigilia-page')))Object.assign(oldClone.style,{position:'absolute',left:cloneRect.left+'px',top:cloneRect.top+'px',width:cloneRect.width+'px',height:cloneRect.height+'px',inset:'auto'});
   page.appendChild(oldClone);setTimeout(()=>{oldClone.remove()},240);
  }
  if(newContents){

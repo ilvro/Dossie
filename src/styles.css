@@ -4947,7 +4947,7 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
 /* ─── Transições de Ficha em A Vigília ───────────────────────────────────── */
 .vigilia-content-viewport {
   position: relative;
-  z-index: 3;
+  z-index: 5;
   width: 100%;
   max-width: 1624px;
   margin: 0 auto;
@@ -4965,7 +4965,7 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
   inset: 0;
   pointer-events: none !important;
   z-index: 10;
-  animation: ghost-fade-out 220ms ease-out forwards, glitch-shake 380ms cubic-bezier(.22, .68, 0, 1.2) both;
+  animation: ghost-fade-out 240ms ease-out forwards, glitch-shake 380ms cubic-bezier(.22, .68, 0, 1.2) both;
 }
 
 /* ─── Dock Flutuante de Ordem II (Pavor, Lesões, Traumas - Fixo no canto inferior) ── */
