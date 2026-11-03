@@ -155,10 +155,10 @@ function frame(now) {
     gl.uniform1i(uniforms.uTex, 0);
     gl.uniform2f(uniforms.uBox, w, h);
     gl.uniform2f(uniforms.uImg, imgSize[0], imgSize[1]);
-    gl.uniform1f(uniforms.uLift, 0.0045 * live.amp * b);
-    gl.uniform1f(uniforms.uExpand, 0.04 * live.amp * b);
-    gl.uniform1f(uniforms.uHead, 0.001 * live.amp * headB);
-    gl.uniform1f(uniforms.uSway, 0.0018 * sway + 0.0007 * tremor);
+    gl.uniform1f(uniforms.uLift, 0.0028 * live.amp * b);
+    gl.uniform1f(uniforms.uExpand, 0.02 * live.amp * b);
+    gl.uniform1f(uniforms.uHead, 0.0007 * live.amp * headB);
+    gl.uniform1f(uniforms.uSway, 0.0011 * sway + 0.0005 * tremor);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     canvas.parentElement?.classList.add('has-live-portrait');
   }
