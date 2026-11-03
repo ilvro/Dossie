@@ -992,7 +992,7 @@ export function renderQuickSwitcherModal(sheets = [], folders = [], query = '', 
  * Renderiza o Drawer Mobile atualizado com Árvore de Pastas
  */
 export function renderMobileSheetDrawer(sheets = [], folders = [], activeSheetId = '', options = {}) {
-  const { open = false, searchQuery = '', rollLogCount = 0, safeUrl = s => s } = options;
+  const { open = false, searchQuery = '', rollLogCount = 0, viewMode = 'traditional', safeUrl = s => s } = options;
   if (!open) return '';
 
   const isSearching = Boolean(searchQuery && searchQuery.trim());
@@ -1007,6 +1007,27 @@ export function renderMobileSheetDrawer(sheets = [], folders = [], activeSheetId
           <b>FICHAS & PASTAS</b>
         </span>
         <button data-close-drawer>${icon('close', 16)}</button>
+      </div>
+
+      <!-- SELETOR DE MODELO DE FICHA (MOBILE) -->
+      <div class="drawer-mode-selector">
+        <div class="drawer-mode-label">
+          <small>MODELO DA FICHA ATIVA</small>
+        </div>
+        <div class="drawer-mode-grid">
+          <button type="button" class="drawer-mode-card ${viewMode === 'traditional' ? 'active' : ''}" data-display-mode="traditional">
+            ${icon('grid', 15)}
+            <span>TRADICIONAL</span>
+          </button>
+          <button type="button" class="drawer-mode-card ${viewMode === 'cinematic' ? 'active' : ''}" data-display-mode="cinematic">
+            ${icon('film', 15)}
+            <span>CINEMA</span>
+          </button>
+          <button type="button" class="drawer-mode-card ${viewMode === 'vigilia' ? 'active' : ''}" data-display-mode="vigilia">
+            ${icon('shield', 15)}
+            <span>A VIGÍLIA</span>
+          </button>
+        </div>
       </div>
 
       <div class="nav-search-wrap" style="background:#131524;">

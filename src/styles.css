@@ -687,6 +687,283 @@ body.orientation-prompt-active .mobile-orientation-prompt{
 @keyframes orientationOrbit{0%,18%{transform:rotate(-42deg);opacity:.3}55%,82%{transform:rotate(52deg);opacity:1}100%{transform:rotate(66deg);opacity:0}}
 @keyframes orientationHalo{0%,100%{opacity:.25;transform:scale(.9)}55%{opacity:.72;transform:scale(1.04)}}
 
+/* ── Sheet Drawer Mobile & Backdrop ─────────────────────────────────────── */
+.sheet-drawer-backdrop {
+ position: fixed;
+ inset: 0;
+ z-index: 10001;
+ background: rgba(3, 4, 8, 0.78);
+ backdrop-filter: blur(5px);
+ -webkit-backdrop-filter: blur(5px);
+ animation: drawerFadeIn 0.2s ease forwards;
+}
+
+.sheet-drawer {
+ position: fixed;
+ bottom: 0;
+ left: 0;
+ right: 0;
+ z-index: 10002;
+ background: linear-gradient(180deg, #161828 0%, #0d0e19 100%);
+ border: 1px solid #2a2d42;
+ border-bottom: 0;
+ border-radius: 18px 18px 0 0;
+ box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.75);
+ max-height: 85vh;
+ display: flex;
+ flex-direction: column;
+ padding-bottom: max(12px, env(safe-area-inset-bottom));
+ animation: drawerSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes drawerFadeIn {
+ from { opacity: 0; }
+ to { opacity: 1; }
+}
+
+@keyframes drawerSlideUp {
+ from { transform: translateY(100%); }
+ to { transform: translateY(0); }
+}
+
+.sheet-drawer-header {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ padding: 14px 16px 12px;
+ border-bottom: 1px solid #232537;
+}
+
+.sheet-drawer-header span {
+ font-size: 11px;
+ font-weight: 800;
+ letter-spacing: 0.12em;
+ color: #e1e3ed;
+}
+
+.sheet-drawer-header button {
+ width: 32px;
+ height: 32px;
+ background: #202235;
+ border: 1px solid #30334a;
+ border-radius: 6px;
+ color: #a4a7ba;
+ display: grid;
+ place-items: center;
+ cursor: pointer;
+}
+
+.sheet-drawer-header button:hover {
+ color: #fff;
+ border-color: #4a4e70;
+}
+
+/* ── Seletor de Modelo de Ficha no Drawer ────────────────────────────────── */
+.drawer-mode-selector {
+ padding: 12px 14px 14px;
+ background: #111320;
+ border-bottom: 1px solid #202235;
+}
+
+.drawer-mode-label {
+ margin-bottom: 8px;
+}
+
+.drawer-mode-label small {
+ font-size: 9px;
+ font-weight: 800;
+ letter-spacing: 0.14em;
+ color: #8a8fa8;
+ text-transform: uppercase;
+}
+
+.drawer-mode-grid {
+ display: grid;
+ grid-template-columns: repeat(3, 1fr);
+ gap: 8px;
+}
+
+.drawer-mode-card {
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ gap: 6px;
+ height: 40px;
+ padding: 0 8px;
+ border-radius: 7px;
+ background: #191b2c;
+ border: 1px solid #2a2c42;
+ color: #8e92a8;
+ font-size: 9.5px;
+ font-weight: 800;
+ letter-spacing: 0.08em;
+ cursor: pointer;
+ transition: all 0.15s ease;
+ touch-action: manipulation;
+}
+
+.drawer-mode-card:hover {
+ color: #fff;
+ border-color: #444768;
+ background: #22253c;
+}
+
+.drawer-mode-card.active {
+ background: color-mix(in srgb, var(--red), #1b1c2b 75%);
+ border-color: var(--red);
+ color: #ffffff;
+ box-shadow: 0 0 12px color-mix(in srgb, var(--red), transparent 60%);
+}
+
+.drawer-mode-card svg {
+ flex-shrink: 0;
+}
+
+/* ── Lista de Fichas e Pastas no Drawer ───────────────────────────────────── */
+.sheet-drawer-list {
+ flex: 1;
+ overflow-y: auto;
+ padding: 10px;
+ -webkit-overflow-scrolling: touch;
+}
+
+.sheet-drawer-footer {
+ display: grid;
+ grid-template-columns: repeat(2, 1fr);
+ gap: 6px;
+ padding: 10px 14px 6px;
+ border-top: 1px solid #232537;
+ background: #0f101b;
+}
+
+.sheet-drawer-footer button {
+ height: 38px;
+ border: 1px solid #2b2e45;
+ border-radius: 6px;
+ background: #191b2c;
+ color: #c4c7d7;
+ font-size: 9.5px;
+ font-weight: 800;
+ letter-spacing: 0.08em;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ gap: 6px;
+ cursor: pointer;
+ touch-action: manipulation;
+}
+
+.sheet-drawer-footer button:active {
+ transform: scale(0.98);
+}
+
+/* ── Landscape Drawer Support ─────────────────────────────────────────────── */
+@media (orientation: landscape) and (max-height: 620px), (orientation: landscape) and (hover: none) and (pointer: coarse) {
+ .sheet-drawer {
+  top: 0;
+  bottom: 0;
+  left: auto;
+  right: 0;
+  width: min(440px, 92vw);
+  max-height: 100vh;
+  border-radius: 16px 0 0 16px;
+  border-left: 1px solid #2a2d42;
+  border-top: 0;
+  animation: drawerSlideLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+ }
+}
+
+@keyframes drawerSlideLeft {
+ from { transform: translateX(100%); }
+ to { transform: translateX(0); }
+}
+
+/* ── Botão Flutuante de Menu para Landscape Mobile ────────────────────────── */
+.mobile-landscape-trigger {
+ display: none;
+}
+
+@media (orientation: landscape) and (max-height: 620px), (orientation: landscape) and (hover: none) and (pointer: coarse) {
+ .mobile-landscape-trigger {
+  display: flex;
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 120;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #11121bf0;
+  border: 1px solid #353746;
+  color: #fff;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: pointer;
+  touch-action: manipulation;
+ }
+ .mobile-landscape-trigger:active {
+  transform: scale(0.94);
+ }
+}
+
+/* ── Botões Móveis na Barra Superior de A Vigília ─────────────────────────── */
+.vigilia-mobile-btn {
+ display: none;
+}
+.vigilia-side-label-short {
+ display: none;
+}
+
+@media (max-width: 768px) {
+ .vigilia-side-label-long {
+  display: none;
+ }
+ .vigilia-side-label-short {
+  display: inline;
+ }
+ .vigilia-mobile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 4px;
+  background: #0f1c16;
+  border: 1px solid #2d4538;
+  color: #c0d1c7;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  touch-action: manipulation;
+  flex-shrink: 0;
+ }
+ .vigilia-mobile-btn:active {
+  background: #193125;
+  border-color: #527965;
+  color: #ffffff;
+ }
+ .vigilia-toolbar {
+  gap: 6px;
+  padding: 0 6px;
+  max-width: 100%;
+  box-sizing: border-box;
+ }
+ .vigilia-side-switch {
+  flex-shrink: 0;
+ }
+ .vigilia-side-switch .side-btn {
+  padding: 0 10px;
+ }
+ .vigilia-page {
+  padding-bottom: 74px;
+ }
+}
+
 @media(max-width:768px){
  .nav-rail{display:none!important}
  body{overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -714,7 +991,7 @@ body.orientation-prompt-active .mobile-orientation-prompt{
 
  /* ── Modo Tradicional — Tabs ────────────────────────────────────────────── */
  .page{margin-left:0;padding-bottom:66px;height:auto;min-height:calc(100svh - 56px);display:block}
- .view-mode-switch{left:auto;right:10px;bottom:64px;top:auto;z-index:45}
+ .view-mode-switch{left:10px;right:auto;bottom:64px;top:auto;z-index:50}
  .edit-status{left:10px;bottom:64px}
  .floating{display:none}
 
@@ -942,8 +1219,8 @@ body.orientation-prompt-active .mobile-orientation-prompt{
  .cinematic-page.presentation-active .cinematic-section-group[data-section-key="abilities"]{margin-top:0!important}
  .cinematic-page.presentation-active .cinematic-section-group[data-section-key="abilities"] .cinematic-section-body > div{padding-top:0!important}
 
- /* Botão de editar em mobile */
- .floating{display:flex!important;bottom:64px;right:10px;z-index:45}
+ /* Botão de editar em mobile portrait usa a barra inferior */
+ .floating{display:none!important}
 }
 
 /* ── Cinematográfico em Landscape Mobile (Estilo Ficha Hexatombe Widescreen) ── */

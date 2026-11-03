@@ -901,7 +901,19 @@ function readMedia(file,key){if(!file)return;const type=file.type;if(type.starts
 
 function renderBottomNav(){
  if(presentationMode) return '';
+ const isVigilia=state.viewMode==='vigilia';
  const isCinematic=state.viewMode==='cinematic';
+ if(isVigilia){
+  const currentSide=getVigiliaSide();
+  return `<nav class="mobile-bottom-nav vigilia-bottom-nav">
+   <button class="mobile-drawer-btn" data-sheet-drawer aria-label="Fichas" title="Abrir Fichas e Pastas">${state.tokenImage?`<img src="${safeUrl(state.tokenImage)}" alt="" class="mobile-avatar-thumb">`:icon('sheet',20)}<span>FICHAS</span></button>
+   <button class="mobile-tab-btn ${currentSide==='front'?'active':''}" data-vigilia-side="front"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M14 8h3"/><path d="M14 12h3"/></svg><span>FRENTE</span></button>
+   <button class="mobile-tab-btn ${currentSide==='back'?'active':''}" data-vigilia-side="back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span>VERSO</span></button>
+   <button class="mobile-tab-btn" data-sheet-drawer aria-label="Modelo da Ficha" title="Trocar Modelo da Ficha">${icon('grid',20)}<span>MODELO</span></button>
+   <button class="mobile-tab-btn btn-mobile-roll-log" data-open-roll-log aria-label="Histórico">${icon('history',20)}<span>ROLAGENS</span></button>
+   <button class="mobile-tab-btn ${editMode?'active edit-active':''}" data-toggle-edit aria-label="Editar">${editMode?icon('close',20):icon('edit',20)}<span>${editMode?'FECHAR':'EDITAR'}</span></button>
+  </nav>`;
+ }
  const tabs=isCinematic?[
   {id:'skills',label:'DADOS',svg:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 17h7m-3.5-3.5v7"/>'},
   {id:'abilities',label:'HABILIDADES',svg:'<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>'},
@@ -916,7 +928,7 @@ function renderBottomNav(){
  const activeId=isCinematic?cinematicMobileTab:mobileTab;
  const tabAttr=isCinematic?'data-cinematic-mobile-tab':'data-mobile-tab';
  return `<nav class="mobile-bottom-nav">
-  <button class="mobile-drawer-btn" data-sheet-drawer aria-label="Fichas">${state.tokenImage?`<img src="${safeUrl(state.tokenImage)}" alt="" class="mobile-avatar-thumb">`:icon('sheet',20)}</button>
+  <button class="mobile-drawer-btn" data-sheet-drawer aria-label="Fichas" title="Abrir Fichas e Pastas">${state.tokenImage?`<img src="${safeUrl(state.tokenImage)}" alt="" class="mobile-avatar-thumb">`:icon('sheet',20)}<span>FICHAS</span></button>
   ${tabs.map(t=>`<button class="mobile-tab-btn ${activeId===t.id?'active':''}" ${tabAttr}="${t.id}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${t.svg}</svg><span>${t.label}</span></button>`).join('')}
   <button class="mobile-tab-btn btn-mobile-roll-log" data-open-roll-log aria-label="Histórico">${icon('history',20)}<span>ROLAGENS</span></button>
   <button class="mobile-tab-btn ${editMode?'active edit-active':''}" data-toggle-edit aria-label="Editar">${editMode?icon('close',20):icon('edit',20)}<span>${editMode?'FECHAR':'EDITAR'}</span></button>
@@ -933,6 +945,7 @@ function renderMobileOrientationPrompt(){
   <h2 id="orientation-prompt-title">GIRE PARA PAISAGEM</h2>
   <p id="orientation-prompt-copy">Esta visualização foi criada para a tela horizontal. Gire o celular para ver a ficha inteira.</p>
   <button type="button" data-request-landscape>${icon('frame',16)} <span>ATIVAR TELA CHEIA</span></button>
+  <button type="button" class="orientation-install" data-sheet-drawer>${icon('folder',16)} <span>ABRIR FICHAS & MODELOS</span></button>
   <button type="button" class="orientation-install" data-install-app ${deferredInstallPrompt?'':'hidden'}>${icon('download',16)} <span>INSTALAR COMO APP</span></button>
   <em data-orientation-status>O aviso desaparecerá automaticamente ao girar.</em>
  </aside>`;
@@ -1173,7 +1186,8 @@ function render(){syncDraftBaseline();syncUnsavedBar();document.querySelectorAll
    <section class="span-2 builder-section"><header><div><b>AÇÕES</b><small>Expressões como 2d6 + 1d8 + @{level}.</small></div><button type="button" data-add-action>+ ADICIONAR</button></header><div id="action-builder"></div></section></div><footer><button type="button" class="delete-card">EXCLUIR</button><span></span><button type="button" class="editor-close secondary">CANCELAR</button><button type="submit">SALVAR CARD</button></footer></form></div>
   <div class="modal system-select-modal" id="system-select-modal" style="display:none;"><div class="backdrop" data-close-system-modal></div><section><button type="button" class="skill-info-close" data-close-system-modal>${icon('close')}</button><small style="color:var(--red);font-weight:800;letter-spacing:.15em;">NOVA FICHA</small><h2>ESCOLHA O TIPO DE FICHA</h2><p>Selecione a base mecânica para esta nova ficha. Todas as fichas coexistem na sua base de dados organizada por pastas.</p><div class="system-options-grid"><div class="system-option-card card-v2" data-create-system="ordem2"><span class="badge-system-sigil">SISTEMA II</span><h3>ORDEM PARANORMAL II</h3><p>Playtest Alpha de "A Maldição do Ídolo de Pedra". Atributos em dados (Físico, Mente, Emoção), Pontos de Determinação, Perfis táticos e cards interativos.</p></div><div class="system-option-card card-original" data-create-system="original"><span class="badge-system-sigil">SISTEMA ORIGINAL</span><h3>ORDEM PARANORMAL RPG</h3><p>Sistema clássico de regras d20. 5 Atributos (AGI, FOR, INT, PRE, VIG), Classes, Trilhas, NEX% (0-99%), Sanidade, Esforço, 28 Perícias d20, Rituais e Inventário.</p></div><div class="system-option-card card-threat" data-create-system="threat"><span class="badge-system-sigil">AMEAÇA DA REALIDADE</span><h3>AMEAÇA / CRIATURA</h3><p>Ficha de criatura paranormal ou inimigo com VD (Valor de Desafio), Elementos do Outro Lado, Ações padrão/livre, Ataques e Habilidades de combate.</p></div></div></section></div>
   ${renderBottomNav()}
-  ${renderMobileSheetDrawer(sheets,folders,state.id,{open:sheetDrawerOpen,searchQuery:mobileSearchQuery,rollLogCount:rollLog.length,safeUrl})}
+  ${renderMobileSheetDrawer(sheets,folders,state.id,{open:sheetDrawerOpen,searchQuery:mobileSearchQuery,rollLogCount:rollLog.length,viewMode:state.viewMode,safeUrl})}
+  <button type="button" class="mobile-landscape-trigger" data-sheet-drawer title="Fichas & Modelos" aria-label="Abrir Fichas e Modelos">${state.tokenImage?`<img src="${safeUrl(state.tokenImage)}" alt="" class="mobile-avatar-thumb">`:icon('sheet',18)}</button>
   ${renderRollLogDrawer()}
   ${isCinematic?renderMobileOrientationPrompt():''}
   ${renderBestiaryUnlockModalHtml()}
@@ -3604,6 +3618,57 @@ function bindVigiliaEvents() {
 
  bindVigiliaEditEvents();
 
+ // ── Gesto de deslizar (swipe) em mobile e tablets para alternar Frente/Verso ──
+ const vigiliaPage = document.querySelector('.vigilia-page');
+ if (vigiliaPage) {
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartTime = 0;
+  let touchValid = false;
+
+  vigiliaPage.addEventListener('touchstart', (e) => {
+   if (e.touches.length !== 1) {
+    touchValid = false;
+    return;
+   }
+   const t = e.touches[0];
+   const target = e.target;
+   if (target.closest('input, textarea, select, [contenteditable="true"], button, a, .custom-select, .vigilia-pavor-slot, .vigilia-pip, .vigilia-modals-container, .vigilia-floating-dock')) {
+    touchValid = false;
+    return;
+   }
+   touchStartX = t.clientX;
+   touchStartY = t.clientY;
+   touchStartTime = Date.now();
+   touchValid = true;
+  }, { passive: true });
+
+  vigiliaPage.addEventListener('touchend', (e) => {
+   if (!touchValid || !e.changedTouches || e.changedTouches.length === 0) return;
+   touchValid = false;
+   const t = e.changedTouches[0];
+   const deltaX = t.clientX - touchStartX;
+   const deltaY = t.clientY - touchStartY;
+   const elapsed = Date.now() - touchStartTime;
+
+   if (Math.abs(deltaX) >= 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4 && elapsed <= 650) {
+    const currentSide = getVigiliaSide();
+    let targetSide = null;
+    if (deltaX < -50 && currentSide === 'front') {
+     targetSide = 'back';
+    } else if (deltaX > 50 && currentSide === 'back') {
+     targetSide = 'front';
+    }
+    if (targetSide && targetSide !== currentSide) {
+     triggerGlitchTransition(() => {
+      setVigiliaSide(targetSide);
+      render();
+     });
+    }
+   }
+  }, { passive: true });
+ }
+
  document.querySelectorAll('[data-vigilia-side]').forEach(btn => {
   btn.onclick = () => {
    const nextSide = btn.dataset.vigiliaSide;
@@ -5263,7 +5328,7 @@ function bind(){
     document.querySelectorAll('#json-file-input').forEach(input=>{input.onchange=()=>{if(input.files[0])importJsonSheet(input.files[0]);input.value=''}});
     document.querySelectorAll('[data-compendium]').forEach(el=>el.onclick=()=>{const toast=document.querySelector('#save-toast');if(toast){toast.textContent='COMPÊNDIO — EM BREVE';toast.classList.add('show');setTimeout(()=>{toast.classList.remove('show');toast.textContent='SALVO'},1300)}});
 
-  document.querySelectorAll('[data-display-mode]').forEach(el=>el.onclick=()=>{if(el.dataset.displayMode===state.viewMode)return;state.viewMode=el.dataset.displayMode;if(state.viewMode==='cinematic')viewSwitchCollapsed=true;if(state.viewMode==='traditional'||state.viewMode==='vigilia')presentationMode=false;modeJustChanged=true;render()});
+  document.querySelectorAll('[data-display-mode]').forEach(el=>el.onclick=()=>{if(el.dataset.displayMode===state.viewMode){sheetDrawerOpen=false;render();return;}state.viewMode=el.dataset.displayMode;sheetDrawerOpen=false;if(state.viewMode==='cinematic')viewSwitchCollapsed=true;if(state.viewMode==='traditional'||state.viewMode==='vigilia')presentationMode=false;modeJustChanged=true;render()});
   document.querySelectorAll('[data-toggle-view-switch]').forEach(el=>el.onclick=e=>{e.stopPropagation();viewSwitchCollapsed=!viewSwitchCollapsed;render()});
 
   // ── Modo de Apresentação (Dossiês de Agentes) ───────────────────────────────
