@@ -878,6 +878,14 @@ body.orientation-prompt-active .mobile-orientation-prompt{
  to { transform: translateX(0); }
 }
 
+/* ── Avatar Thumbnail Universal ────────────────────────────────────────── */
+.mobile-avatar-thumb {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  object-fit: cover;
+}
+
 /* ── Botão Flutuante de Menu para Landscape Mobile ────────────────────────── */
 .mobile-landscape-trigger {
  display: none;
@@ -903,6 +911,13 @@ body.orientation-prompt-active .mobile-orientation-prompt{
   -webkit-backdrop-filter: blur(8px);
   cursor: pointer;
   touch-action: manipulation;
+  overflow: hidden;
+ }
+ .mobile-landscape-trigger .mobile-avatar-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 7px;
  }
  .mobile-landscape-trigger:active {
   transform: scale(0.94);
@@ -930,12 +945,10 @@ body.orientation-prompt-active .mobile-orientation-prompt{
     box-sizing: border-box !important;
   }
 
-  /* Oculta o frame decorativo de proporção fixa 1624:1211 para evitar esticar ou esmagar */
   .vigilia-frame-layer {
     display: none !important;
   }
 
-  /* Viewport sem aspecto rígido — fluxo vertical livre e proporcional */
   .vigilia-content-viewport {
     aspect-ratio: auto !important;
     width: 100% !important;
@@ -945,7 +958,6 @@ body.orientation-prompt-active .mobile-orientation-prompt{
     box-sizing: border-box !important;
   }
 
-  /* Toolbar com pílula de Frente/Verso centralizada e touch-friendly */
   .vigilia-toolbar {
     position: sticky;
     top: 6px;
@@ -968,7 +980,7 @@ body.orientation-prompt-active .mobile-orientation-prompt{
     gap: 6px;
   }
 
-  /* Cabeçalho do Agente (Nome, Ocupação, Nível) */
+  /* Cabeçalho do Agente (Nome, Ocupação, Nível) com Banners Autênticos */
   .vigilia-header {
     display: flex !important;
     flex-direction: column !important;
@@ -985,11 +997,13 @@ body.orientation-prompt-active .mobile-orientation-prompt{
     gap: 4px !important;
   }
   .vigilia-title-name .first-name {
+    font-family: 'CartaMarina-Bold', 'Cinzel Decorative', 'Cinzel', serif !important;
     font-size: clamp(24px, 6.5vw, 32px) !important;
     margin-right: 6px !important;
     line-height: 1.1 !important;
   }
   .vigilia-title-name .last-name {
+    font-family: 'Wak-Bold', 'Cinzel', serif !important;
     font-size: clamp(14px, 3.8vw, 18px) !important;
     line-height: 1.1 !important;
   }
@@ -1001,21 +1015,49 @@ body.orientation-prompt-active .mobile-orientation-prompt{
     font-size: 12px !important;
   }
   .profile-banner-wrap {
+    position: relative !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     height: 30px !important;
     padding: 0 14px !important;
   }
+  .profile-banner-img {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
+  }
   .profile-text {
     font-size: 12px !important;
+    position: relative !important;
+    z-index: 2 !important;
   }
   .vigilia-identity-badge .occupation-text {
     font-size: 12px !important;
   }
   .level-badge-wrap {
+    position: relative !important;
     width: 30px !important;
     height: 30px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .level-badge-img {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
   }
   .level-badge-wrap .level-num {
     font-size: 16px !important;
+    position: relative !important;
+    z-index: 2 !important;
   }
   .vigilia-identity-badge .id-dot {
     font-size: 13px !important;
@@ -1024,7 +1066,7 @@ body.orientation-prompt-active .mobile-orientation-prompt{
     margin: 6px 0 12px 0 !important;
   }
 
-  /* Linha Superior: Atributos e PV/PD alinhados verticalmente */
+  /* Linha Superior: Atributos e PV/PD preservando todos os assets */
   .vigilia-top-row {
     display: flex !important;
     flex-direction: column !important;
@@ -1033,58 +1075,67 @@ body.orientation-prompt-active .mobile-orientation-prompt{
     margin-bottom: 14px !important;
   }
 
-  /* Bloco de Atributos: 3 cards organizados em grade horizontal */
+  /* Atributos com Banner e Chevron Autêntico */
   .vigilia-attributes-block {
     display: flex !important;
-    flex-direction: column !important;
+    flex-direction: row !important;
+    align-items: center !important;
     gap: 6px !important;
     width: 100% !important;
   }
   .banner-atributos-wrap {
-    height: 28px !important;
-    padding: 0 14px !important;
-    transform: none !important;
-    align-self: flex-start !important;
-    margin-bottom: 4px !important;
+    position: relative !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 30px !important;
+    padding: 0 12px !important;
+    transform: rotate(3deg) !important;
+    flex-shrink: 0 !important;
+  }
+  .banner-atributos-img {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
   }
   .banner-atributos-wrap .banner-text {
-    font-size: 11.5px !important;
+    font-size: 11px !important;
+    position: relative !important;
+    z-index: 2 !important;
   }
   .attributes-chevron-img {
-    display: none !important;
+    display: block !important;
+    width: 14px !important;
+    height: 60px !important;
+    object-fit: contain !important;
+    flex-shrink: 0 !important;
   }
   .vigilia-attributes-list {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 6px !important;
-    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    flex: 1 !important;
   }
   .vigilia-attr-row {
-    transform: none !important;
-    width: 100% !important;
-    justify-content: center !important;
-    background: rgba(12, 24, 18, 0.75) !important;
-    border: 1px solid #233a2c !important;
-    border-radius: 6px !important;
-    padding: 6px 4px !important;
-    gap: 6px !important;
-    box-sizing: border-box !important;
-  }
-  .vigilia-attr-row:hover,
-  .vigilia-attr-row.attr-fisico,
-  .vigilia-attr-row.attr-mente,
-  .vigilia-attr-row.attr-emocao {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
     transform: none !important;
   }
   .attr-vector-word {
-    height: 20px !important;
-    max-width: 60px !important;
+    height: 18px !important;
+    width: auto !important;
+    object-fit: contain !important;
+    display: block !important;
   }
   .vigilia-poly-die.attr-die {
-    transform: scale(0.85) !important;
+    transform: scale(0.75) !important;
   }
 
-  /* Monitores de Recursos (PV e PD) em duas colunas proporcionais */
+  /* Recursos PV e PD com Escudo Metálico Autêntico (badge-res.png) */
   .vigilia-resources-bar {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
@@ -1099,38 +1150,48 @@ body.orientation-prompt-active .mobile-orientation-prompt{
     background: rgba(10, 20, 15, 0.85) !important;
     border: 1px solid #22382b !important;
     border-radius: 8px !important;
-    padding: 8px 8px 10px !important;
+    padding: 8px !important;
     box-sizing: border-box !important;
   }
   .resource-badge-group {
+    position: relative !important;
     width: 100% !important;
-    height: 38px !important;
+    max-width: 110px !important;
+    height: 48px !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: space-between !important;
-    padding: 0 10px !important;
-    box-sizing: border-box !important;
-    position: relative !important;
-    background: rgba(18, 38, 28, 0.75) !important;
-    border: 1px solid #335942 !important;
-    border-radius: 5px !important;
+    justify-content: center !important;
+    margin: 0 auto 4px auto !important;
+    background: transparent !important;
+    border: none !important;
   }
   .badge-res-img {
-    display: none !important;
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
   }
   .resource-badge-group .res-tag {
-    position: static !important;
-    transform: none !important;
-    font-size: 14px !important;
-    font-weight: 800 !important;
+    position: absolute !important;
+    left: 12px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    font-size: 15px !important;
+    font-weight: 900 !important;
     color: #a4c2b0 !important;
+    z-index: 2 !important;
   }
   .resource-badge-group .res-num {
-    position: static !important;
-    transform: none !important;
-    font-size: 20px !important;
+    position: absolute !important;
+    right: 12px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    font-size: 18px !important;
     font-weight: 900 !important;
     color: #ffffff !important;
+    z-index: 2 !important;
     width: auto !important;
   }
   .vigilia-pips-grid {
@@ -1139,7 +1200,6 @@ body.orientation-prompt-active .mobile-orientation-prompt{
     gap: 3px !important;
     align-items: center !important;
     max-width: 100% !important;
-    overflow-x: auto !important;
   }
   .vigilia-pips-row {
     display: flex !important;
@@ -1148,10 +1208,10 @@ body.orientation-prompt-active .mobile-orientation-prompt{
   .vigilia-pip {
     width: 10px !important;
     height: 10px !important;
-    border-width: 1px !important;
+    transform: skewX(-14deg) !important;
   }
 
-  /* Corpo Principal: Fluxo vertical completo, sem colunas apertadas */
+  /* Corpo Principal: Estrutura em Seções Autênticas */
   .vigilia-body-columns {
     display: flex !important;
     flex-direction: column !important;
@@ -1160,7 +1220,7 @@ body.orientation-prompt-active .mobile-orientation-prompt{
     min-height: 0 !important;
   }
 
-  /* Retrato do Personagem: Aparece elegantemente no topo das habilidades */
+  /* Retrato do Personagem com Névoa Autêntica */
   .vigilia-col-right {
     display: block !important;
     order: 1 !important;
@@ -1192,20 +1252,33 @@ body.orientation-prompt-active .mobile-orientation-prompt{
     filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.8)) !important;
   }
 
-  /* Tabela de Perícias em Mobile */
+  /* Tabela de Perícias com Banner Autêntico */
   .vigilia-col-skills {
     order: 2 !important;
     width: 100% !important;
     margin-bottom: 6px !important;
   }
   .banner-pericias-wrap {
+    position: relative !important;
     height: 30px !important;
     padding: 0 16px !important;
     margin-bottom: 6px !important;
     display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .banner-pericias-img {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
   }
   .banner-pericias-wrap .banner-text {
     font-size: 12px !important;
+    position: relative !important;
+    z-index: 2 !important;
   }
   .vigilia-skills-table {
     width: 100% !important;
@@ -1234,19 +1307,32 @@ body.orientation-prompt-active .mobile-orientation-prompt{
     white-space: nowrap !important;
   }
 
-  /* Coluna de Habilidades e Equipamentos */
+  /* Habilidades com Banner Autêntico */
   .vigilia-col-powers {
     order: 3 !important;
     width: 100% !important;
   }
   .banner-habilidades-wrap {
+    position: relative !important;
     height: 30px !important;
     padding: 0 16px !important;
     margin-bottom: 8px !important;
     display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .banner-habilidades-img {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
   }
   .banner-habilidades-wrap .banner-text {
     font-size: 12px !important;
+    position: relative !important;
+    z-index: 2 !important;
   }
   .vigilia-powers-list {
     display: flex !important;
@@ -1268,6 +1354,9 @@ body.orientation-prompt-active .mobile-orientation-prompt{
     padding: 0 12px !important;
     margin-left: 0 !important;
     margin-bottom: 6px !important;
+  }
+  .power-banner-img {
+    display: block !important;
   }
   .power-title {
     font-size: 13.5px !important;
@@ -1297,13 +1386,26 @@ body.orientation-prompt-active .mobile-orientation-prompt{
     padding: 0 !important;
   }
   .banner-relacoes-wrap {
+    position: relative !important;
     height: 30px !important;
     padding: 0 16px !important;
     margin-bottom: 8px !important;
     display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .banner-relacoes-img {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
   }
   .banner-relacoes-wrap .banner-text {
     font-size: 12px !important;
+    position: relative !important;
+    z-index: 2 !important;
   }
   .vigilia-relations-list {
     display: flex !important;
@@ -1324,210 +1426,520 @@ body.orientation-prompt-active .mobile-orientation-prompt{
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   A VIGÍLIA — RESPONSIVIDADE MOBILE LANDSCAPE (max-height: 620px)
+   A VIGÍLIA — RESPONSIVIDADE MOBILE LANDSCAPE (WIDESCREEN 3 COLUNAS AUTÊNTICO)
    ═══════════════════════════════════════════════════════════════════════════ */
 @media (orientation: landscape) and (max-height: 620px), (orientation: landscape) and (hover: none) and (pointer: coarse) {
   .vigilia-page {
-    width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
-    min-height: 100dvh !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    padding-bottom: 50px !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    position: relative !important;
     box-sizing: border-box !important;
   }
-  .vigilia-frame-layer {
+
+  /* Oculta o seletor flutuante que cobre as perícias no canto inferior esquerdo */
+  .view-mode-switch {
     display: none !important;
   }
+
+  /* Moldura Céltica Envolvendo a Tela Widescreen Completa */
+  .vigilia-frame-layer {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 8 !important;
+    pointer-events: none !important;
+  }
+  .vigilia-frame-img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
+    opacity: 0.95 !important;
+    display: block !important;
+  }
+
+  /* Viewport com Safe Area da Moldura e Altura Fixa na Tela */
   .vigilia-content-viewport {
-    aspect-ratio: auto !important;
+    position: relative !important;
+    z-index: 5 !important;
     width: 100% !important;
     max-width: 100% !important;
-    padding: 8px 18px 40px !important;
+    height: 100% !important;
+    padding: 6px 24px 8px 26px !important;
     box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    aspect-ratio: auto !important;
   }
+
+  /* Toolbar de Frente/Verso Compacta no Canto Superior Direito */
+  .vigilia-side-label-long {
+    display: none !important;
+  }
+  .vigilia-side-label-short {
+    display: inline !important;
+  }
+  .vigilia-toolbar {
+    position: absolute !important;
+    top: 6px !important;
+    right: 26px !important;
+    z-index: 25 !important;
+    margin: 0 !important;
+    transform: scale(0.82) !important;
+    transform-origin: top right !important;
+  }
+  .vigilia-side-switch .side-btn {
+    padding: 5px 10px !important;
+    font-size: 10px !important;
+    gap: 5px !important;
+  }
+
+  /* Cabeçalho do Agente (Nome, Ocupação, Nível) */
   .vigilia-header {
     display: flex !important;
     flex-direction: row !important;
     justify-content: space-between !important;
-    align-items: center !important;
-    padding-right: 0 !important;
-    margin-bottom: 6px !important;
+    align-items: flex-end !important;
+    padding-left: 36px !important; /* Espaço para o botão flutuante de menu */
+    padding-right: 140px !important; /* Espaço para toolbar Frente/Verso */
+    margin-bottom: 3px !important;
+    flex-shrink: 0 !important;
+  }
+  .vigilia-title-name {
+    display: flex !important;
+    align-items: baseline !important;
+    gap: 6px !important;
+    margin: 0 !important;
   }
   .vigilia-title-name .first-name {
-    font-size: 24px !important;
+    font-family: 'CartaMarina-Bold', 'Cinzel Decorative', 'Cinzel', serif !important;
+    font-size: clamp(19px, 3.1vw, 25px) !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
     margin-right: 6px !important;
+    line-height: 1 !important;
   }
   .vigilia-title-name .last-name {
-    font-size: 14px !important;
+    font-family: 'Wak-Bold', 'Cinzel', serif !important;
+    font-size: clamp(11px, 1.7vw, 15px) !important;
+    font-weight: 700 !important;
+    color: #ccd8d2 !important;
+    line-height: 1 !important;
   }
   .vigilia-identity-badge {
+    display: flex !important;
+    align-items: center !important;
     gap: 6px !important;
     font-size: 11px !important;
   }
   .profile-banner-wrap {
-    height: 26px !important;
+    position: relative !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 23px !important;
     padding: 0 10px !important;
+  }
+  .profile-banner-img {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
   }
   .profile-text {
     font-size: 11px !important;
+    position: relative !important;
+    z-index: 2 !important;
   }
   .level-badge-wrap {
-    width: 26px !important;
-    height: 26px !important;
+    position: relative !important;
+    width: 25px !important;
+    height: 25px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .level-badge-img {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
   }
   .level-badge-wrap .level-num {
-    font-size: 14px !important;
+    font-size: 13.5px !important;
+    position: relative !important;
+    z-index: 2 !important;
   }
+  .vigilia-header-divider {
+    margin: 2px 0 5px 0 !important;
+    height: 1.5px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Linha Superior: Atributos na Esquerda e PV/PD na Direita (Ambos Verticais como no Desktop) */
   .vigilia-top-row {
     display: flex !important;
     flex-direction: row !important;
     justify-content: space-between !important;
     align-items: center !important;
     gap: 12px !important;
-    margin-bottom: 10px !important;
+    margin-bottom: 5px !important;
+    flex-shrink: 0 !important;
   }
   .vigilia-attributes-block {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
-    gap: 8px !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
   }
   .banner-atributos-wrap {
-    height: 26px !important;
+    position: relative !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 25px !important;
     padding: 0 10px !important;
-    transform: none !important;
+    transform: rotate(3deg) !important;
+    flex-shrink: 0 !important;
+  }
+  .banner-atributos-img {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
   }
   .banner-atributos-wrap .banner-text {
-    font-size: 11px !important;
+    font-size: 10px !important;
+    position: relative !important;
+    z-index: 2 !important;
   }
+  .atributos-chevron-ray,
+  .attributes-chevron-svg,
   .attributes-chevron-img {
-    display: none !important;
+    display: block !important;
+    width: 16px !important;
+    height: 62px !important;
+    object-fit: contain !important;
+    flex-shrink: 0 !important;
   }
   .vigilia-attributes-list {
     display: flex !important;
-    flex-direction: row !important;
-    gap: 6px !important;
+    flex-direction: column !important;
+    gap: 2.5px !important;
   }
   .vigilia-attr-row {
-    transform: none !important;
-    padding: 4px 6px !important;
-    background: rgba(12, 24, 18, 0.75) !important;
-    border: 1px solid #233a2c !important;
-    border-radius: 5px !important;
-    gap: 5px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    width: fit-content !important;
   }
+  .vigilia-attr-row.attr-fisico { transform: translateX(9px) !important; }
+  .vigilia-attr-row.attr-mente { transform: translateX(0px) !important; }
+  .vigilia-attr-row.attr-emocao { transform: translateX(7px) !important; }
   .attr-vector-word {
-    height: 18px !important;
+    height: 17px !important;
+    width: auto !important;
+    object-fit: contain !important;
+    display: block !important;
   }
+  .attr-vector-word.word-fisico { height: 18px !important; }
+  .attr-vector-word.word-mente { height: 15px !important; }
+  .attr-vector-word.word-emocao { height: 17px !important; }
   .vigilia-poly-die.attr-die {
-    transform: scale(0.8) !important;
+    transform: scale(0.65) !important;
+    transform-origin: left center !important;
   }
+
+  /* Recursos PV e PD com Escudo Metálico Autêntico (badge-res.png) Empilhados Verticalmente */
   .vigilia-resources-bar {
     display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
-    gap: 6px !important;
-    max-width: 100% !important;
+    flex-direction: column !important;
+    gap: 3.5px !important;
+    flex-shrink: 0 !important;
   }
   .vigilia-resource-block {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
-    gap: 4px !important;
-    background: rgba(10, 20, 15, 0.85) !important;
-    border: 1px solid #22382b !important;
-    border-radius: 6px !important;
-    padding: 3px 6px !important;
-    box-sizing: border-box !important;
+    gap: 8px !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
   }
   .resource-badge-group {
-    width: 64px !important;
-    height: 28px !important;
-    background: rgba(18, 38, 28, 0.75) !important;
-    border: 1px solid #335942 !important;
-    border-radius: 4px !important;
+    position: relative !important;
+    width: 76px !important;
+    height: 33px !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: space-between !important;
-    padding: 0 6px !important;
+    flex-shrink: 0 !important;
+    background: transparent !important;
+    border: none !important;
   }
   .badge-res-img {
-    display: none !important;
-  }
-  .resource-badge-group .res-tag {
-    position: static !important;
-    transform: none !important;
-    font-size: 12px !important;
-    color: #a4c2b0 !important;
-  }
-  .resource-badge-group .res-num {
-    position: static !important;
-    transform: none !important;
-    font-size: 15px !important;
-    width: auto !important;
-    color: #fff !important;
-  }
-  .vigilia-pip {
-    width: 8px !important;
-    height: 8px !important;
-  }
-  .vigilia-body-columns {
-    display: grid !important;
-    grid-template-columns: minmax(200px, 1fr) minmax(240px, 1.4fr) minmax(140px, 0.8fr) !important;
-    gap: 12px !important;
-    width: 100% !important;
-    align-items: start !important;
-  }
-  .vigilia-col-right {
     display: block !important;
-  }
-  .vigilia-portrait-container {
-    position: relative !important;
-    inset: auto !important;
-    width: 100% !important;
-    height: calc(100vh - 160px) !important;
-    min-height: 180px !important;
-    border-radius: 6px !important;
-    border: 1px solid #233b2c !important;
-    background: radial-gradient(circle at 50% 40%, rgba(26, 52, 38, 0.45) 0%, rgba(6, 15, 11, 0.92) 100%) !important;
-    overflow: hidden !important;
-  }
-  .vigilia-character-portrait {
-    position: relative !important;
+    position: absolute !important;
+    inset: 0 !important;
     width: 100% !important;
     height: 100% !important;
     object-fit: contain !important;
-    object-position: center bottom !important;
+  }
+  .resource-badge-group .res-tag {
+    position: absolute !important;
+    left: 9px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    font-size: 13px !important;
+    font-weight: 900 !important;
+    color: #fff !important;
+    z-index: 2 !important;
+  }
+  .resource-badge-group .res-num {
+    position: absolute !important;
+    right: 9px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    font-size: 15px !important;
+    font-weight: 900 !important;
+    color: #fff !important;
+    z-index: 2 !important;
+    width: auto !important;
+  }
+  .vigilia-pips-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+  .vigilia-pips-row {
+    display: flex !important;
+    gap: 2.5px !important;
+  }
+  .vigilia-pip {
+    width: 8.5px !important;
+    height: 7.5px !important;
+    transform: skewX(-14deg) !important;
+  }
+
+  /* 3 Colunas Autênticas Lado a Lado (Perícias, Habilidades, Retrato) */
+  .vigilia-body-columns {
+    display: grid !important;
+    grid-template-columns: 215px 1fr 200px !important;
+    gap: 14px !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    position: relative !important;
+    align-items: stretch !important;
+  }
+
+  /* Coluna 1: Perícias */
+  .vigilia-col-skills {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    margin-bottom: 0 !important;
+  }
+  .banner-pericias-wrap {
+    position: relative !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 22px !important;
+    padding: 0 12px !important;
+    margin-bottom: 3px !important;
+    align-self: flex-start !important;
+  }
+  .banner-pericias-img {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
+  }
+  .banner-pericias-wrap .banner-text {
+    font-size: 10px !important;
+    position: relative !important;
+    z-index: 2 !important;
   }
   .vigilia-skills-table {
     width: 100% !important;
-    max-height: calc(100vh - 180px) !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    max-height: calc(100vh - 146px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    gap: 1.5px !important;
+    padding-right: 4px !important;
   }
   .vigilia-skill-row {
-    grid-template-columns: minmax(0, 1fr) 22px 8px 18px 40px !important;
-    height: 24px !important;
-    padding: 1px 4px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 18px 6px 16px 34px !important;
+    align-items: center !important;
+    gap: 2px !important;
+    height: 20px !important;
+    padding: 1px 3px !important;
   }
   .vigilia-skill-row .skill-name {
     font-size: 10px !important;
   }
+  .vigilia-poly-die.skill-die {
+    transform: scale(0.65) !important;
+  }
+  .vigilia-poly-die.skill-attr-die {
+    transform: scale(0.62) !important;
+  }
+  .vigilia-skill-row .skill-attr-name {
+    font-size: 7.5px !important;
+  }
+
+  /* Coluna 2: Habilidades */
+  .vigilia-col-powers {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+  }
+  .banner-habilidades-wrap {
+    position: relative !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 22px !important;
+    padding: 0 12px !important;
+    margin-bottom: 3px !important;
+    align-self: flex-start !important;
+  }
+  .banner-habilidades-img {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
+  }
+  .banner-habilidades-wrap .banner-text {
+    font-size: 10px !important;
+    position: relative !important;
+    z-index: 2 !important;
+  }
   .vigilia-powers-list {
-    max-height: calc(100vh - 180px) !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    max-height: calc(100vh - 146px) !important;
     overflow-y: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    padding-right: 4px !important;
   }
   .vigilia-power-card {
-    padding: 6px 8px !important;
+    padding: 5px 7px !important;
   }
   .power-banner-wrap {
-    height: 24px !important;
+    height: 22px !important;
+    padding: 0 8px !important;
+  }
+  .power-banner-img {
+    display: block !important;
   }
   .power-title {
-    font-size: 12px !important;
+    font-size: 11px !important;
   }
   .power-content {
+    font-size: 10.5px !important;
+    line-height: 1.35 !important;
+  }
+
+  /* Coluna 3: Retrato Autêntico com Névoa à Direita */
+  .vigilia-col-right {
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: center !important;
+    position: relative !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+  .vigilia-portrait-container {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: center !important;
+    pointer-events: none !important;
+    overflow: visible !important;
+    border: none !important;
+    background: none !important;
+    box-shadow: none !important;
+  }
+  .vigilia-character-portrait {
+    width: auto !important;
+    height: 100% !important;
+    max-width: 120% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    object-position: center bottom !important;
+    filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.95)) !important;
+    display: block !important;
+  }
+
+  /* Verso da Ficha em Widescreen */
+  .vigilia-back-header {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: flex-end !important;
+    padding-left: 36px !important;
+    padding-right: 145px !important;
+    margin-bottom: 4px !important;
+  }
+  .vigilia-history-paragraphs {
+    column-count: 2 !important;
+    column-gap: 16px !important;
     font-size: 11px !important;
+    line-height: 1.45 !important;
+    max-height: calc(100vh - 120px) !important;
+    overflow-y: auto !important;
+  }
+  .banner-relacoes-wrap {
+    position: relative !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 22px !important;
+    padding: 0 12px !important;
+    margin-bottom: 4px !important;
+  }
+  .banner-relacoes-img {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill !important;
+  }
+  .banner-relacoes-wrap .banner-text {
+    font-size: 10px !important;
+    position: relative !important;
+    z-index: 2 !important;
+  }
+  .vigilia-relations-list {
+    max-height: calc(100vh - 120px) !important;
+    overflow-y: auto !important;
+    gap: 6px !important;
   }
 }
 
