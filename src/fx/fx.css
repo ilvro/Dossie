@@ -1012,6 +1012,126 @@ body.drag-aiming * {
   -webkit-user-select: none !important;
 }
 
+/* ==========================================================================
+   Ambiente vivo (Vigília) — Névoa da Membrana, partículas e retrato respirando
+   As animações usam animation-delay: var(--amb-t), definido no render como
+   "menos o tempo desde o carregamento", então nada reinicia a cada render().
+   ========================================================================== */
+
+.vigilia-ambient {
+  position: absolute;
+  inset: 0;
+  z-index: 2; /* acima do .vigilia-bg-layer (z-index 1) */
+  overflow: hidden;
+  pointer-events: none;
+  transition: filter 1.6s ease, opacity 1.6s ease;
+}
+
+/* Textura de névoa: ruído periódico gerado em canvas (src/fx/mist-texture.js), tile de 640px */
+.vigilia-mist {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% + 640px);
+  height: calc(100% + 640px);
+  background-image: var(--vg-mist, none);
+  background-size: 640px 640px;
+}
+
+/* Camada distante: grande, lenta, deriva para a esquerda */
+.vigilia-mist.mist-far {
+  background-size: 1280px 1280px;
+  width: calc(100% + 1280px);
+  opacity: 0.2;
+  animation:
+    vigilia-mist-far 220s linear infinite,
+    vigilia-mist-breathe 31s ease-in-out infinite alternate;
+  animation-delay: var(--amb-t, 0s), calc(var(--amb-t, 0s) - 9s);
+}
+
+/* Camada próxima: sobe na diagonal, pulsa devagar */
+.vigilia-mist.mist-near {
+  opacity: 0.16;
+  animation:
+    vigilia-mist-near 150s linear infinite,
+    vigilia-mist-breathe 23s ease-in-out infinite alternate;
+  animation-delay: var(--amb-t, 0s), calc(var(--amb-t, 0s) - 4s);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 45%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 45%);
+}
+
+/* Névoa rasteira: só no rodapé, desliza para a direita */
+.vigilia-mist.mist-ground {
+  left: -640px;
+  opacity: 0.38;
+  animation: vigilia-mist-ground 95s linear infinite;
+  animation-delay: var(--amb-t, 0s);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 55%, #000 85%);
+  mask-image: linear-gradient(to bottom, transparent 55%, #000 85%);
+}
+
+@keyframes vigilia-mist-far {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-1280px, 0, 0); }
+}
+@keyframes vigilia-mist-near {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-640px, -640px, 0); }
+}
+@keyframes vigilia-mist-ground {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(640px, 0, 0); }
+}
+@keyframes vigilia-mist-breathe {
+  from { opacity: var(--mist-min, 0.1); }
+  to { opacity: var(--mist-max, 0.26); }
+}
+.vigilia-mist.mist-far { --mist-min: 0.14; --mist-max: 0.28; }
+.vigilia-mist.mist-near { --mist-min: 0.06; --mist-max: 0.2; }
+
+/* Partículas (cinzas da Membrana) subindo devagar */
+.vigilia-motes i {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--s);
+  height: var(--s);
+  border-radius: 50%;
+  background: rgba(214, 255, 238, 0.9);
+  box-shadow: 0 0 6px 1px rgba(140, 226, 196, 0.55);
+  opacity: 0;
+  animation: vigilia-mote var(--d) ease-in-out infinite;
+  animation-delay: calc(var(--amb-t, 0s) + var(--o));
+  will-change: transform, opacity;
+}
+@keyframes vigilia-mote {
+  0% { opacity: 0; transform: translate3d(0, 0, 0); }
+  18% { opacity: 0.5; }
+  50% { transform: translate3d(16px, -110px, 0); }
+  82% { opacity: 0.35; }
+  100% { opacity: 0; transform: translate3d(-10px, -220px, 0); }
+}
+
+/* Retrato vivo: canvas WebGL (src/fx/live-portrait.js) sobreposto ao <img>, que fica invisível */
+.vigilia-portrait-live {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.has-live-portrait img[data-vigilia-token] { opacity: 0; }
+
+/* A névoa reage ao estado: PD crítico → azul-escuro opressivo; PV crítico → avermelhada */
+body.critical-pd-state .vigilia-ambient {
+  filter: hue-rotate(60deg) saturate(2.2) brightness(0.7);
+}
+body.critical-pv-state .vigilia-ambient {
+  filter: hue-rotate(190deg) saturate(1.8) brightness(0.85);
+}
+body.critical-pd-state .vigilia-motes i { box-shadow: 0 0 6px 1px rgba(90, 120, 255, 0.5); }
+
+/* Desligado nas configurações (AMBIENTE VIVO) */
+body.ambient-off .vigilia-ambient { display: none; }
+
 /* Acessibilidade: Movimento Reduzido */
 @media (prefers-reduced-motion: reduce) {
   #dice-stage-result strong.landed,
@@ -1031,7 +1151,12 @@ body.drag-aiming * {
   }
   .fx-float-text,
   .fx-burst-particle,
-  .fx-fly-particle {
+  .fx-fly-particle,
+  .vigilia-motes {
     display: none !important;
+  }
+  /* Névoa fica, mas parada */
+  .vigilia-mist {
+    animation: none !important;
   }
 }

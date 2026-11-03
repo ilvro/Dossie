@@ -182,6 +182,7 @@ import {
 } from './workspace/workspace-sidebar.js';
 import { setFxEnabledGetter, setRollSceneGetter, setManualThrowGetter, rollSceneEnabled, runPostRenderFx, queuePostRenderFx, rectOf, flyParticles } from './fx/ui-fx.js';
 import { trackResources } from './fx/resource-fx.js';
+import { syncLivePortrait } from './fx/live-portrait.js';
 import { pavorStepFx, controlPavorFx, pavorDissipateFx, embracePavorFx } from './fx/pavor-fx.js';
 import { revealTableResult } from './fx/table-reveal.js';
 import { installDragRoll, takePendingThrow } from './fx/drag-roll.js';
@@ -418,6 +419,7 @@ try{criticalEffects={...criticalEffects,...JSON.parse(localStorage.getItem(CRITI
 const APP_SETTINGS_KEY='ordem-ii-app-settings-v1';
 let appSettings={
   gameFx:true,
+  ambientFx:true,
   rollScene:true,
   manualThrow:true,
   tutorialOriginal:true,
@@ -441,6 +443,8 @@ function saveAppSettings(){try{localStorage.setItem(APP_SETTINGS_KEY,JSON.string
 setFxEnabledGetter(()=>appSettings.gameFx!==false);
 setRollSceneGetter(()=>appSettings.rollScene!==false);
 setManualThrowGetter(()=>appSettings.manualThrow!==false);
+function syncAmbientFx(){document.body.classList.toggle('ambient-off',appSettings.ambientFx===false);syncLivePortrait({enabled:appSettings.ambientFx!==false})}
+syncAmbientFx();
 
 let sidebarNavigatorOpen = Boolean(appSettings.sidebarNavigatorOpen);
 let sidebarNavigatorPinned = Boolean(appSettings.sidebarNavigatorPinned);
@@ -545,7 +549,7 @@ function getCriticalState(){
  return{pv,pd,active:pv.critical||pd.critical};
 }
 function renderCriticalAtmosphere(){return `<div class="critical-atmosphere" data-critical-atmosphere aria-hidden="true"><div class="critical-pd-darkness"></div><div class="critical-pv-vignette"></div><div class="critical-pd-vignette"></div><canvas class="critical-tendrils" data-critical-tendrils></canvas><div class="critical-distortion"></div></div>`}
-function renderCriticalSettings(){const row=(key,title,copy)=>`<div class="critical-setting-row"><span><b>${title}</b><small>${copy}</small></span><button type="button" class="critical-effect-toggle ${criticalEffects[key]?'active':''}" data-critical-effect="${key}" aria-pressed="${criticalEffects[key]}"><i></i><em>${criticalEffects[key]?'ATIVO':'DESATIVADO'}</em></button></div>`;const appRow=(key,title,copy)=>`<div class="critical-setting-row"><span><b>${title}</b><small>${copy}</small></span><button type="button" class="critical-effect-toggle ${appSettings[key]!==false?'active':''}" data-app-setting="${key}" aria-pressed="${appSettings[key]!==false}"><i></i><em>${appSettings[key]!==false?'ATIVO':'DESATIVADO'}</em></button></div>`;return `<div class="modal critical-settings-modal" id="critical-settings-modal"><div class="backdrop critical-settings-backdrop"></div><section><button type="button" class="critical-settings-close">${icon('close')}</button><small>IMERSÃO & ACESSIBILIDADE</small><h2>EFEITOS CRÍTICOS</h2><p>Escolha quais efeitos atmosféricos podem aparecer. As cores e bordas informativas de PV e PD continuam visíveis.</p>${row('pv','ESTADO CRÍTICO DE PV','Vinheta pulsante e batimento cardíaco sincronizado.')}${row('pd','ESTADO CRÍTICO DE PD','Escurecimento, vibração e formas paranormais.')}<h2 style="margin-top:22px">EXPERIÊNCIA DE JOGO</h2>${appRow('gameFx','ANIMAÇÕES DE JOGO','Efeitos visuais, contagem dinâmica de dados e partículas.')}${appRow('rollScene','CENA DE ROLAGEM','Os dados rolam num círculo em destaque e cada bônus voa até o total. Desligada, os dados rolam soltos sobre a ficha.')}${appRow('manualThrow','ARREMESSO MANUAL','Nos testes, os dados esperam na cena: pegue, arraste e solte para arremessar, ou clique para rolar. Desligado, rolam na hora.')}<h2 style="margin-top:22px">CRIAÇÃO DE FICHA</h2>${appRow('tutorialOriginal','TUTORIAL DE ORDEM PARANORMAL 1','Ao criar uma ficha, guia a escolha de aprimoramento, origem, atributos, perícias e poder geral.')}</section></div>`}
+function renderCriticalSettings(){const row=(key,title,copy)=>`<div class="critical-setting-row"><span><b>${title}</b><small>${copy}</small></span><button type="button" class="critical-effect-toggle ${criticalEffects[key]?'active':''}" data-critical-effect="${key}" aria-pressed="${criticalEffects[key]}"><i></i><em>${criticalEffects[key]?'ATIVO':'DESATIVADO'}</em></button></div>`;const appRow=(key,title,copy)=>`<div class="critical-setting-row"><span><b>${title}</b><small>${copy}</small></span><button type="button" class="critical-effect-toggle ${appSettings[key]!==false?'active':''}" data-app-setting="${key}" aria-pressed="${appSettings[key]!==false}"><i></i><em>${appSettings[key]!==false?'ATIVO':'DESATIVADO'}</em></button></div>`;return `<div class="modal critical-settings-modal" id="critical-settings-modal"><div class="backdrop critical-settings-backdrop"></div><section><button type="button" class="critical-settings-close">${icon('close')}</button><small>IMERSÃO & ACESSIBILIDADE</small><h2>EFEITOS CRÍTICOS</h2><p>Escolha quais efeitos atmosféricos podem aparecer. As cores e bordas informativas de PV e PD continuam visíveis.</p>${row('pv','ESTADO CRÍTICO DE PV','Vinheta pulsante e batimento cardíaco sincronizado.')}${row('pd','ESTADO CRÍTICO DE PD','Escurecimento, vibração e formas paranormais.')}<h2 style="margin-top:22px">EXPERIÊNCIA DE JOGO</h2>${appRow('gameFx','ANIMAÇÕES DE JOGO','Efeitos visuais, contagem dinâmica de dados e partículas.')}${appRow('ambientFx','AMBIENTE VIVO','Névoa da Membrana, partículas e respiração sutil do retrato na ficha da Vigília.')}${appRow('rollScene','CENA DE ROLAGEM','Os dados rolam num círculo em destaque e cada bônus voa até o total. Desligada, os dados rolam soltos sobre a ficha.')}${appRow('manualThrow','ARREMESSO MANUAL','Nos testes, os dados esperam na cena: pegue, arraste e solte para arremessar, ou clique para rolar. Desligado, rolam na hora.')}<h2 style="margin-top:22px">CRIAÇÃO DE FICHA</h2>${appRow('tutorialOriginal','TUTORIAL DE ORDEM PARANORMAL 1','Ao criar uma ficha, guia a escolha de aprimoramento, origem, atributos, perícias e poder geral.')}</section></div>`}
 
 function getCardCost(card){
  if(card.cost !== undefined && card.cost !== null) {
@@ -5140,7 +5144,7 @@ function bind(){
  document.querySelector('[data-install-app]')?.addEventListener('click',requestAppInstall);
  document.querySelector('[data-critical-settings]')?.addEventListener('click',()=>document.querySelector('#critical-settings-modal')?.classList.add('open'));
  document.querySelectorAll('.critical-settings-close,.critical-settings-backdrop').forEach(el=>el.onclick=()=>document.querySelector('#critical-settings-modal')?.classList.remove('open'));
- document.querySelectorAll('[data-app-setting]').forEach(button=>button.onclick=()=>{const key=button.dataset.appSetting;appSettings[key]=!appSettings[key];saveAppSettings();button.classList.toggle('active',appSettings[key]);button.setAttribute('aria-pressed',String(appSettings[key]));const label=button.querySelector('em');if(label)label.textContent=appSettings[key]?'ATIVO':'DESATIVADO'});
+ document.querySelectorAll('[data-app-setting]').forEach(button=>button.onclick=()=>{const key=button.dataset.appSetting;appSettings[key]=!appSettings[key];saveAppSettings();button.classList.toggle('active',appSettings[key]);button.setAttribute('aria-pressed',String(appSettings[key]));const label=button.querySelector('em');if(label)label.textContent=appSettings[key]?'ATIVO':'DESATIVADO';syncAmbientFx()});
  document.querySelectorAll('[data-critical-effect]').forEach(button=>button.onclick=()=>{const key=button.dataset.criticalEffect;criticalEffects[key]=!criticalEffects[key];saveCriticalEffects();button.classList.toggle('active',criticalEffects[key]);button.setAttribute('aria-pressed',String(criticalEffects[key]));const label=button.querySelector('em');if(label)label.textContent=criticalEffects[key]?'ATIVO':'DESATIVADO';syncCriticalAtmosphere()});
  document.querySelectorAll('[data-field]').forEach(el=>el.onchange=e=>{if(presentationMode){notifyPresentationLocked();return;}const key=e.target.dataset.field;state[key]=key==='level'?Math.max(0,Number(e.target.value)||0):e.target.value;save(false);render()});
  document.querySelectorAll('[data-set-resource]').forEach(el=>el.onclick=()=>{if(presentationMode){notifyPresentationLocked();return;}const[key,val]=el.dataset.setResource.split(':'),previous=state[key];state[key]=state[key]===Number(val)?Number(val)-1:Number(val);if(key==='pv'||key==='pd')playResourceSound(state[key]>previous);save(false);updateResourceUi(key)});
@@ -5657,6 +5661,7 @@ function bind(){
  bindRollLogItemEvents();
  trackResources(state);
  runPostRenderFx();
+ syncLivePortrait({enabled:appSettings.ambientFx!==false});
 }
 document.addEventListener('click',e=>{closeSheetContextMenu();closeFolderContextMenu();if(!viewSwitchCollapsed&&!e.target.closest('.view-mode-switch')){viewSwitchCollapsed=true;const sw=document.querySelector('.view-mode-switch');if(sw){sw.className='view-mode-switch collapsed';sw.innerHTML=`<button type="button" class="view-mode-trigger" data-toggle-view-switch title="Alternar modo de exibição (Clique para expandir)">${state.viewMode==='vigilia'?icon('shield',14):(state.viewMode==='cinematic'?icon('film',14):icon('grid',14))}<span>${state.viewMode==='vigilia'?'VIGÍLIA':(state.viewMode==='cinematic'?'CINEMA':'PADRÃO')}</span><i class="switch-arrow">▾</i></button>`;const trig=sw.querySelector('[data-toggle-view-switch]');if(trig)trig.onclick=ev=>{ev.stopPropagation();viewSwitchCollapsed=!viewSwitchCollapsed;render()}}}});
 

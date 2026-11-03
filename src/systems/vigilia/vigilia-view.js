@@ -4,6 +4,7 @@
  */
 
 import { icon } from '../../icons.js';
+import { installMistTexture } from '../../fx/mist-texture.js';
 import {
   LESOES_TABLE,
   TRAUMAS_TABLE,
@@ -874,6 +875,34 @@ export function renderVigiliaModals(sheet) {
 }
 
 /**
+ * Ambiente vivo: Névoa da Membrana em três camadas + partículas subindo.
+ * Posições pseudoaleatórias fixas por índice, para não embaralhar a cada render().
+ */
+function renderVigiliaAmbient() {
+  installMistTexture();
+  const rand = (i, k) => {
+    const v = Math.sin((i + 1) * k) * 43758.5453;
+    return v - Math.floor(v);
+  };
+  const motes = Array.from({ length: 16 }, (_, i) => `<i style="${[
+    `--x:${(rand(i, 12.9898) * 100).toFixed(1)}%`,
+    `--y:${(35 + rand(i, 78.233) * 60).toFixed(1)}%`,
+    `--s:${(1.5 + rand(i, 37.719) * 2.5).toFixed(1)}px`,
+    `--d:${(16 + rand(i, 4.581) * 18).toFixed(1)}s`,
+    `--o:${(-rand(i, 9.137) * 34).toFixed(1)}s`
+  ].join(';')}"></i>`).join('');
+
+  return `
+    <div class="vigilia-ambient" aria-hidden="true">
+      <div class="vigilia-mist mist-far"></div>
+      <div class="vigilia-mist mist-near"></div>
+      <div class="vigilia-mist mist-ground"></div>
+      <div class="vigilia-motes">${motes}</div>
+    </div>
+  `;
+}
+
+/**
  * Função Principal: Renderiza a Ficha no Modo "A Vigília"
  */
 export function renderVigiliaSheet(sheet, editMode, options = {}) {
@@ -902,7 +931,9 @@ export function renderVigiliaSheet(sheet, editMode, options = {}) {
     `--vg-bg-dim:${bgDim / 100}`,
     `--vg-token-scale:${tokenScale / 100}`,
     `--vg-token-x:${tokenX}%`,
-    `--vg-token-y:${tokenY}%`
+    `--vg-token-y:${tokenY}%`,
+    // Atraso negativo = tempo desde o carregamento: o ambiente não reinicia a cada render()
+    `--amb-t:${(-performance.now() / 1000).toFixed(2)}s`
   ].join(';');
 
   const editTools = editMode ? `
@@ -942,6 +973,7 @@ export function renderVigiliaSheet(sheet, editMode, options = {}) {
       <div class="vigilia-bg-clip">
         <div class="vigilia-bg-layer ${customBg ? 'is-custom' : ''}" style="background-image: url('${bgUrl}');"></div>
         <div class="vigilia-bg-dim"></div>
+        ${renderVigiliaAmbient()}
       </div>
       ${frameHidden ? '' : `
       <div class="vigilia-frame-layer">
