@@ -1201,6 +1201,8 @@ body.orientation-prompt-active .mobile-orientation-prompt{
  .nav-rail{display:none!important}
  .cinematic-mobile-tabs{display:none!important}
  .mobile-bottom-nav{display:none!important}
+ .floating{display:none!important}
+ .edit-status{display:none!important}
  body{overflow:hidden}
 
  .cinematic-page{
@@ -1530,7 +1532,7 @@ body.orientation-prompt-active .mobile-orientation-prompt{
  }
 
  .view-mode-switch{left:8px;bottom:8px;top:auto;right:auto;z-index:30}
- .floating{display:flex!important;bottom:8px;right:8px;z-index:30}
+ .floating{display:none!important}
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -2978,7 +2980,7 @@ body.mobile-cinematic-landscape .cinematic-presentation-dock{
  transform-origin:center bottom!important;
 }
 body.mobile-cinematic-landscape .view-mode-switch{display:none!important}
-body.mobile-cinematic-landscape .floating{display:flex!important;right:max(8px,env(safe-area-inset-right))!important;bottom:max(8px,env(safe-area-inset-bottom))!important;z-index:30!important}
+body.mobile-cinematic-landscape .floating{display:none!important}
 
 body.mobile-cinematic-compact .cinematic-header{top:7px!important;min-height:32px!important}
 body.mobile-cinematic-compact .cinematic-left,
@@ -5240,10 +5242,40 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
 
 @media (max-width: 768px) {
   .vigilia-floating-dock {
-    bottom: calc(56px + 10px);
+    bottom: calc(56px + 8px);
     right: 10px;
-    padding: 4px 8px;
-    gap: 6px;
+    padding: 3px 8px;
+    gap: 5px;
+    background: rgba(8, 14, 11, 0.9);
+  }
+  .vigilia-floating-dock .dock-pill-btn {
+    font-size: 8.5px;
+    padding: 3px 7px;
+    border-radius: 12px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 620px), (orientation: landscape) and (hover: none) and (pointer: coarse) {
+  .vigilia-floating-dock {
+    bottom: max(8px, env(safe-area-inset-bottom));
+    right: max(10px, env(safe-area-inset-right));
+    padding: 3px 8px;
+    gap: 5px;
+    background: rgba(8, 14, 11, 0.88);
+    border-color: #24352b;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 40;
+  }
+  .vigilia-floating-dock .dock-pill-btn {
+    font-size: 8.5px;
+    padding: 2.5px 7px;
+    border-radius: 12px;
+  }
+  .vigilia-floating-dock .dock-btn-pavor {
+    font-size: 8px;
+    padding: 1px 5px;
   }
 }
 

@@ -7,7 +7,7 @@
     "pv": 22,
     "maxPv": 22,
     "pvTemp": 0,
-    "pd": 12,
+    "pd": 2,
     "maxPd": 12,
     "pdTemp": 0,
     "history": "Filha do ferreiro da vila, Rhiona Mac Tuirenn (RÍ-o-na Mac TÚR-en) é versada nos segredos místicos do ferro e do fogo. Caberá a ela perpetuar o legado de fornecer para as famílias de Ballynyr as ferramentas e armas essenciais para o trabalho e a proteção da vila.\n\nTrabalha batendo o martelo na bigorna e testando em combate as próprias armas que faz. Sua figura feminina empunhando o martelo é vista como uma manifestação de Brígida, antiga deusa da forja, e Rhiona carrega no pescoço uma pequena medalha de Santa Brígida, a versão sincrética da deusa.\n\nUm casamento com Rhiona seria de grande valor, e o interesse da moça tem sido disputado por filhos de fazendeiros e até por guerreiros da nobreza menor. Porém, desde que seu pai caiu doente, ela está mais interessada em administrar o negócio da família, e por isso passa horas debatendo contabilidade com o Irmão Cavan.\n\nQuando se permite descansar, senta-se próximo à fogueira para ouvir as histórias que Malik ibn Qamar traz de um mundo distante. Também é próxima de Rowan, responsável por supri-la de ferro coletado do pântano. Recentemente, ela o avistou patrulhando as fronteiras das terras de seu pai sem que isso fosse solicitado.",
@@ -194,7 +194,7 @@
             "type": "pips",
             "displayStyle": "rectangles",
             "label": "Marcadores de Análise",
-            "current": 0,
+            "current": 2,
             "maxFormula": "4"
           }
         ],
