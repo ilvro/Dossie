@@ -295,8 +295,48 @@ function getDefaultCardModifiers(card) {
       label: card.title
     }));
   }
+  // Check Prontidão (Reação pós-rolagem: rerolar dado que não tirou 1 gastando 2 PD)
+  if (card.id === 'prontidao' || titleClean.includes('prontid')) {
+    return [{
+      id: 'prontidao-mod',
+      type: 'reaction-reroll',
+      target: 'Todos',
+      value: 0,
+      displayValue: '↺',
+      cost: '2 PD',
+      label: 'Prontidão',
+      hint: 'Rerolar dado ≠ 1'
+    }];
+  }
+  // Check Ímpeto (Habilidade ativável pré-rolagem: +1d4 gastando 1 carga)
+  if (card.id === 'impeto' || titleClean.includes('ímpeto') || titleClean.includes('impeto')) {
+    return [{
+      id: 'impeto-mod',
+      type: 'activatable',
+      target: 'Todos',
+      value: 0,
+      diceRoll: '1d4',
+      displayValue: '+1d4',
+      cost: '1 Ímpeto',
+      label: 'Ímpeto',
+      hint: 'Gasta 1 espaço'
+    }];
+  }
+  // Check Análise (Reação pós-rolagem: ajustar dado em ±1 por marcador)
+  if (card.id === 'analise' || titleClean.includes('análise') || titleClean.includes('analise')) {
+    return [{
+      id: 'analise-mod',
+      type: 'reaction-adjust',
+      target: 'Todos',
+      value: 0,
+      displayValue: '±1',
+      cost: '1 Marcador',
+      label: 'Análise',
+      hint: '±1 por marcador'
+    }];
+  }
   // Check Foco Mental
-  if (card.id === 'foco-mental' || titleClean === 'foco mental') {
+  if (card.id === 'foco-mental' || titleClean.includes('foco mental')) {
     return [{ id: 'foco-mod', type: 'activatable', target: 'Mente', value: 4, cost: '2 PD', label: 'Foco Mental' }];
   }
   // Check text content for patterns like "Sofre –1 permanente em Percepção e Pontaria"
@@ -324,9 +364,19 @@ function getDefaultCardModifiers(card) {
   return [];
 }
 
-function canAffordCost(st, costStr) {
+function canAffordCost(st, costStr, card = null) {
   if (!costStr) return true;
-  const match = String(costStr).match(/(\d+)\s*(pd|pv|pe)/i);
+  const costClean = String(costStr).trim();
+  const markerMatch = costClean.match(/(\d+)\s*(ímpeto|impeto|marcador|carga)/i);
+  if (markerMatch) {
+    const need = Number(markerMatch[1]) || 1;
+    if (card && Array.isArray(card.markers) && card.markers.length > 0) {
+      const marker = card.markers[0];
+      return (Number(marker?.current) || 0) >= need;
+    }
+    return true;
+  }
+  const match = costClean.match(/(\d+)\s*(pd|pv|pe)/i);
   if (!match) return true;
   const amount = Number(match[1]) || 0;
   const res = match[2].toLowerCase();
@@ -364,7 +414,8 @@ function consumeCardCost(st, costStr, label = '') {
 function collectSheetModifiers(sheet, rollName, meta = {}) {
   const result = {
     passive: [],
-    activatable: []
+    activatable: [],
+    reactions: []
   };
   if (!sheet || !Array.isArray(sheet.cards)) return result;
 
@@ -386,26 +437,163 @@ function collectSheetModifiers(sheet, rollName, meta = {}) {
   sheet.cards.forEach(card => {
     if (card.profileAbility && sheet.profile && card.profileAbility !== sheet.profile) return;
 
+    const isImpetoCard = card.profileAbility === 'Executor' || card.id === 'impeto' || /ímpeto|impeto/i.test(card.title);
+    const isAnaliseCard = card.profileAbility === 'Analista' || card.id === 'analise' || /análise|analise/i.test(card.title);
+    const isProntidaoCard = card.profileAbility === 'Vigilante' || card.id === 'prontidao' || /prontid/i.test(card.title);
+
+    if (isImpetoCard) {
+      const marker = card.markers?.find(m => /impeto/i.test(m.id) || /impeto/i.test(m.label)) || card.markers?.[0];
+      const charges = Number(marker?.current) || 0;
+      if (!result.activatable.some(a => /ímpeto|impeto/i.test(a.label))) {
+        result.activatable.push({
+          id: 'impeto-mod',
+          subType: 'impeto',
+          label: 'Ímpeto',
+          target: 'Todos',
+          value: 0,
+          diceRoll: '1d4',
+          displayValue: '+1d4',
+          cost: '1 Ímpeto',
+          consumeType: 'marker',
+          cardId: card.id,
+          markerId: marker?.id || 'impeto-m',
+          charges,
+          canAfford: charges >= 1,
+          hint: `${charges}/5 disp.`,
+          sourceCardId: card.id,
+          sourceTitle: 'Ímpeto',
+          isPenalty: false
+        });
+      }
+      if (!result.reactions.some(r => /ímpeto|impeto/i.test(r.label))) {
+        result.reactions.push({
+          id: 'impeto-reaction',
+          type: 'impeto',
+          label: 'Ímpeto',
+          cost: '1 Espaço',
+          charges,
+          cardId: card.id,
+          markerId: marker?.id || 'impeto-m',
+          canUse: charges >= 1,
+          hint: `${charges}/5 disp.`
+        });
+      }
+      return;
+    }
+
+    if (isAnaliseCard) {
+      const marker = card.markers?.[0];
+      const charges = Number(marker?.current) || 0;
+      if (!result.reactions.some(r => /análise|analise/i.test(r.label))) {
+        result.reactions.push({
+          id: 'analise-reaction',
+          type: 'analise',
+          label: 'Análise',
+          cost: '1 Marcador',
+          charges,
+          cardId: card.id,
+          markerId: marker?.id || 'analise-m',
+          canUse: charges > 0,
+          hint: `${charges}/4 marcadores`
+        });
+      }
+      if (!result.activatable.some(a => /análise|analise/i.test(a.label))) {
+        result.activatable.push({
+          id: 'analise-card',
+          subType: 'analise',
+          label: 'Análise',
+          target: 'Todos',
+          value: 0,
+          displayValue: '±1',
+          cost: '1 Marcador',
+          charges,
+          canAfford: charges > 0,
+          hint: `${charges}/4 disp.`,
+          sourceCardId: card.id,
+          sourceTitle: 'Análise',
+          isPenalty: false
+        });
+      }
+      return;
+    }
+
+    if (isProntidaoCard) {
+      const pd = Number(sheet.pd) || 0;
+      if (!result.reactions.some(r => /prontid/i.test(r.label))) {
+        result.reactions.push({
+          id: 'prontidao-reaction',
+          type: 'prontidao',
+          label: 'Prontidão',
+          cost: '2 PD',
+          pd,
+          canUse: pd >= 2,
+          hint: `${pd} PD disp.`
+        });
+      }
+      if (!result.activatable.some(a => /prontid/i.test(a.label))) {
+        result.activatable.push({
+          id: 'prontidao-card',
+          subType: 'prontidao',
+          label: 'Prontidão',
+          target: 'Todos',
+          value: 0,
+          displayValue: '↺',
+          cost: '2 PD',
+          pd,
+          canAfford: pd >= 2,
+          hint: `${pd} PD disp.`,
+          sourceCardId: card.id,
+          sourceTitle: 'Prontidão',
+          isPenalty: false
+        });
+      }
+      return;
+    }
+
     const modifiers = Array.isArray(card.modifiers) && card.modifiers.length > 0
       ? card.modifiers
       : getDefaultCardModifiers(card);
 
     modifiers.forEach(mod => {
       const val = Number(mod.value) || 0;
-      if (!val && mod.type !== 'activatable') return;
+      if (!val && mod.type !== 'activatable' && mod.type !== 'reaction-adjust' && mod.type !== 'reaction-reroll') return;
       if (isMatch(mod.target)) {
+        if (mod.type === 'reaction-adjust' || mod.type === 'reaction-reroll') {
+          result.reactions.push({
+            id: mod.id || makeId('react'),
+            type: mod.type,
+            label: mod.label || card.title,
+            cost: mod.cost || '',
+            hint: mod.hint || '',
+            canUse: canAffordCost(sheet, mod.cost, card)
+          });
+          return;
+        }
+
+        const isDice = Boolean(mod.diceRoll);
         const item = {
           id: mod.id || makeId('mod'),
           label: mod.label || card.title,
           target: mod.target,
           value: val,
+          diceRoll: mod.diceRoll || '',
+          displayValue: mod.displayValue || (isDice ? mod.diceRoll : (val !== 0 ? (val > 0 ? `+${val}` : `${val}`) : '')),
           type: mod.type || 'passive',
           cost: mod.cost || (mod.type === 'activatable' ? (card.cost || '') : ''),
           sourceCardId: card.id,
           sourceTitle: card.title,
           isPenalty: val < 0
         };
+
         if (item.type === 'activatable') {
+          item.canAfford = canAffordCost(sheet, item.cost, card);
+          if (/pd/i.test(item.cost)) {
+            item.consumeType = 'pd';
+            item.hint = `${sheet.pd || 0} PD disp.`;
+          } else if (/pe/i.test(item.cost)) {
+            item.consumeType = 'pe';
+            item.hint = `${sheet.pe || 0} PE disp.`;
+          }
           result.activatable.push(item);
         } else {
           result.passive.push(item);
@@ -413,6 +601,112 @@ function collectSheetModifiers(sheet, rollName, meta = {}) {
       }
     });
   });
+
+  // Síntese garantida para habilidades de perfil (Executor, Analista, Vigilante)
+  if (sheet.profile === 'Executor') {
+    const card = sheet.cards?.find(c => c.profileAbility === 'Executor' || c.id === 'impeto' || /ímpeto|impeto/i.test(c.title));
+    const marker = card?.markers?.find(m => /impeto/i.test(m.id) || /impeto/i.test(m.label)) || card?.markers?.[0];
+    const charges = Number(marker?.current) || 0;
+    if (!result.activatable.some(a => /ímpeto|impeto/i.test(a.label))) {
+      result.activatable.push({
+        id: 'impeto-mod',
+        subType: 'impeto',
+        label: 'Ímpeto',
+        target: 'Todos',
+        value: 0,
+        diceRoll: '1d4',
+        displayValue: '+1d4',
+        cost: '1 Ímpeto',
+        consumeType: 'marker',
+        cardId: card?.id || 'impeto',
+        markerId: marker?.id || 'impeto-m',
+        charges,
+        canAfford: charges >= 1,
+        hint: `${charges}/5 disp.`,
+        sourceCardId: card?.id,
+        sourceTitle: 'Ímpeto',
+        isPenalty: false
+      });
+    }
+    if (!result.reactions.some(r => /ímpeto|impeto/i.test(r.label))) {
+      result.reactions.push({
+        id: 'impeto-reaction',
+        type: 'impeto',
+        label: 'Ímpeto',
+        cost: '1 Espaço',
+        charges,
+        cardId: card?.id || 'impeto',
+        markerId: marker?.id || 'impeto-m',
+        canUse: charges >= 1,
+        hint: `${charges}/5 disp.`
+      });
+    }
+  } else if (sheet.profile === 'Analista') {
+    const card = sheet.cards?.find(c => c.profileAbility === 'Analista' || c.id === 'analise' || /análise|analise/i.test(c.title));
+    const marker = card?.markers?.[0];
+    const charges = Number(marker?.current) || 0;
+    if (!result.reactions.some(r => /análise|analise/i.test(r.label))) {
+      result.reactions.push({
+        id: 'analise-reaction',
+        type: 'analise',
+        label: 'Análise',
+        cost: '1 Marcador',
+        charges,
+        cardId: card?.id || 'analise',
+        markerId: marker?.id || 'analise-m',
+        canUse: charges > 0,
+        hint: `${charges}/4 marcadores`
+      });
+    }
+    if (!result.activatable.some(a => /análise|analise/i.test(a.label))) {
+      result.activatable.push({
+        id: 'analise-card',
+        subType: 'analise',
+        label: 'Análise',
+        target: 'Todos',
+        value: 0,
+        displayValue: '±1',
+        cost: '1 Marcador',
+        charges,
+        canAfford: charges > 0,
+        hint: `${charges}/4 disp.`,
+        sourceCardId: card?.id,
+        sourceTitle: 'Análise',
+        isPenalty: false
+      });
+    }
+  } else if (sheet.profile === 'Vigilante') {
+    const card = sheet.cards?.find(c => c.profileAbility === 'Vigilante' || c.id === 'prontidao' || /prontid/i.test(c.title));
+    const pd = Number(sheet.pd) || 0;
+    if (!result.reactions.some(r => /prontid/i.test(r.label))) {
+      result.reactions.push({
+        id: 'prontidao-reaction',
+        type: 'prontidao',
+        label: 'Prontidão',
+        cost: '2 PD',
+        pd,
+        canUse: pd >= 2,
+        hint: `${pd} PD disp.`
+      });
+    }
+    if (!result.activatable.some(a => /prontid/i.test(a.label))) {
+      result.activatable.push({
+        id: 'prontidao-card',
+        subType: 'prontidao',
+        label: 'Prontidão',
+        target: 'Todos',
+        value: 0,
+        displayValue: '↺',
+        cost: '2 PD',
+        pd,
+        canAfford: pd >= 2,
+        hint: `${pd} PD disp.`,
+        sourceCardId: card?.id,
+        sourceTitle: 'Prontidão',
+        isPenalty: false
+      });
+    }
+  }
 
   return result;
 }
@@ -455,6 +749,8 @@ function normalizeCard(card){
    type: m.type || 'passive',
    target: m.target || 'Todos',
    value: Number(m.value) || 0,
+   diceRoll: m.diceRoll || '',
+   displayValue: m.displayValue || '',
    cost: m.cost || '',
    label: m.label || ''
  }));
@@ -4973,23 +5269,96 @@ async function roll(name,sides,modifier=0,rollMode='sum',meta={}){
 
  const activatables = sheetMods.activatable.map(a => ({
   id: a.id,
+  subType: a.subType || '',
   label: a.label,
   value: a.value,
+  diceRoll: a.diceRoll || '',
+  displayValue: a.displayValue || '',
   cost: a.cost,
+  hint: a.hint || '',
+  canAfford: a.canAfford !== undefined ? a.canAfford : canAffordCost(state, a.cost),
+  consumeType: a.consumeType || '',
+  cardId: a.cardId || a.sourceCardId || '',
+  markerId: a.markerId || '',
   isPenalty: a.value < 0,
-  canAfford: canAffordCost(state, a.cost),
   sourceTitle: a.sourceTitle
+ }));
+
+ const reactions = (sheetMods.reactions || []).map(r => ({
+  id: r.id,
+  type: r.type,
+  label: r.label,
+  cost: r.cost,
+  hint: r.hint,
+  charges: Number(r.charges) || 0,
+  cardId: r.cardId,
+  markerId: r.markerId,
+  canUse: r.canUse !== false
  }));
 
  const options = {
   modifierParts,
   activatables,
+  reactions,
+  pd: Number(state.pd) || 0,
+  profile: state.profile,
   onConsume: (activeItems) => {
    if (Array.isArray(activeItems)) {
     activeItems.forEach(item => {
-     if (item.cost) consumeCardCost(state, item.cost, item.label);
+     if (item.consumeType === 'marker' && item.cardId) {
+      const card = state.cards?.find(c => c.id === item.cardId || (item.subType === 'impeto' && (c.profileAbility === 'Executor' || /impeto/i.test(c.title))));
+      const marker = card?.markers?.find(m => (item.markerId ? m.id === item.markerId : true)) || card?.markers?.[0];
+      if (marker && marker.current > 0) {
+       marker.current = Math.max(0, marker.current - 1);
+       save(false);
+       const toast = document.querySelector('#save-toast');
+       if (toast) {
+        toast.textContent = `-1 ${item.label.toUpperCase()}`;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+       }
+      }
+     } else if (item.cost) {
+      consumeCardCost(state, item.cost, item.label);
+      save(false);
+     }
     });
    }
+  },
+  onSpendMarker: (cardId, markerId, count = 1) => {
+   const card = state.cards?.find(c => c.id === cardId || (cardId === 'analise' && (c.profileAbility === 'Analista' || /análise|analise/i.test(c.title))));
+   const marker = card?.markers?.find(m => (markerId ? m.id === markerId : true)) || card?.markers?.[0];
+   if (marker && marker.current >= count) {
+    marker.current -= count;
+    save(false);
+    const toast = document.querySelector('#save-toast');
+    if (toast) {
+     toast.textContent = `-${count} ${card?.title?.toUpperCase() || 'MARCADOR'}`;
+     toast.classList.add('show');
+     setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+    return true;
+   }
+   return false;
+  },
+  onRefundMarker: (cardId, markerId, count = 1) => {
+   const card = state.cards?.find(c => c.id === cardId || (cardId === 'analise' && (c.profileAbility === 'Analista' || /análise|analise/i.test(c.title))));
+   const marker = card?.markers?.find(m => (markerId ? m.id === markerId : true)) || card?.markers?.[0];
+   if (!marker) return false;
+   const max = Number(marker.maxFormula) || Infinity;
+   marker.current = Math.min(max, (Number(marker.current) || 0) + count);
+   save(false);
+   try { render(); } catch {}
+   return true;
+  },
+  onSpendPd: (amount, label = 'Prontidão') => {
+   if ((Number(state.pd) || 0) >= amount) {
+    consumeCardCost(state, `${amount} PD`, label);
+    save(false);
+   try { render(); } catch {}
+    return true;
+   }
+   return false;
   },
   scene: meta?.scene || 'quick',
   throw: throwVec
@@ -4997,6 +5366,9 @@ async function roll(name,sides,modifier=0,rollMode='sum',meta={}){
  const res = appSettings.cinematicAltRoll
   ? await (await import('./fx/dice-cinematic-alt.js')).rollDiceCinematicAlt(diceConfigs, name, finalNumMod, soundContext, rollMode, { ...options, theme: state.viewMode === 'vigilia' ? 'vigilia' : 'cinematic', accent: getSheetAccent(state) })
   : await rollDice3d(diceConfigs, name, finalNumMod, soundContext, rollMode, options);
+ if (appSettings.cinematicAltRoll) {
+  render();
+ }
  if(res&&Array.isArray(res.values)){
   if (dreadIndex >= 0 && res.values[dreadIndex] !== undefined) {
    if (res.vanquished) {

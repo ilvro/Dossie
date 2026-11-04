@@ -199,7 +199,18 @@
           }
         ],
         "actions": [],
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "analise-mod",
+            "type": "reaction-adjust",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Marcador",
+            "label": "Análise"
+          }
+        ]
       },
       {
         "id": "leitura-de-combate",
@@ -250,37 +261,6 @@
         ],
         "themeLinked": true,
         "modifiers": []
-      },
-      {
-        "id": "card-1793824428861-lndc8",
-        "schema": "abilities",
-        "title": "Sem Olho",
-        "type": "Lesão",
-        "content": "Você perde o uso de um olho. Sofre –1 permanente em Percepção e Pontaria.",
-        "accent": "#e0150d",
-        "themeLinked": false,
-        "isCondition": true,
-        "conditionType": "lesao",
-        "markers": [],
-        "actions": [],
-        "modifiers": [
-          {
-            "id": "mod-1793824428861-oki8t",
-            "type": "passive",
-            "target": "PERCEPÇÃO",
-            "value": -1,
-            "cost": "",
-            "label": "Sem Olho"
-          },
-          {
-            "id": "mod-1793824428861-axzft",
-            "type": "passive",
-            "target": "PONTARIA",
-            "value": -1,
-            "cost": "",
-            "label": "Sem Olho"
-          }
-        ]
       }
     ],
     "id": "sheet-vigilia-rhiona",
@@ -339,7 +319,7 @@
     "favorite": false,
     "dadoPavor": null,
     "traumasCountScene": 2,
-    "lesoesCountScene": 2,
+    "lesoesCountScene": 6,
     "pavorEmbraced": false
   },
   {
@@ -350,7 +330,7 @@
     "pv": 20,
     "maxPv": 20,
     "pvTemp": 0,
-    "pd": 12,
+    "pd": 8,
     "maxPd": 12,
     "pdTemp": 0,
     "history": "Rowan (RÓ-u-an) era a prole mais nova de uma numerosa família camponesa. Quando criança, era apenas mais uma boca para alimentar. Na mesma época, seu tio Fergus Mac Colum (FÉR-gus mak KÓ-lum), então caçador da vila de Ballynyr, começou a mostrar sinais de velhice. Sem filhos, precisava de um aprendiz a quem transmitir seu ofício. Assim, a família enviou Rowan. Realizava trabalho braçal, como carregar peles pesadas, cortar lenha e limpar armadilhas e, em troca, o tio lhe ensinava a arte de fabricar arcos, curtir couro, rastrear animais e manejar armas.\n\nAdaptou-se bem a vida nos ermos, pois nunca foi muito sociável, trocando com alegria a companhia de humanos pela de animais. Mata para preservar o ciclo da vida, mas também é capaz de poupar — e até cativar — mesmo o mais temido predador. Foi em uma noite sem lua que encontrou um lobo ferido. Era uma rara variedade castanha. Outros diriam que o certo era matá-lo, mas Rowan escolheu a vida. Tratou os ferimentos do lobo sem esperar nada em troca, mas recebeu uma amizade eterna. Hoje, os dois são inseparáveis.\n\nRowan anda sempre em companhia da fera, o que desperta a desconfiança dos moradores da vila. Dizem os mais supersticiosos que Rowan enxerga através dos olhos da besta, ou até que é capaz de assumir uma forma lupina. Rhiona Mac Tuirenn não acredita nisso. Muirenn Lua Pálida talvez até acredite, mas não se importa. São as únicas pessoas, além do tio idoso, com quem Rowan se importa… quase como se fossem animais.",
@@ -534,7 +514,18 @@
         "cost": "2 PD",
         "markers": [],
         "actions": [],
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "prontidao-mod",
+            "type": "reaction-reroll",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "2 PD",
+            "label": "Prontidão"
+          }
+        ]
       },
       {
         "id": "esquiva",
@@ -862,12 +853,23 @@
             "type": "pips",
             "displayStyle": "rectangles",
             "label": "Barra de Ímpeto",
-            "current": 0,
+            "current": 1,
             "maxFormula": "5"
           }
         ],
         "actions": [],
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "impeto-mod",
+            "type": "activatable",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Ímpeto",
+            "label": "Ímpeto"
+          }
+        ]
       },
       {
         "id": "arsenal-herborista",
@@ -1183,7 +1185,18 @@
           }
         ],
         "actions": [],
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "analise-mod",
+            "type": "reaction-adjust",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Marcador",
+            "label": "Análise"
+          }
+        ]
       },
       {
         "id": "curandeiro",
@@ -1502,7 +1515,18 @@
         "layout": "standard",
         "collapsed": false,
         "imageUrl": "",
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "impeto-mod",
+            "type": "activatable",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Ímpeto",
+            "label": "Ímpeto"
+          }
+        ]
       },
       {
         "id": "impeto-fervilhante",
@@ -1519,7 +1543,18 @@
         "layout": "standard",
         "collapsed": false,
         "imageUrl": "",
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "impeto-mod",
+            "type": "activatable",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Ímpeto",
+            "label": "Ímpeto"
+          }
+        ]
       },
       {
         "id": "equip-malik",
@@ -1798,7 +1833,18 @@
         "cost": "2 PD",
         "markers": [],
         "actions": [],
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "prontidao-mod",
+            "type": "reaction-reroll",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "2 PD",
+            "label": "Prontidão"
+          }
+        ]
       },
       {
         "id": "antecipacao-tatica",
@@ -2100,7 +2146,18 @@
         "actions": [],
         "themeLinked": true,
         "profileAbility": "Vigilante",
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "prontidao-mod",
+            "type": "reaction-reroll",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "2 PD",
+            "label": "Prontidão"
+          }
+        ]
       },
       {
         "id": "card-sorcha-guardia",
@@ -2425,7 +2482,18 @@
         "actions": [],
         "themeLinked": true,
         "profileAbility": "Executor",
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "impeto-mod",
+            "type": "activatable",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Ímpeto",
+            "label": "Ímpeto"
+          }
+        ]
       },
       {
         "id": "card-cormac-heranca",
@@ -2723,7 +2791,7 @@
         "schema": "abilities",
         "title": "ÍMPETO",
         "type": "Habilidade de Perfil",
-        "content": "Você possui uma [color=#e0150d]**barra de ímpeto, com cinco espaços**[/color]. Sempre que **faz um teste e falha**, você preenche um espaço na **barra de ímpeto**. Como uma ação livre, você pode gastar espaços da barra de ímpeto para receber benefícios.\n- **1 espaço.** Você recebe +1d4 em um teste.\n- **3 espaços.** Você **aumenta um atributo em um passo** até o fim da cena.\n- **3 espaços.** Em cenas de conflito, você **faz uma ação extra**.\n\nNo fim da cena, sua barra de ímpeto esvazia.",
+        "content": "Você possui uma [color=#e0150d]**barra de ímpeto, com cinco espaços**[/color]. Sempre que **faz um teste e falha**, você preenche um espaço na **barra de ímpeto**. Como uma ação livre, você pode gastar espaços da barra de ímpeto para receber benefícios.\n- **1 espa��o.** Você recebe +1d4 em um teste.\n- **3 espaços.** Você **aumenta um atributo em um passo** até o fim da cena.\n- **3 espaços.** Em cenas de conflito, você **faz uma ação extra**.\n\nNo fim da cena, sua barra de ímpeto esvazia.",
         "accent": "#e0150d",
         "icon": "◆",
         "markers": [
@@ -2740,7 +2808,18 @@
         "layout": "standard",
         "collapsed": false,
         "imageUrl": "",
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "impeto-mod",
+            "type": "activatable",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Ímpeto",
+            "label": "Ímpeto"
+          }
+        ]
       },
       {
         "id": "foco-mental",
@@ -2762,6 +2841,8 @@
             "type": "activatable",
             "target": "Mente",
             "value": 4,
+            "diceRoll": "",
+            "displayValue": "",
             "cost": "2 PD",
             "label": "Foco Mental"
           }
@@ -2980,7 +3061,18 @@
           }
         ],
         "actions": [],
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "impeto-mod",
+            "type": "activatable",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Ímpeto",
+            "label": "Ímpeto"
+          }
+        ]
       },
       {
         "id": "analise",
@@ -3006,7 +3098,18 @@
         "layout": "standard",
         "collapsed": false,
         "imageUrl": "",
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "analise-mod",
+            "type": "reaction-adjust",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Marcador",
+            "label": "Análise"
+          }
+        ]
       },
       {
         "id": "foco-mental",
@@ -3034,6 +3137,8 @@
             "type": "activatable",
             "target": "Mente",
             "value": 4,
+            "diceRoll": "",
+            "displayValue": "",
             "cost": "2 PD",
             "label": "Foco Mental"
           }
@@ -3052,7 +3157,18 @@
         "markers": [],
         "actions": [],
         "cost": "2 PD",
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "prontidao-mod",
+            "type": "reaction-reroll",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "2 PD",
+            "label": "Prontidão"
+          }
+        ]
       }
     ],
     "id": "sheet-1789935686382-iplu3",
@@ -3267,7 +3383,18 @@
           }
         ],
         "actions": [],
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "impeto-mod",
+            "type": "activatable",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Ímpeto",
+            "label": "Ímpeto"
+          }
+        ]
       },
       {
         "id": "analise",
@@ -3293,7 +3420,18 @@
         "layout": "standard",
         "collapsed": false,
         "imageUrl": "",
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "analise-mod",
+            "type": "reaction-adjust",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Marcador",
+            "label": "Análise"
+          }
+        ]
       },
       {
         "id": "card-1790292112563-3b2t2",
@@ -3330,7 +3468,18 @@
         "markers": [],
         "actions": [],
         "cost": "2 PD",
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "prontidao-mod",
+            "type": "reaction-reroll",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "2 PD",
+            "label": "Prontidão"
+          }
+        ]
       }
     ],
     "id": "sheet-1790292112563-5tjih",
@@ -3538,7 +3687,18 @@
           }
         ],
         "actions": [],
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "impeto-mod",
+            "type": "activatable",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Ímpeto",
+            "label": "Ímpeto"
+          }
+        ]
       },
       {
         "id": "foco-mental",
@@ -3560,6 +3720,8 @@
             "type": "activatable",
             "target": "Mente",
             "value": 4,
+            "diceRoll": "",
+            "displayValue": "",
             "cost": "2 PD",
             "label": "Foco Mental"
           }
@@ -3771,7 +3933,18 @@
           }
         ],
         "actions": [],
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "impeto-mod",
+            "type": "activatable",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Ímpeto",
+            "label": "Ímpeto"
+          }
+        ]
       },
       {
         "id": "analise",
@@ -3797,7 +3970,18 @@
         "layout": "standard",
         "collapsed": false,
         "imageUrl": "",
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "analise-mod",
+            "type": "reaction-adjust",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Marcador",
+            "label": "Análise"
+          }
+        ]
       },
       {
         "id": "foco-mental",
@@ -3826,6 +4010,8 @@
             "type": "activatable",
             "target": "Mente",
             "value": 4,
+            "diceRoll": "",
+            "displayValue": "",
             "cost": "2 PD",
             "label": "Foco Mental"
           }
@@ -4053,7 +4239,18 @@
           }
         ],
         "actions": [],
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "impeto-mod",
+            "type": "activatable",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Ímpeto",
+            "label": "Ímpeto"
+          }
+        ]
       },
       {
         "id": "analise",
@@ -4076,7 +4273,18 @@
           }
         ],
         "actions": [],
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "analise-mod",
+            "type": "reaction-adjust",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Marcador",
+            "label": "Análise"
+          }
+        ]
       },
       {
         "id": "foco-mental",
@@ -4098,6 +4306,8 @@
             "type": "activatable",
             "target": "Mente",
             "value": 4,
+            "diceRoll": "",
+            "displayValue": "",
             "cost": "2 PD",
             "label": "Foco Mental"
           }
@@ -4337,7 +4547,18 @@
         "layout": "standard",
         "collapsed": false,
         "imageUrl": "",
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "impeto-mod",
+            "type": "activatable",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Ímpeto",
+            "label": "Ímpeto"
+          }
+        ]
       },
       {
         "id": "foco-mental",
@@ -4373,6 +4594,8 @@
             "type": "activatable",
             "target": "Mente",
             "value": 4,
+            "diceRoll": "",
+            "displayValue": "",
             "cost": "2 PD",
             "label": "Foco Mental"
           }
@@ -4399,7 +4622,18 @@
         ],
         "actions": [],
         "themeLinked": true,
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "analise-mod",
+            "type": "reaction-adjust",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Marcador",
+            "label": "Análise"
+          }
+        ]
       }
     ],
     "impeto": 0,
@@ -4608,7 +4842,18 @@
           }
         ],
         "actions": [],
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "impeto-mod",
+            "type": "activatable",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "1 Ímpeto",
+            "label": "Ímpeto"
+          }
+        ]
       },
       {
         "id": "prontidao",
@@ -4626,7 +4871,18 @@
         "imageUrl": "",
         "profileAbility": "Vigilante",
         "cost": "2 PD",
-        "modifiers": []
+        "modifiers": [
+          {
+            "id": "prontidao-mod",
+            "type": "reaction-reroll",
+            "target": "Todos",
+            "value": 0,
+            "diceRoll": "",
+            "displayValue": "",
+            "cost": "2 PD",
+            "label": "Prontidão"
+          }
+        ]
       },
       {
         "id": "card-1789953737390-6hpho",

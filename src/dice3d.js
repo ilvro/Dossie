@@ -296,7 +296,20 @@ export function computeOutcome(dice, values, rollMode, modifier, dreadIndex) {
  */
 export function classifyRoll(dice, outcome) {
   const { counted, countedValues, values } = outcome;
-  if (!countedValues || countedValues.length < 1 || !dice || dice.length < 2 || dice.some(d => d.sides === 20)) {
+  if (!countedValues || countedValues.length < 1 || !dice) {
+    return { crit: false, fumble: false, ra: null, rb: null, critIndices: [], fumbleIndices: [] };
+  }
+  if (dice.some(d => d.sides === 20)) {
+    const val = outcome.chosenValue !== null && outcome.chosenValue !== undefined
+      ? outcome.chosenValue
+      : (outcome.chosenIndex >= 0 ? (values ? values[outcome.chosenIndex] : countedValues[0]) : countedValues[0]);
+    const crit = val === 20;
+    const fumble = val === 1;
+    const critIndices = crit && outcome.chosenIndex >= 0 ? [outcome.chosenIndex] : (crit ? [0] : []);
+    const fumbleIndices = fumble && outcome.chosenIndex >= 0 ? [outcome.chosenIndex] : (fumble ? [0] : []);
+    return { crit, fumble, ra: null, rb: null, critIndices, fumbleIndices };
+  }
+  if (dice.length < 2) {
     return { crit: false, fumble: false, ra: null, rb: null, critIndices: [], fumbleIndices: [] };
   }
   const ra = Math.max(...countedValues);

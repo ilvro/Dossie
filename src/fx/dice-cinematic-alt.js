@@ -419,9 +419,9 @@ async function simulateThrow(dice, halfW, halfD, ceiling = 4, isAborted = () => 
   let result = null;
   let sliceStart = performance.now();
   const maybeYield = async () => {
-    if (performance.now() - sliceStart > 6) { await yieldToBrowser(); sliceStart = performance.now(); }
+    if (performance.now() - sliceStart > 5) { await yieldToBrowser(); sliceStart = performance.now(); }
   };
-  for (let attempt = 0; attempt < 4; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     if (isAborted()) return null;
     const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -21, 0) });
     world.allowSleep = true;
@@ -467,32 +467,29 @@ async function simulateThrow(dice, halfW, halfD, ceiling = 4, isAborted = () => 
     });
 
     const frames = dice.map(() => []);
-    const maxSteps = SIM_HZ * 4;
+    const maxSteps = Math.round(SIM_HZ * 2.6);
     let quiet = 0;
     for (step = 0; step < maxSteps; step++) {
-      // depois de ~2,2 s o atrito aumenta, para o arremesso não se arrastar
-      if (step > SIM_HZ * 2.2) {
-        const k = Math.min(1, (step - SIM_HZ * 2.2) / (SIM_HZ * 0.9));
-        bodies.forEach(b => { b.angularDamping = 0.09 + k * 0.8; b.linearDamping = 0.035 + k * 0.8; });
+      if (step > SIM_HZ * 1.6) {
+        const k = Math.min(1, (step - SIM_HZ * 1.6) / (SIM_HZ * 0.7));
+        bodies.forEach(b => { b.angularDamping = 0.09 + k * 0.9; b.linearDamping = 0.035 + k * 0.9; });
       }
       world.step(1 / SIM_HZ, 1 / SIM_HZ, 2);
       bodies.forEach((b, i) => frames[i].push([b.position.x, b.position.y, b.position.z, b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w]));
-      const resting = bodies.every(b => b.sleepState === CANNON.Body.SLEEPING || (b.velocity.length() < 0.05 && b.angularVelocity.length() < 0.08));
+      const resting = bodies.every(b => b.sleepState === CANNON.Body.SLEEPING || (b.velocity.length() < 0.06 && b.angularVelocity.length() < 0.09));
       quiet = resting ? quiet + 1 : 0;
-      if (quiet > 6 && step > SIM_HZ * 1.5) break;
+      if (quiet > 6 && step > SIM_HZ * 1.3) break;
       if ((step & 7) === 0) {
         await maybeYield();
         if (isAborted()) return null;
       }
     }
     result = { frames, impacts, steps: frames[0].length };
-    // Recusa arremessos com dado empilhado ou fora da bandeja
     const ok = frames.every(f => {
       const last = f[f.length - 1];
       return last[1] < DIE_R * 1.25 && Math.abs(last[0]) < halfW && Math.abs(last[2]) < halfD;
     });
-    // prefere arremessos que rolam por pelo menos ~1,8 s
-    if (ok && (result.steps >= SIM_HZ * 1.8 || attempt >= 2)) break;
+    if (ok && (result.steps >= SIM_HZ * 1.3 || attempt >= 1)) break;
   }
   return result;
 }
@@ -745,29 +742,99 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
     window.__forceDice = null;
   }
   const dreadIndex = list.findIndex(d => d.dread);
-  const outcome = computeOutcome(list, values, rollMode, modifier, dreadIndex);
-  const { destroyed, counted, countedValues, total, chosenValue, chosenIndex, vanquished } = outcome;
-  const cls = classifyRoll(list, outcome);
-  const baseValue = countedValues.length
-    ? (chosenIndex >= 0 ? chosenValue : countedValues.reduce((a, b) => a + b, 0))
-    : 0;
+  // O d4 de Ímpeto é um bônus somado ao teste: nunca entra em "maior/menor" nem na classificação de crítico.
+  const calcOutcome = mod => {
+    const o = computeOutcome(list, values, rollMode, mod, dreadIndex);
+    const isImp = i => Boolean(list[i]?.isImpeto);
+    if (!list.some(c => c.isImpeto)) return { ...o, bonusSum: 0 };
+    const base = o.counted.filter(i => !isImp(i));
+    const bonusSum = o.counted.filter(isImp).reduce((s, i) => s + values[i], 0);
+    const bv = base.map(i => values[i]);
+    let chosenIndex = -1, chosenValue = null, sum = bv.reduce((a, b) => a + b, 0);
+    if (bv.length && (rollMode === 'highest' || rollMode === 'lowest')) {
+      chosenValue = rollMode === 'highest' ? Math.max(...bv) : Math.min(...bv);
+      chosenIndex = base[bv.indexOf(chosenValue)];
+      sum = chosenValue;
+    }
+    return { ...o, counted: base, countedValues: bv, chosenIndex, chosenValue, bonusSum, total: sum + bonusSum + mod, impetoCounted: o.counted.filter(isImp) };
+  };
+  const classify = o => classifyRoll(list.filter(c => !c.isImpeto), o);
+  const baseOf = o => (o.countedValues.length
+    ? (o.chosenIndex >= 0 ? o.chosenValue : o.countedValues.reduce((a, b) => a + b, 0))
+    : 0) + (o.bonusSum || 0);
+  const outcome = calcOutcome(modifier);
+  let { destroyed, counted, countedValues, total, chosenValue, chosenIndex, vanquished } = outcome;
+  let cls = classify(outcome);
+  let baseValue = baseOf(outcome);
+  let currentCounted = [...counted, ...(outcome.impetoCounted || [])];
+  let currentDestroyed = new Set(destroyed);
 
   const info = parseTitle(title);
   const dt = options.dt != null && Number.isFinite(Number(options.dt)) ? Number(options.dt) : info.dt;
   const success = dt !== null ? total >= dt : null;
 
-  const parts = (options.modifierParts || []).map(p => ({ label: p.label || 'BÔNUS', value: Number(p.value) || 0 })).filter(p => p.value);
+  const parts = (options.modifierParts || []).map(p => ({
+    label: p.label || 'BÔNUS',
+    value: Number(p.value) || 0,
+    isPenalty: Boolean(p.isPenalty) || Number(p.value) < 0
+  })).filter(p => p.value);
   const partsSum = parts.reduce((a, p) => a + p.value, 0);
-  if (partsSum !== modifier) parts.push({ label: 'BÔNUS', value: modifier - partsSum });
+  if (partsSum !== modifier) {
+    const diff = modifier - partsSum;
+    parts.push({ label: 'BÔNUS', value: diff, isPenalty: diff < 0 });
+  }
+
+  const activatables = (options.activatables || []).map((a, idx) => ({
+    id: a.id || `act-${idx}`,
+    subType: a.subType || '',
+    label: a.label || 'Habilidade',
+    value: Number(a.value) || 0,
+    diceRoll: a.diceRoll || '',
+    displayValue: a.displayValue || (a.diceRoll ? a.diceRoll : (a.value > 0 ? `+${a.value}` : (a.value < 0 ? `${a.value}` : '±1'))),
+    cost: a.cost || '',
+    hint: a.hint || '',
+    canAfford: a.canAfford !== false,
+    selected: Boolean(a.selected),
+    raw: a
+  }));
+
+  const calcBonusDisplay = () => {
+    const passiveSum = parts.reduce((a, p) => a + p.value, 0);
+    const selectedActs = activatables.filter(a => a.selected && a.subType !== 'analise' && a.subType !== 'prontidao');
+    const activeFixed = selectedActs.reduce((a, act) => a + (act.diceRoll ? 0 : act.value), 0);
+    const diceActs = selectedActs.filter(a => a.diceRoll);
+    const baseMod = passiveSum + activeFixed;
+    if (!diceActs.length) {
+      return signed(baseMod);
+    }
+    const diceDesc = diceActs.map(d => d.displayValue || d.diceRoll).join(' + ');
+    return `${signed(baseMod)} (${diceDesc})`;
+  };
 
   const reduced = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   const quick = options.scene !== 'full';
-  const waitForClick = !quick;
+  const waitForClick = options.autoRoll ? false : true;
   const pace = quick ? 0.6 : 1;
   const theme = options.theme === 'vigilia' ? 'vigilia' : 'cinematic';
   const accent = /^#[0-9a-f]{6}$/i.test(options.accent || '') ? options.accent : '#e0150d';
   const signed = v => `${v >= 0 ? '+' : '−'}${Math.abs(v)}`;
   const uid = `bg3f${++stageUid}`;
+
+  const reactions = options.reactions || [];
+  const analiseReaction = reactions.find(r => r.type === 'analise');
+  let analiseCharges = analiseReaction ? Number(analiseReaction.charges) || 0 : 0;
+  const prontidaoReaction = reactions.find(r => r.type === 'prontidao');
+  let prontidaoAvailable = Boolean(prontidaoReaction && prontidaoReaction.canUse);
+  let prontidaoUsed = false;
+  let armed = null; // habilidade pós-rolagem escolhida pelo card: 'analise' | 'prontidao'
+  const analiseAdj = {}; // ajuste líquido de Análise por dado (permite devolver o marcador)
+  const impetoReaction = reactions.find(r => r.type === 'impeto');
+  let impetoCharges = impetoReaction ? Number(impetoReaction.charges) || 0 : (activatables.find(a => a.subType === 'impeto')?.charges || 0);
+  let impetoDiePre = null;
+
+  let currentTotal = total;
+  let finalSuccess = success;
+  let activeParts = [];
 
   const payload = {
     values, total, chosenValue, chosenIndex, rollMode,
@@ -823,18 +890,59 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
             <button type="button" class="bg3-roll-btn"><span>Clique no dado para rolar</span></button>
             <p class="bg3-status" aria-live="polite"></p>
             <div class="bg3-verdict" aria-live="polite"></div>
+            <div class="bg3-reactions" aria-live="polite"></div>
           </div>
         </section>
         <p class="bg3-mode">${safeHtml(modeLabel(list, rollMode, dreadIndex))}</p>
-        ${parts.length ? `
-        <div class="bg3-bonuses">${parts.map((p, i) => `
-          <div class="bg3-card" data-card="${i}">
-            <span class="bg3-card-value">${signed(p.value)}</span>
-            <i class="bg3-card-gem"></i>
-            <span class="bg3-card-label">${safeHtml(p.label)}</span>
-          </div>`).join('')}
+        ${(parts.length || activatables.length) ? `
+        <div class="bg3-bonuses">
+          ${parts.map((p, i) => `
+            <div class="bg3-card${p.isPenalty ? ' is-penalty' : ''}" data-card="${i}">
+              <span class="bg3-card-value">${signed(p.value)}</span>
+              <i class="bg3-card-gem"></i>
+              <span class="bg3-card-label">${safeHtml(p.label)}</span>
+            </div>`).join('')}
+          ${activatables.map((act, idx) => {
+            if (act.subType === 'analise') {
+              return `
+                <div class="bg3-card bg3-card-analise${!act.canAfford ? ' is-disabled' : ''}" data-card-sub="analise">
+                  <span class="bg3-card-value">${safeHtml(act.displayValue || '±1')}</span>
+                  <i class="bg3-card-gem"></i>
+                  <span class="bg3-card-label">${safeHtml(act.label)}</span>
+                  ${act.cost ? `<span class="bg3-card-cost">${safeHtml(act.cost)}</span>` : ''}
+                  <span class="bg3-card-hint"><b class="bg3-analise-count">${analiseCharges}</b>/4 disp.</span>
+                  <div class="bg3-card-steppers" style="display:none;">
+                    <button type="button" class="bg3-analise-btn" data-analise-delta="-1" title="Subtrair 1 do total (−1 marcador)">−</button>
+                    <button type="button" class="bg3-analise-btn" data-analise-delta="+1" title="Somar 1 ao total (−1 marcador)">+</button>
+                  </div>
+                </div>`;
+            }
+            if (act.subType === 'prontidao') {
+              return `
+                <div class="bg3-card bg3-card-prontidao${!act.canAfford ? ' is-disabled' : ''}" data-card-sub="prontidao">
+                  <span class="bg3-card-value">↺</span>
+                  <i class="bg3-card-gem"></i>
+                  <span class="bg3-card-label">${safeHtml(act.label)}</span>
+                  ${act.cost ? `<span class="bg3-card-cost">2 PD</span>` : ''}
+                  <span class="bg3-card-hint">${safeHtml(act.hint)}</span>
+                  <button type="button" class="bg3-card-reroll-btn bg3-prontidao-btn" style="display:none;" title="Gastar 2 PD para rerolar">REROLAR</button>
+                </div>`;
+            }
+            return `
+              <button type="button"
+                class="bg3-card is-activatable${act.selected ? ' is-selected' : ''}${!act.canAfford ? ' is-disabled' : ''}"
+                data-activatable-idx="${idx}"
+                aria-pressed="${act.selected ? 'true' : 'false'}"
+                title="${act.canAfford ? 'Clique para ativar na rolagem' : (act.hint || 'Recursos insuficientes')}">
+                <span class="bg3-card-value">${safeHtml(act.displayValue || signed(act.value))}</span>
+                <i class="bg3-card-gem"></i>
+                <span class="bg3-card-label">${safeHtml(act.label)}</span>
+                ${act.cost ? `<span class="bg3-card-cost">${safeHtml(act.cost)}</span>` : ''}
+                ${act.hint ? `<span class="bg3-card-hint">${safeHtml(act.hint)}</span>` : ''}
+              </button>`;
+          }).join('')}
         </div>
-        <p class="bg3-bonus-total">Bônus total <b>${signed(modifier)}</b></p>` : ''}
+        <p class="bg3-bonus-total">Bônus total <b class="bg3-total-mod-val">${calcBonusDisplay()}</b></p>` : ''}
         <p class="bg3-hint">${waitForClick ? 'Espaço para rolar · Esc para cancelar' : ''}</p>
       </div>`;
     document.body.appendChild(stage);
@@ -877,16 +985,21 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
       const d = takeDie(S, cfg);
       d.index = i;
       d.cfg = cfg;
+      d.mesh.__die = d;
       return d;
     });
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let selectedDieIdx = currentCounted[0] ?? 0;
 
     // Espera: dados flutuando lado a lado, mostrando o maior número, como no jogo
     const tiltX = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), 0.32);
     const placeIdle = () => {
       const { hw } = halfExtents();
-      const spread = n > 1 ? Math.min(1.7, (hw * 2 - 1.3) / (n - 1)) : 0;
+      const currentN = dice.length;
+      const spread = currentN > 1 ? Math.min(1.7, (hw * 2 - 1.3) / (currentN - 1)) : 0;
       dice.forEach((d, i) => {
-        d.idlePos = new THREE.Vector3((i - (n - 1) / 2) * spread, CAM_H * (n === 1 ? 0.3 : 0.2), 0.05);
+        d.idlePos = new THREE.Vector3((i - (currentN - 1) / 2) * spread, CAM_H * (currentN === 1 ? 0.3 : 0.2), 0.05);
         const face = d.faces.find(f => f.value === d.sides) || d.faces[0];
         d.idleQuat = tiltX.clone().multiply(targetQuaternion(face, 0));
         d.mesh.position.copy(d.idlePos);
@@ -910,23 +1023,27 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
     const alive = () => { if (closed) throw CLOSED; };
 
     // Simulação começa já na abertura, fatiada; o clique só espera se ainda não terminou
-    const simPromise = (async () => {
-      await yieldToBrowser();
-      const { hw, hd } = halfExtents();
-      const result = await simulateThrow(dice, hw, hd, Math.min(4.2, CAM_H * 0.5), () => closed);
-      if (!result) return null;
-      dice.forEach((d, i) => {
-        const f = result.frames[i];
-        const last = f[f.length - 1];
-        const qf = new THREE.Quaternion(last[3], last[4], last[5], last[6]);
-        const face = d.faces.find(x => x.value === values[i]) || d.faces[0];
-        const qt = targetQuaternion(face, (Math.random() - 0.5) * 0.3);
-        d.relabel = qf.clone().invert().multiply(qt);
-        d.restPos = new THREE.Vector3(last[0], last[1], last[2]);
-        d.restQuat = qt;
-      });
-      return result;
-    })();
+    let currentSimPromise = null;
+    const computeSim = () => {
+      return (async () => {
+        await yieldToBrowser();
+        const { hw, hd } = halfExtents();
+        const result = await simulateThrow(dice, hw, hd, Math.min(4.2, CAM_H * 0.5), () => closed);
+        if (!result) return null;
+        dice.forEach((d, i) => {
+          const f = result.frames[i];
+          const last = f[f.length - 1];
+          const qf = new THREE.Quaternion(last[3], last[4], last[5], last[6]);
+          const face = d.faces.find(x => x.value === values[i]) || d.faces[0];
+          const qt = targetQuaternion(face, (Math.random() - 0.5) * 0.3);
+          d.relabel = qf.clone().invert().multiply(qt);
+          d.restPos = new THREE.Vector3(last[0], last[1], last[2]);
+          d.restQuat = qt;
+        });
+        return result;
+      })();
+    };
+    currentSimPromise = computeSim();
 
     const tmpQ = new THREE.Quaternion();
     const tmpQ2 = new THREE.Quaternion();
@@ -1081,7 +1198,7 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
         });
         alive();
       }
-      sim = await simPromise;
+      sim = await currentSimPromise;
       alive();
       if (!sim) throw new Error('simulação indisponível');
 
@@ -1144,7 +1261,7 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
 
       // 3. maior/menor: os outros apagam
       const main = chosenIndex >= 0 ? dice[chosenIndex] : (counted.length === 1 ? dice[counted[0]] : null);
-      const losers = dice.filter(d => main && d !== main && !d.gone && d.index !== dreadIndex);
+      const losers = dice.filter(d => main && d !== main && !d.gone && d.index !== dreadIndex && !d.cfg?.isImpeto);
       if (losers.length) {
         sfx?.whoosh(0, 0.3);
         await Promise.all(losers.map(d => fadeDie(d, { opacity: 0.3, dark: 0.75 }, 600)));
@@ -1199,9 +1316,13 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
 
       // 6. cartas de bônus voam e somam
       let running = baseValue;
-      const cards = [...stage.querySelectorAll('.bg3-card')];
-      for (let i = 0; i < parts.length; i++) {
-        const card = cards[i];
+      for (let i = 0; i < activeParts.length; i++) {
+        const part = activeParts[i];
+        const card = part.element;
+        if (!card) {
+          running += part.value;
+          continue;
+        }
         const value = card.querySelector('.bg3-card-value');
         card.classList.add('is-active');
         if (!skipping) {
@@ -1210,7 +1331,7 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
           const from = value.getBoundingClientRect();
           const to = totalEl.getBoundingClientRect();
           const fly = value.cloneNode(true);
-          fly.className = 'bg3-card-value bg3-fly';
+          fly.className = `bg3-card-value bg3-fly${part.isPenalty ? ' is-penalty' : ''}`;
           Object.assign(fly.style, { left: `${from.left}px`, top: `${from.top}px`, width: `${from.width}px`, height: `${from.height}px` });
           stage.appendChild(fly);
           const dx = to.left + to.width / 2 - (from.left + from.width / 2);
@@ -1223,65 +1344,277 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
           ], { duration: 580 * pace, easing: 'cubic-bezier(.45,0,.55,1)', fill: 'forwards' }).finished.catch(() => {});
           fly.remove();
           alive();
-          const steps = Math.min(Math.abs(parts[i].value), 8);
-          const dir = Math.sign(parts[i].value);
+          const steps = Math.min(Math.abs(part.value), 8);
+          const dir = Math.sign(part.value);
           for (let s = 1; s <= steps && !skipping; s++) {
-            setTotal(s === steps ? running + parts[i].value : running + dir * s);
-            sfx?.tick(s);
+            setTotal(s === steps ? running + part.value : running + dir * s);
+            if (part.isPenalty) sfx?.tickDown(s);
+            else sfx?.tick(s);
             await wait(70);
           }
           alive();
         }
         card.classList.add('is-spent');
-        running += parts[i].value;
+        running += part.value;
         setTotal(running);
         pulse(totalEl);
-        if (!skipping) sfx?.bell(i);
+        if (!skipping) {
+          if (part.isPenalty) sfx?.penalty(i);
+          else sfx?.bell(i);
+        }
         card.classList.remove('is-active');
         await wait(420);
         alive();
       }
-      setTotal(total);
-      await wait(parts.length ? 420 : 200);
+      setTotal(currentTotal);
+      await wait(activeParts.length ? 420 : 200);
       alive();
 
       // 7. veredito
       state = 'done';
       let word = '', tone = 'neutral';
-      if (cls.crit) { word = 'Sucesso Crítico'; tone = 'crit'; }
-      else if (cls.fumble) { word = 'Falha Crítica'; tone = 'fumble'; }
-      else if (success === true) { word = 'Sucesso'; tone = 'success'; }
-      else if (success === false) { word = 'Falha'; tone = 'failure'; }
-      const notes = [];
-      if (dreadIndex >= 0) {
-        if (vanquished) notes.push('✦ Pavor vencido');
-        else if (!countedValues.length) notes.push('O Pavor consumiu todos os dados');
-        else if (destroyed.size) notes.push(`O Pavor destruiu ${destroyed.size} ${destroyed.size === 1 ? 'dado' : 'dados'}`);
-        else notes.push('Você resistiu ao Pavor');
-      }
-      if (cls.ra !== null) notes.push(`RA ${cls.ra} · RB ${cls.rb}`);
-      verdictEl.innerHTML = `
-        <strong class="bg3-verdict-word${word ? '' : ' is-total'}">${word || `Total ${total}`}</strong>
-        ${notes.length ? `<span class="bg3-verdict-notes">${notes.map(safeHtml).join('<i>◆</i>')}</span>` : ''}`;
+      const evaluateVerdict = () => {
+        if (cls.crit) { word = 'Sucesso Crítico'; tone = 'crit'; }
+        else if (cls.fumble) { word = 'Falha Crítica'; tone = 'fumble'; }
+        else if (finalSuccess === true) { word = 'Sucesso'; tone = 'success'; }
+        else if (finalSuccess === false) { word = 'Falha'; tone = 'failure'; }
+        else { word = `Total ${currentTotal}`; tone = 'neutral'; }
+        const notes = [];
+        if (dreadIndex >= 0) {
+          if (vanquished) notes.push('✦ Pavor vencido');
+          else if (!countedValues.length) notes.push('O Pavor consumiu todos os dados');
+          else if (currentDestroyed.size) notes.push(`O Pavor destruiu ${currentDestroyed.size} ${currentDestroyed.size === 1 ? 'dado' : 'dados'}`);
+          else notes.push('Você resistiu ao Pavor');
+        }
+        if (cls.ra !== null) notes.push(`RA ${cls.ra} · RB ${cls.rb}`);
+        verdictEl.innerHTML = `
+          <strong class="bg3-verdict-word${word && !word.startsWith('Total') ? '' : ' is-total'}">${word}</strong>
+          ${notes.length ? `<span class="bg3-verdict-notes">${notes.map(safeHtml).join('<i>◆</i>')}</span>` : ''}`;
+        stage.classList.remove('tone-crit', 'tone-fumble', 'tone-success', 'tone-failure', 'tone-neutral');
+        stage.classList.add(`tone-${tone}`);
+        if (cls.crit) {
+          dice.forEach(d => {
+            if (currentCounted.includes(d.index)) {
+              d.material.emissive.set('#ffb02e');
+              d.material.emissiveIntensity = 0.8;
+            }
+          });
+        }
+      };
       stage.classList.remove('is-rolling');
-      stage.classList.add('is-done', `tone-${tone}`);
+      stage.classList.add('is-done');
+      evaluateVerdict();
       sfx?.verdict(tone);
       burstSparks(sp.x, sp.y, tone);
       if (main && (tone === 'crit' || tone === 'success')) {
         main.material.emissive.set(tone === 'crit' ? '#ffb02e' : '#c98a2a');
         tween(1100, e => { main.material.emissiveIntensity = Math.sin(e * Math.PI) * (tone === 'crit' ? 0.9 : 0.4); }, t => t);
       }
-      hint.textContent = 'Clique para continuar';
+
+      const updateDieSelectionVisual = () => {
+        dice.forEach((d, i) => {
+          const isSel = (i === selectedDieIdx);
+          if (isSel) {
+            d.material.emissive.set('#ffcf5a');
+            d.material.emissiveIntensity = 0.55;
+          } else if (cls.crit && currentCounted.includes(i)) {
+            d.material.emissive.set('#ffb02e');
+            d.material.emissiveIntensity = 0.65;
+          } else {
+            d.material.emissive.set(d.cfg?.dread ? '#7c3aed' : '#000000');
+            d.material.emissiveIntensity = d.cfg?.dread ? 0.28 : 0;
+          }
+        });
+        tray.querySelectorAll('.bg3-die-target').forEach(btn => {
+          const idx = Number(btn.dataset.pickDie);
+          btn.classList.toggle('is-selected', idx === selectedDieIdx);
+        });
+      };
+
+      const renderDieTargetsOverlay = () => {
+        let targetsEl = tray.querySelector('.bg3-die-targets');
+        if (!targetsEl) {
+          targetsEl = document.createElement('div');
+          targetsEl.className = 'bg3-die-targets';
+          tray.appendChild(targetsEl);
+        }
+        const idx = selectedDieIdx;
+        const d = dice[idx];
+        if (!d || !currentCounted.includes(idx)) { targetsEl.innerHTML = ''; return; }
+        const val = values[idx];
+        const name = d.cfg?.label || `d${d.sides}`;
+        const sp = toScreen(d.mesh.position);
+        const bits = [];
+        if (armed === 'analise' && analiseReaction) {
+          const adj = analiseAdj[idx] || 0;
+          const can = dir => (dir < 0 ? val > 1 : val < d.sides) && (analiseCharges > 0 || adj * dir < 0);
+          const tip = dir => (adj * dir < 0 ? 'Desfazer: devolve o marcador' : 'Gasta 1 marcador de Análise');
+          bits.push(`<span class="bg3-pop-group">
+            <i>Análise</i>
+            <button type="button" class="bg3-chip-act bg3-analise-step" data-die-idx="${idx}" data-analise-delta="-1" title="${tip(-1)}" ${can(-1) ? '' : 'disabled'}>−</button>
+            <button type="button" class="bg3-chip-act bg3-analise-step" data-die-idx="${idx}" data-analise-delta="+1" title="${tip(1)}" ${can(1) ? '' : 'disabled'}>+</button>
+          </span>`);
+        }
+        if (armed === 'prontidao' && prontidaoReaction && !prontidaoUsed) {
+          const off = !prontidaoAvailable || val === 1;
+          bits.push(`<span class="bg3-pop-group">
+            <i>Prontidão</i>
+            <button type="button" class="bg3-chip-act bg3-chip-reroll bg3-prontidao-btn" data-reroll-idx="${idx}" title="${!prontidaoAvailable ? 'PD insuficiente (2 PD)' : val === 1 ? 'Não rerola resultado 1' : 'Rerolar este dado (2 PD)'}" ${off ? 'disabled' : ''}>↺ 2 PD</button>
+          </span>`);
+        }
+        targetsEl.innerHTML = bits.length ? `
+          <div class="bg3-die-pop" style="left:${sp.x}px; top:${Math.min(H - 30, sp.y + 46)}px;">${bits.join('')}</div>` : '';
+      };
+
+      const renderReactionsUi = () => {
+        const reactionsEl = stage.querySelector('.bg3-reactions');
+        if (!currentCounted.includes(selectedDieIdx)) selectedDieIdx = -1;
+        if (armed && selectedDieIdx === -1 && currentCounted.length === 1) selectedDieIdx = currentCounted[0];
+        updateDieSelectionVisual();
+        renderDieTargetsOverlay();
+
+        // Os cards de baixo são os botões: refletem recursos e a habilidade "armada"
+        stage.querySelectorAll('.bg3-analise-count').forEach(el => { el.textContent = String(analiseCharges); });
+        const setCard = (sel, off, on) => stage.querySelectorAll(sel).forEach(c => { c.classList.toggle('is-disabled', off); c.classList.toggle('is-armed', on); c.classList.add('is-post'); });
+        setCard('[data-card-sub="analise"]', analiseCharges < 1 && !Object.values(analiseAdj).some(v => v), armed === 'analise');
+        setCard('[data-card-sub="prontidao"]', !prontidaoAvailable || prontidaoUsed, armed === 'prontidao');
+        stage.querySelectorAll('.bg3-card[data-activatable-idx]').forEach(c => {
+          const a = activatables[Number(c.dataset.activatableIdx)];
+          if (a?.subType !== 'impeto') return;
+          c.classList.toggle('is-disabled', impetoCharges < 1);
+          c.classList.remove('is-spent');
+          c.classList.add('is-post');
+          const h = c.querySelector('.bg3-card-hint');
+          if (h) h.textContent = `${impetoCharges}/5 disp.`;
+        });
+
+        if (reactionsEl) {
+          const msg = armed && selectedDieIdx === -1 ? `${armed === 'analise' ? 'Análise' : 'Prontidão'}: clique em um dado`
+            : (!armed && (analiseReaction || prontidaoReaction || impetoReaction) ? 'Opcional · use os cards abaixo' : '');
+          reactionsEl.innerHTML = `
+            ${msg ? `<p class="bg3-opt-hint">${msg}</p>` : ''}
+            <button type="button" class="bg3-confirm-done-btn"><span>Continuar (Espaço / Esc)</span></button>`;
+        }
+      };
+      selectedDieIdx = -1;
+      postRoll = { render: renderReactionsUi, verdict: evaluateVerdict, sp };
+      renderReactionsUi();
+
+      hint.textContent = 'Espaço ou Esc para fechar';
       finish();
 
-      const life = quick ? 3800 : (tone === 'crit' || tone === 'fumble' ? 11000 : 9000);
+      const hasReactions = (analiseReaction && analiseCharges > 0) || (prontidaoReaction && prontidaoAvailable && !prontidaoUsed && values.some(v => v !== 1)) || (impetoCharges > 0);
+      const life = hasReactions ? 60000 : (quick ? 4200 : (tone === 'crit' || tone === 'fumble' ? 11000 : 9000));
       const t = setTimeout(() => closeDiceCinematicAlt(), life);
       timers.add(t);
+    };
+
+    const rerollDie = async (d) => {
+      const newVal = Math.floor(Math.random() * d.sides) + 1;
+      const face = d.faces.find(f => f.value === newVal) || d.faces[0];
+      d.faces.forEach(f => {
+        f.hidden = (f !== face);
+        f.label.material.opacity = (f === face ? 1 : 0);
+      });
+      d.mesh.visible = true;
+      d.material.opacity = 1;
+      d.material.emissive.set('#000000');
+      sfx?.shake(1);
+      sfx?.whoosh(0, 0.4);
+
+      const startP = d.mesh.position.clone();
+      const upP = startP.clone().add(new THREE.Vector3(0, -0.6, 0.8));
+      const qt = targetQuaternion(face, (Math.random() - 0.5) * 0.3);
+
+      await tween(580, (e, t) => {
+        d.mesh.position.lerpVectors(startP, upP, Math.sin(e * Math.PI));
+        d.mesh.quaternion.slerp(qt, e).premultiply(tmpQ.setFromAxisAngle(yAxis, (1 - e) * 8));
+      });
+      d.mesh.quaternion.copy(qt);
+      d.mesh.position.copy(startP);
+      sfx?.settle();
+      return newVal;
+    };
+
+    // Recalcula resultado/veredito depois de qualquer mudança nos dados (Ímpeto, Análise, Prontidão).
+    let postRoll = null; // preenchido no veredito: { render, verdict }
+    const syncOutcome = () => {
+      const o = calcOutcome(Number(payload.modifier ?? modifier) || 0);
+      ({ destroyed, counted, countedValues, chosenValue, chosenIndex, vanquished } = o);
+      cls = classify(o);
+      baseValue = baseOf(o);
+      currentCounted = [...counted, ...(o.impetoCounted || [])];
+      currentTotal = o.total;
+      payload.total = currentTotal;
+      payload.values = [...values];
+      payload.dice = payload.values;
+      payload.destroyed = [...destroyed];
+      payload.breakdown = list.map((d, i) => ({
+        sides: d.sides, value: values[i], label: d.label || '',
+        isChosen: i === chosenIndex, dread: i === dreadIndex, destroyed: destroyed.has(i),
+        discarded: (chosenIndex >= 0 && i !== chosenIndex && !d.isImpeto) || destroyed.has(i) || i === dreadIndex
+      }));
+      payload.chosenValue = o.chosenValue;
+      if (dt !== null) { finalSuccess = currentTotal >= dt; payload.success = finalSuccess; }
+      return o;
     };
 
     const start = () => {
       if (state !== 'waiting') return;
       state = 'starting';
+
+      const selectedActs = activatables.filter(a => a.selected);
+      if (selectedActs.some(a => a.subType === 'impeto')) impetoCharges = Math.max(0, impetoCharges - 1);
+      if (selectedActs.length && typeof options.onConsume === 'function') {
+        options.onConsume(selectedActs.map(a => a.raw || a));
+      }
+
+      const resolvedActs = selectedActs.map(a => {
+        let val = a.value;
+        let label = a.label;
+        if (a.subType === 'impeto') {
+          // Ímpeto já foi adicionado como dado físico 3D na bandeja!
+          val = 0;
+          label = `${a.label} (+d4 no teste)`;
+        } else if (a.diceRoll === '1d4') {
+          const roll1d4 = Math.floor(Math.random() * 4) + 1;
+          val = roll1d4;
+          label = `${a.label} (+${roll1d4})`;
+        }
+        return {
+          label,
+          value: val,
+          isPenalty: val < 0,
+          element: stage.querySelector(`[data-activatable-idx="${activatables.indexOf(a)}"]`),
+          resolvedVal: val
+        };
+      });
+
+      resolvedActs.forEach(ra => {
+        if (ra.element && ra.resolvedVal !== 0) {
+          const valEl = ra.element.querySelector('.bg3-card-value');
+          if (valEl) valEl.textContent = signed(ra.resolvedVal);
+        }
+      });
+
+      activeParts = [
+        ...parts.map((p, i) => ({
+          ...p,
+          element: stage.querySelector(`.bg3-card[data-card="${i}"]`)
+        })),
+        ...resolvedActs.filter(ra => ra.value !== 0)
+      ];
+
+      const activeMod = activeParts.reduce((acc, p) => acc + p.value, 0);
+      currentTotal = baseValue + activeMod;
+      payload.total = currentTotal;
+      payload.modifier = activeMod;
+      payload.modifierParts = activeParts.map(p => ({ label: p.label, value: p.value, isPenalty: p.isPenalty }));
+      if (dt !== null) {
+        finalSuccess = currentTotal >= dt;
+        payload.success = finalSuccess;
+      }
+
       runSequence().catch(err => {
         if (err === CLOSED) return;
         console.error(err);
@@ -1296,7 +1629,6 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
         e.preventDefault();
         e.stopPropagation();
         if (e.key === 'Escape') {
-          // Esc: cancela antes de rolar; durante a animação, pula; no fim, fecha
           if (state === 'rolling') skip();
           else closeDiceCinematicAlt();
           return;
@@ -1309,11 +1641,196 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
       e.stopPropagation();
       if (e.target.closest('.bg3-close')) { closeDiceCinematicAlt(); return; }
       if (state === 'waiting') {
+        const actBtn = e.target.closest('[data-activatable-idx]');
+        if (actBtn) {
+          const idx = Number(actBtn.dataset.activatableIdx);
+          const act = activatables[idx];
+          if (act) {
+            if (!act.canAfford) {
+              actBtn.classList.remove('is-shaking');
+              void actBtn.offsetWidth;
+              actBtn.classList.add('is-shaking');
+              sfx?.penalty?.();
+              setStatus(`${act.label}: ${act.hint || 'recursos insuficientes'}`);
+              setTimeout(() => setStatus(''), 2200);
+              return;
+            }
+            act.selected = !act.selected;
+            actBtn.classList.toggle('is-selected', act.selected);
+            actBtn.setAttribute('aria-pressed', act.selected ? 'true' : 'false');
+            const totalValEl = stage.querySelector('.bg3-total-mod-val');
+            if (totalValEl) totalValEl.textContent = calcBonusDisplay();
+            sfx?.tick(act.selected ? 3 : 1);
+
+            // Se for Ímpeto, adiciona ou remove o d4 físico 3D na bandeja antes da rolagem!
+            if (act.subType === 'impeto') {
+              if (act.selected) {
+                const impetoCfg = { sides: 4, color: '#e0150d', label: 'Ímpeto', isImpeto: true };
+                list.push(impetoCfg);
+                values.push(Math.floor(Math.random() * 4) + 1);
+                const d = takeDie(S, impetoCfg);
+                d.index = dice.length;
+                d.cfg = impetoCfg;
+                d.mesh.__die = d;
+                dice.push(d);
+                currentCounted.push(d.index);
+                placeIdle();
+                syncOutcome();
+                currentSimPromise = computeSim();
+                sfx?.whoosh?.(0, 0.3);
+              } else {
+                const impIdx = list.findIndex(c => c.isImpeto);
+                if (impIdx >= 0) {
+                  list.splice(impIdx, 1);
+                  values.splice(impIdx, 1);
+                  const [d] = dice.splice(impIdx, 1);
+                  if (d) releaseDie(S, d);
+                  const cIdx = currentCounted.indexOf(impIdx);
+                  if (cIdx >= 0) currentCounted.splice(cIdx, 1);
+                  dice.forEach((di, i) => { di.index = i; });
+                  placeIdle();
+                  syncOutcome();
+                  currentSimPromise = computeSim();
+                }
+              }
+            }
+          }
+          return;
+        }
         if (e.target.closest('.bg3-roll-btn, .bg3-tray')) start();
         return;
       }
-      if (state === 'done') closeDiceCinematicAlt();
-      else skip();
+      if (state === 'done') {
+        // Ações pós-rolagem, aplicadas ao dado escolhido no próprio dado
+        const refreshAfter = (kind) => {
+          syncOutcome();
+          setTotal(currentTotal);
+          pulse(totalEl);
+          if (kind === 'up' || kind === 'impeto') { sfx?.bell?.(); burstSparks(postRoll.sp.x, postRoll.sp.y, cls.crit ? 'crit' : 'success'); }
+          else if (kind === 'down') sfx?.penalty?.();
+          else sfx?.reveal?.();
+          if (cls.crit && kind !== 'up') burstSparks(postRoll.sp.x, postRoll.sp.y, 'crit');
+          postRoll.verdict();
+          postRoll.render();
+        };
+        const showFace = (d, v, ms = 220) => {
+          const face = d.faces.find(f => f.value === v) || d.faces[0];
+          d.faces.forEach(f => { f.hidden = (f !== face); f.label.material.opacity = (f === face ? 1 : 0); });
+          const qt = targetQuaternion(face, (Math.random() - 0.5) * 0.1);
+          tween(ms, e2 => d.mesh.quaternion.slerp(qt, e2));
+        };
+
+        // Ímpeto: +1d4 que rola na bandeja e soma ao teste (gasta 1 espaço da barra)
+        const doImpeto = () => {
+          const spent = options.onSpendMarker ? options.onSpendMarker(impetoReaction?.cardId || 'impeto', impetoReaction?.markerId || 'impeto-m', 1) : true;
+          if (spent === false) return;
+          impetoCharges = Math.max(0, impetoCharges - 1);
+          const impetoCfg = { sides: 4, color: '#e0150d', label: 'Ímpeto', isImpeto: true };
+          const d = takeDie(S, impetoCfg);
+          d.index = dice.length;
+          d.cfg = impetoCfg;
+          d.mesh.__die = d;
+          dice.push(d);
+          list.push(impetoCfg);
+          values.push(1);
+          d.mesh.position.set(0, CAM_H * 0.22, 0.4);
+          rerollDie(d).then(newVal => {
+            values[d.index] = newVal;
+            refreshAfter('impeto');
+          });
+        };
+
+        // Cards de baixo: Ímpeto rola o d4; Análise/Prontidão armam o ajuste de um dado
+        const cardEl = e.target.closest('.bg3-card.is-activatable, .bg3-card-analise, .bg3-card-prontidao');
+        if (cardEl && postRoll) {
+          const act = cardEl.dataset.activatableIdx !== undefined ? activatables[Number(cardEl.dataset.activatableIdx)] : null;
+          if (act?.subType === 'impeto') {
+            if (impetoCharges < 1) { sfx?.penalty?.(); return; }
+            doImpeto();
+          } else if (cardEl.dataset.cardSub === 'analise' || cardEl.dataset.cardSub === 'prontidao') {
+            const kind = cardEl.dataset.cardSub;
+            armed = armed === kind ? null : kind;
+            sfx?.tick?.(2);
+            postRoll.render();
+          }
+          return;
+        }
+
+        // Análise: ±1 no dado (inverter o mesmo dado devolve o marcador)
+        const analiseBtn = e.target.closest('.bg3-analise-step');
+        if (analiseBtn && postRoll) {
+          if (analiseBtn.disabled) return;
+          const dieIdx = Number(analiseBtn.dataset.dieIdx);
+          const delta = Number(analiseBtn.dataset.analiseDelta) || 0;
+          const d = dice[dieIdx];
+          const nextVal = d ? values[dieIdx] + delta : 0;
+          const adj = analiseAdj[dieIdx] || 0;
+          const refund = adj * delta < 0;
+          if (d && delta && nextVal >= 1 && nextVal <= d.sides && (refund || analiseCharges > 0)) {
+            const mk = [analiseReaction?.cardId || 'analise', analiseReaction?.markerId || 'analise-m', 1];
+            const ok = refund
+              ? (options.onRefundMarker ? options.onRefundMarker(...mk) : true)
+              : (options.onSpendMarker ? options.onSpendMarker(...mk) : true);
+            if (ok !== false) {
+              analiseCharges += refund ? 1 : -1;
+              analiseAdj[dieIdx] = adj + delta;
+              values[dieIdx] = nextVal;
+              showFace(d, nextVal);
+              refreshAfter(delta > 0 ? 'up' : 'down');
+            }
+          }
+          return;
+        }
+
+        // Prontidão: rerola o dado (uma vez, resultado ≠ 1)
+        const prontidaoBtn = e.target.closest('.bg3-prontidao-btn');
+        if (prontidaoBtn && postRoll) {
+          if (prontidaoBtn.disabled || prontidaoUsed) return;
+          const dieIdx = Number(prontidaoBtn.dataset.rerollIdx);
+          const d = dice[dieIdx];
+          if (d && values[dieIdx] !== 1) {
+            const spent = options.onSpendPd ? options.onSpendPd(2, 'Prontidão') : true;
+            if (spent !== false) {
+              prontidaoUsed = true;
+              armed = null;
+              rerollDie(d).then(newVal => {
+                values[dieIdx] = newVal;
+                delete analiseAdj[dieIdx];
+                refreshAfter('reroll');
+              });
+            }
+          }
+          return;
+        }
+
+        // Seleção via clique direto na bandeja 3D (raycast)
+        if (!e.target.closest('.bg3-die-pop') && e.target.closest('.bg3-tray, .bg3-canvas')) {
+          const rect = renderer.domElement.getBoundingClientRect();
+          mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+          mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+          raycaster.setFromCamera(mouse, camera);
+          const meshes = currentCounted.map(i => dice[i]?.mesh).filter(Boolean);
+          const hits = raycaster.intersectObjects(meshes, true);
+          if (hits.length > 0) {
+            let obj = hits[0].object;
+            while (obj && !obj.__die) obj = obj.parent;
+            if (obj && obj.__die) {
+              selectedDieIdx = obj.__die.index;
+              postRoll?.render();
+              sfx?.tick(2);
+              return;
+            }
+          }
+          if (selectedDieIdx !== -1) { selectedDieIdx = -1; postRoll?.render(); return; }
+        }
+
+        if (e.target.closest('.bg3-confirm-done-btn, .bg3-shade')) {
+          closeDiceCinematicAlt();
+          return;
+        }
+        return;
+      }
+      if (state === 'rolling') skip();
     };
     stage.addEventListener('click', onInput);
     window.addEventListener('keydown', onInput, true);
