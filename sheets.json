@@ -194,7 +194,7 @@
             "type": "pips",
             "displayStyle": "rectangles",
             "label": "Marcadores de Análise",
-            "current": 2,
+            "current": 0,
             "maxFormula": "4"
           }
         ],
@@ -330,7 +330,7 @@
     "pv": 20,
     "maxPv": 20,
     "pvTemp": 0,
-    "pd": 8,
+    "pd": 12,
     "maxPd": 12,
     "pdTemp": 0,
     "history": "Rowan (RÓ-u-an) era a prole mais nova de uma numerosa família camponesa. Quando criança, era apenas mais uma boca para alimentar. Na mesma época, seu tio Fergus Mac Colum (FÉR-gus mak KÓ-lum), então caçador da vila de Ballynyr, começou a mostrar sinais de velhice. Sem filhos, precisava de um aprendiz a quem transmitir seu ofício. Assim, a família enviou Rowan. Realizava trabalho braçal, como carregar peles pesadas, cortar lenha e limpar armadilhas e, em troca, o tio lhe ensinava a arte de fabricar arcos, curtir couro, rastrear animais e manejar armas.\n\nAdaptou-se bem a vida nos ermos, pois nunca foi muito sociável, trocando com alegria a companhia de humanos pela de animais. Mata para preservar o ciclo da vida, mas também é capaz de poupar — e até cativar — mesmo o mais temido predador. Foi em uma noite sem lua que encontrou um lobo ferido. Era uma rara variedade castanha. Outros diriam que o certo era matá-lo, mas Rowan escolheu a vida. Tratou os ferimentos do lobo sem esperar nada em troca, mas recebeu uma amizade eterna. Hoje, os dois são inseparáveis.\n\nRowan anda sempre em companhia da fera, o que desperta a desconfiança dos moradores da vila. Dizem os mais supersticiosos que Rowan enxerga através dos olhos da besta, ou até que é capaz de assumir uma forma lupina. Rhiona Mac Tuirenn não acredita nisso. Muirenn Lua Pálida talvez até acredite, mas não se importa. São as únicas pessoas, além do tio idoso, com quem Rowan se importa… quase como se fossem animais.",

@@ -1334,7 +1334,8 @@ body.orientation-prompt-active .mobile-orientation-prompt{
     position: relative !important;
     z-index: 2 !important;
   }
-  .vigilia-powers-list {
+  .vigilia-powers-list,
+  .vigilia-abilities-list {
     display: flex !important;
     flex-direction: column !important;
     gap: 10px !important;
@@ -1833,7 +1834,8 @@ body.orientation-prompt-active .mobile-orientation-prompt{
     position: relative !important;
     z-index: 2 !important;
   }
-  .vigilia-powers-list {
+  .vigilia-powers-list,
+  .vigilia-abilities-list {
     flex: 1 !important;
     min-height: 0 !important;
     max-height: calc(100vh - 146px) !important;
@@ -5665,11 +5667,45 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
   font-size: 10.5px;
 }
 
-/* Cards de Habilidade */
+/* Cards de Habilidade e Condições (Lesões, Traumas) */
+.vigilia-col-powers {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .vigilia-abilities-list {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  max-height: min(650px, calc(100vh - 360px));
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  padding-right: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #52665a rgba(20, 32, 26, 0.4);
+}
+
+.vigilia-abilities-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.vigilia-abilities-list::-webkit-scrollbar-track {
+  background: rgba(20, 32, 26, 0.4);
+  border-radius: 4px;
+}
+
+.vigilia-abilities-list::-webkit-scrollbar-thumb {
+  background: #52665a;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vigilia-abilities-list::-webkit-scrollbar-thumb:hover {
+  background: #738e7f;
 }
 
 .vigilia-power-card,
