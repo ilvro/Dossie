@@ -269,7 +269,7 @@ function topFace(die) {
  * - todo dado com valor MENOR que o do pavor é destruído (anulado);
  * - se o pavor tirar 1, nada é destruído e o pavor é vencido.
  */
-function computeOutcome(dice, values, rollMode, modifier, dreadIndex) {
+export function computeOutcome(dice, values, rollMode, modifier, dreadIndex) {
   const dreadValue = dreadIndex >= 0 ? values[dreadIndex] : null;
   const vanquished = dreadValue === 1;
   const destroyed = new Set();
@@ -958,6 +958,7 @@ export function rollDice3d(configs, title = 'Rolagem', modifier = 0, sharedAudio
 }
 
 export function closeDice3d(opts = {}) {
+  document.getElementById('bg3-roll-stage')?._close?.();
   const immediate = typeof opts === 'boolean' ? opts : Boolean(opts?.immediate);
   pendingFinish?.();
   pendingFinish = null;
