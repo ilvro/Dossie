@@ -250,7 +250,7 @@ const PROFILE_ABILITIES={
   Vigilante:{id:'prontidao',profileAbility:'Vigilante',themeLinked:true,schema:'abilities',title:'PRONTIDÃO',type:'Habilidade de Perfil',cost:'2 PD',content:'**Uma vez por rodada**, quando você ou outro ser em **alcance curto** faz um teste, você pode [color=#2d863f]**gastar 2 PD**[/color] para **rolar novamente**, ou para fazer o outro ser rolar novamente, **um dos dados do teste** cujo resultado **não tenha sido 1**.\n\nAlém disso, em **combates**, você pode fazer sua ação **na fase dela ou em fases posteriores**, e após qualquer ação daquela fase **já ter sido rolada**.',accent:'#2d863f',icon:'◆',markers:[],actions:[]},
   Analista:{id:'analise',profileAbility:'Analista',themeLinked:true,schema:'abilities',title:'ANÁLISE',type:'Habilidade de Perfil',content:'Você pode **gastar uma ação** para receber [color=#2162ff]**2 marcadores de análise**[/color].\n- Quando faz um teste, **pode gastar quantos marcadores quiser após rolar os dados**. Para cada marcador gasto, pode mudar o resultado de um dado **em +1 ou –1** (até o máximo do dado).\n- Você pode acumular **no máximo 4 marcadores de análise** e, no fim da cena, **perde** quaisquer marcadores não usados.',accent:'#2162ff',icon:'◈',markers:[{id:'analise-m',type:'pips',displayStyle:'rectangles',label:'Marcadores de Análise',current:0,maxFormula:'4'}],actions:[]}
 };
-const defaults={name:'ALAN',occupation:'Cientista',profile:'Executor',level:2,pv:10,maxPv:12,pvTemp:0,pd:16,maxPd:18,pdTemp:0,history:'',tokenImage:'',backgroundImage:'',backgroundBlur:0,backgroundZoom:100,diceColor:'',themeColor:'',viewMode:'traditional',cinematicTokenX:50,cinematicTokenY:52,cinematicTokenScale:100,cinematicOutlineSide:'left',cinematicOutlineIntensity:0.5,cinematicOutlineWidth:1.8,cinematicOutlineFade:1.5,cinematicCollapsed:{abilities:false,items:true,history:true},attributes:{Físico:6,Mente:8,Emoção:8},skills:defaultSkills,cards:defaultCards};
+const defaults={name:'ALAN',occupation:'Cientista',profile:'Executor',level:2,pv:10,maxPv:12,pvTemp:0,pd:16,maxPd:18,pdTemp:0,history:'',tokenImage:'',backgroundImage:'',backgroundBlur:0,backgroundZoom:100,vigiliaTokenX:0,vigiliaTokenY:0,vigiliaTokenScale:100,vigiliaBgBlur:0,vigiliaBgZoom:100,vigiliaBgDim:0,vigiliaBackground:'',diceColor:'',themeColor:'',viewMode:'traditional',cinematicTokenX:50,cinematicTokenY:52,cinematicTokenScale:100,cinematicOutlineSide:'left',cinematicOutlineIntensity:0.5,cinematicOutlineWidth:1.8,cinematicOutlineFade:1.5,cinematicCollapsed:{abilities:false,items:true,history:true},attributes:{Físico:6,Mente:8,Emoção:8},skills:defaultSkills,cards:defaultCards};
 
 const safe=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const blobUrlCache=new Map();
@@ -780,6 +780,13 @@ function normalizeSheet(raw={}){
  sheet.cinematicOutlineWidth=Math.max(0,Math.min(10,Number(raw.cinematicOutlineWidth??1.8)));sheet.cinematicOutlineFade=Math.max(0,Math.min(10,Number(raw.cinematicOutlineFade??1.5)));
  sheet.backgroundBlur=Math.max(0,Math.min(50,Number(raw.backgroundBlur??0)));
  sheet.backgroundZoom=Math.max(20,Math.min(300,Number(raw.backgroundZoom??100)));
+ sheet.vigiliaTokenX=Math.max(-60,Math.min(60,Number(raw.vigiliaTokenX??sheet.vigiliaTokenX??0)));
+ sheet.vigiliaTokenY=Math.max(-60,Math.min(60,Number(raw.vigiliaTokenY??sheet.vigiliaTokenY??0)));
+ sheet.vigiliaTokenScale=Math.max(30,Math.min(250,Number(raw.vigiliaTokenScale??sheet.vigiliaTokenScale??100)));
+ sheet.vigiliaBgBlur=Math.max(0,Math.min(30,Number(raw.vigiliaBgBlur??sheet.vigiliaBgBlur??0)));
+ sheet.vigiliaBgZoom=Math.max(50,Math.min(250,Number(raw.vigiliaBgZoom??sheet.vigiliaBgZoom??100)));
+ sheet.vigiliaBgDim=Math.max(0,Math.min(90,Number(raw.vigiliaBgDim??sheet.vigiliaBgDim??0)));
+ sheet.vigiliaBackground=raw.vigiliaBackground??sheet.vigiliaBackground??'';
  sheet.cinematicCollapsed={...defaults.cinematicCollapsed,...sheet.cinematicCollapsed,abilities:false};
  return sheet;
 }
@@ -1721,7 +1728,7 @@ function collectActiveInputs(){
    em memória até o jogador clicar em SALVAR (ou é desfeito em DESCARTAR / ao
    recarregar a página). */
 // (viewMode e cinematicCollapsed são só estado de interface, então também não contam como edição)
-const LIVE_FIELDS=['pv','pvTemp','pvMarcas','pd','pdTemp','pe','peTemp','san','sanTemp','sanMarcas','condicoesAtivas','viewMode','cinematicCollapsed'];
+const LIVE_FIELDS=['pv','pvTemp','pvMarcas','pd','pdTemp','pe','peTemp','san','sanTemp','sanMarcas','condicoesAtivas','viewMode','cinematicCollapsed','lesoesCountScene','traumasCountScene','dadoPavor','pavorEmbraced'];
 const LIVE_MARKER_FIELDS=['current','slots'];
 const draftBaseline=new Map(); // id -> cópia da ficha como estava ao entrar no modo edição
 const dirtySheets=new Set();   // ids com alterações de edição ainda não salvas

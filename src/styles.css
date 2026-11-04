@@ -5678,7 +5678,7 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-height: min(650px, calc(100vh - 360px));
+  max-height: min(500px, calc(100vh - 420px));
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
@@ -5956,7 +5956,7 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
   position: relative;
   display: flex;
   justify-content: flex-end;
-  align-items: stretch;
+  align-items: flex-start;
   overflow: visible;
   z-index: 1;
 }
@@ -5966,8 +5966,9 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
   top: -160px;
   right: -45px;
   width: 800px;
-  height: calc(100% + 220px);
+  height: 840px;
   min-height: 840px;
+  max-height: 840px;
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
