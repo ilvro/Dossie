@@ -411,11 +411,18 @@ function targetQuaternion(face, twist) {
 /* SIMULAÇÃO (pré-calculada)                                           */
 /* ================================================================== */
 
-const SIM_HZ = 120;
+const SIM_HZ = 60;
+const yieldToBrowser = () => new Promise(r => setTimeout(r, 0));
 
-function simulateThrow(dice, halfW, halfD, ceiling = 4) {
+// Simulação fatiada: roda em pedaços de ~6 ms para nunca congelar a página
+async function simulateThrow(dice, halfW, halfD, ceiling = 4, isAborted = () => false) {
   let result = null;
-  for (let attempt = 0; attempt < 8; attempt++) {
+  let sliceStart = performance.now();
+  const maybeYield = async () => {
+    if (performance.now() - sliceStart > 6) { await yieldToBrowser(); sliceStart = performance.now(); }
+  };
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (isAborted()) return null;
     const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -21, 0) });
     world.allowSleep = true;
     const diceMat = new CANNON.Material('die');
@@ -453,7 +460,7 @@ function simulateThrow(dice, halfW, halfD, ceiling = 4) {
       let last = -99;
       body.addEventListener('collide', e => {
         const v = Math.abs(e.contact?.getImpactVelocityAlongNormal?.() || 0);
-        if (v > 0.6 && step - last > 5) { last = step; impacts.push({ step, v, die: i }); }
+        if (v > 0.6 && step - last > 2) { last = step; impacts.push({ step, v, die: i }); }
       });
       world.addBody(body);
       return body;
@@ -468,11 +475,15 @@ function simulateThrow(dice, halfW, halfD, ceiling = 4) {
         const k = Math.min(1, (step - SIM_HZ * 2.2) / (SIM_HZ * 0.9));
         bodies.forEach(b => { b.angularDamping = 0.09 + k * 0.8; b.linearDamping = 0.035 + k * 0.8; });
       }
-      world.step(1 / SIM_HZ);
+      world.step(1 / SIM_HZ, 1 / SIM_HZ, 2);
       bodies.forEach((b, i) => frames[i].push([b.position.x, b.position.y, b.position.z, b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w]));
       const resting = bodies.every(b => b.sleepState === CANNON.Body.SLEEPING || (b.velocity.length() < 0.05 && b.angularVelocity.length() < 0.08));
       quiet = resting ? quiet + 1 : 0;
-      if (quiet > 12 && step > SIM_HZ * 1.5) break;
+      if (quiet > 6 && step > SIM_HZ * 1.5) break;
+      if ((step & 7) === 0) {
+        await maybeYield();
+        if (isAborted()) return null;
+      }
     }
     result = { frames, impacts, steps: frames[0].length };
     // Recusa arremessos com dado empilhado ou fora da bandeja
@@ -480,8 +491,8 @@ function simulateThrow(dice, halfW, halfD, ceiling = 4) {
       const last = f[f.length - 1];
       return last[1] < DIE_R * 1.25 && Math.abs(last[0]) < halfW && Math.abs(last[2]) < halfD;
     });
-    // prefere arremessos que rolam por pelo menos ~1,9 s
-    if (ok && (result.steps >= SIM_HZ * 1.9 || attempt >= 4)) break;
+    // prefere arremessos que rolam por pelo menos ~1,8 s
+    if (ok && (result.steps >= SIM_HZ * 1.8 || attempt >= 2)) break;
   }
   return result;
 }
@@ -527,14 +538,199 @@ function modeLabel(list, rollMode, dreadIndex) {
   return pool + extra;
 }
 
-const CORNER = `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M2 62 V18 Q2 2 18 2 H62"/><path class="thin" d="M9 62 V22 Q9 9 22 9 H62"/><path class="gem" d="M18 11 l7 7 l-7 7 l-7 -7 z"/></svg>`;
 
 
-const KNOT = `<svg viewBox="0 0 120 14" aria-hidden="true"><path d="M2 7 H44 M76 7 H118"/><path d="M48 7 c4 -6 8 -6 12 0 s8 6 12 0 M48 7 c4 6 8 6 12 0 s8 -6 12 0"/><circle cx="60" cy="7" r="1.6"/></svg>`;
+
+/* ================================================================== */
+/* RENDERIZADOR E CENA COMPARTILHADOS                                  */
+/* Um único contexto WebGL para todas as rolagens: os shaders compilam  */
+/* uma vez só e os dados são reaproveitados (nada de travar a cada uso).*/
+/* ================================================================== */
+
+let shared = null;
+
+function getShared() {
+  if (shared && !shared.lost) return shared;
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+  renderer.domElement.className = 'bg3-canvas';
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  renderer.toneMappingExposure = 0.9;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  pmrem.dispose();
+
+  const scene = new THREE.Scene();
+  scene.environment = env;
+  const camera = new THREE.PerspectiveCamera(30, 1.6, 0.1, 60);
+  camera.up.set(0, 0, -1);
+
+  const hemi = new THREE.HemisphereLight(0xfff1dc, 0x1a1008, 0.35);
+  const key = new THREE.DirectionalLight(0xffe2b8, 1.7);
+  key.position.set(-4, 10, -5);
+  key.castShadow = true;
+  key.shadow.mapSize.set(1024, 1024);
+  Object.assign(key.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9 });
+  key.shadow.camera.updateProjectionMatrix();
+  key.shadow.radius = 6;
+  key.shadow.bias = -0.0008;
+  const candle = new THREE.PointLight(0xff9a4a, 7, 14, 1.6);
+  candle.position.set(5, 3, 3);
+  // Duas luzes reservadas (apagadas): o Pavor acrescenta duas luzes próprias;
+  // trocamos uma pela outra para o número de luzes não mudar e nada recompilar.
+  const reserve = [0, 1].map(() => new THREE.PointLight(0xffffff, 0, 1));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.ShadowMaterial({ opacity: 0.55 }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(hemi, key, candle, ...reserve, floor);
+
+  const S = { renderer, scene, camera, hemi, key, candle, reserve, pool: new Map(), lost: false, warm: false };
+  renderer.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); S.lost = true; });
+  shared = S;
+  return S;
+}
+
+// Os efeitos do Pavor criam e descartam materiais a cada uso; descartar o material
+// apaga o programa compilado e a próxima rolagem recompila tudo (~1 s travado).
+// Enquanto a sequência roda, os materiais adicionados à cena não liberam o programa.
+const keepMaterial = m => { if (m && !m.__bg3Kept) { m.__bg3Kept = true; m.dispose = () => {}; } };
+function keepEffectPrograms(scene) {
+  if (scene.__bg3Add) return;
+  scene.__bg3Add = scene.add;
+  scene.add = function (...objs) {
+    objs.forEach(o => o?.traverse?.(c => [].concat(c.material || []).forEach(keepMaterial)));
+    return scene.__bg3Add.apply(this, objs);
+  };
+}
+function releaseEffectPrograms(scene) {
+  if (!scene.__bg3Add) return;
+  scene.add = scene.__bg3Add;
+  delete scene.__bg3Add;
+}
+
+function takeDie(S, cfg) {
+  const sides = [4, 6, 8, 10, 12, 20].includes(Number(cfg.sides)) ? Number(cfg.sides) : 20;
+  const free = S.pool.get(sides) || [];
+  S.pool.set(sides, free);
+  const d = free.pop() || buildDie({ sides });
+  const color = new THREE.Color(cfg.dread ? '#5b21b6' : (cfg.color || '#9f1d24'));
+  d.baseColor.copy(color);
+  d.material.color.copy(color);
+  d.material.opacity = 1;
+  d.material.emissive.set(cfg.dread ? '#7c3aed' : '#000000');
+  d.material.emissiveIntensity = cfg.dread ? 0.28 : 0;
+  d.edges.material.opacity = 0.16;
+  d.faces.forEach(f => { f.hidden = false; f.label.material.opacity = 1; });
+  d.mesh.visible = true;
+  d.mesh.castShadow = true;
+  d.mesh.scale.setScalar(1);
+  d.mesh.position.set(0, 0, 0);
+  d.gone = false;
+  S.scene.add(d.mesh);
+  return d;
+}
+
+function releaseDie(S, d) {
+  S.scene.remove(d.mesh);
+  S.pool.get(d.sides)?.push(d);
+}
+
+/* ================================================================== */
+/* MOLDURA (SVG)                                                       */
+/* ================================================================== */
+
+// Espaço da moldura: 340 × 496 (y de -26 a 470). Os elementos HTML são
+// posicionados em % desse espaço, então tudo escala junto.
+const FW = 340, FH = 496, FY = -26;
+const pctX = x => `${(x / FW) * 100}%`;
+const pctY = y => `${((y - FY) / FH) * 100}%`;
+const TRAY = { x: 30, y: 156, w: 280, h: 172 };
+
+const ARCH_OUT = 'M18 452 L18 128 C18 78 60 52 104 38 C136 28 156 18 170 8 C184 18 204 28 236 38 C280 52 322 78 322 128 L322 452 L190 452 L170 466 L150 452 Z';
+const ARCH_IN = 'M26 444 L26 131 C26 86 64 61 107 47 C138 37 158 28 170 18 C182 28 202 37 233 47 C276 61 314 86 314 131 L314 444 L188 444 L170 456 L152 444 Z';
+
+const diamond = (cx, cy, r) => `M${cx} ${cy - r} L${cx + r * 0.72} ${cy} L${cx} ${cy + r} L${cx - r * 0.72} ${cy} Z`;
+
+function triquetra(cx, cy, r) {
+  const pts = [-90, 30, 150].map(a => [cx + r * Math.cos(a * Math.PI / 180), cy + r * Math.sin(a * Math.PI / 180)]);
+  const dist = Math.hypot(pts[0][0] - pts[1][0], pts[0][1] - pts[1][1]);
+  const R = (dist * 0.62).toFixed(2);
+  const lens = (a, b) => `M${a[0].toFixed(2)} ${a[1].toFixed(2)} A${R} ${R} 0 0 1 ${b[0].toFixed(2)} ${b[1].toFixed(2)} A${R} ${R} 0 0 1 ${a[0].toFixed(2)} ${a[1].toFixed(2)}`;
+  return `<path class="f-knot" d="${lens(pts[0], pts[1])} ${lens(pts[1], pts[2])} ${lens(pts[2], pts[0])}"/><circle class="f-knot" cx="${cx}" cy="${cy}" r="${(r * 0.62).toFixed(2)}"/>`;
+}
+
+// voluta nos "ombros" do arco
+const SCROLL = 'c0 -16 12 -24 24 -19 c8 3.5 6 13 -1.5 13 c-6 0 -6.5 -7.5 -.5 -7.5';
+
+function frameSvg(theme, uid) {
+  const vig = theme === 'vigilia';
+  const t = TRAY;
+  const bracket = (x, y, sx, sy) => `<path class="f-line" d="M${x} ${y + sy * 16} V${y} H${x + sx * 16}"/>`;
+  const knotDivider = vig
+    ? `<path class="f-thin" d="M66 142 H146 M194 142 H274"/>${triquetra(170, 142, 9)}`
+    : `<path class="f-thin" d="M66 142 H150 M190 142 H274"/><path class="f-gem" d="${diamond(170, 142, 7)}"/><circle class="f-orn" cx="156" cy="142" r="1.8"/><circle class="f-orn" cx="184" cy="142" r="1.8"/>`;
+  const finial = vig
+    ? `${triquetra(170, -8, 13)}`
+    : `<path class="f-gem f-glow" d="${diamond(170, -6, 12)}"/><path class="f-thin" d="M146 -6 H156 M184 -6 H194"/>`;
+  return `
+  <svg class="bg3-frame" viewBox="0 ${FY} ${FW} ${FH}" preserveAspectRatio="none" aria-hidden="true">
+    <defs>
+      <linearGradient id="${uid}-fill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" class="f-stop-top"/>
+        <stop offset="1" class="f-stop-bot"/>
+      </linearGradient>
+      <radialGradient id="${uid}-glow" cx="50%" cy="22%" r="60%">
+        <stop offset="0" class="f-glow-in"/>
+        <stop offset="1" stop-opacity="0" class="f-glow-out"/>
+      </radialGradient>
+      ${vig ? `
+      <pattern id="${uid}-tex" patternUnits="userSpaceOnUse" width="${FW}" height="${FH}" y="${FY}">
+        <image href="/assets/vigilia/vigilia-bg.png" width="${FW}" height="${FH}" preserveAspectRatio="xMidYMid slice"/>
+      </pattern>
+      <filter id="${uid}-worn" x="-5%" y="-5%" width="110%" height="110%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="7"/>
+        <feDisplacementMap in="SourceGraphic" scale="1.8"/>
+      </filter>` : ''}
+    </defs>
+    <path class="f-shadow" d="${ARCH_OUT}"/>
+    <path d="${ARCH_OUT}" fill="url(#${uid}-fill)"/>
+    ${vig ? `<path d="${ARCH_OUT}" fill="url(#${uid}-tex)" class="f-tex"/>` : ''}
+    <path d="${ARCH_OUT}" fill="url(#${uid}-glow)"/>
+    <g ${vig ? `filter="url(#${uid}-worn)"` : ''}>
+      <path class="f-line f-main" d="${ARCH_OUT}"/>
+      <path class="f-thin" d="${ARCH_IN}"/>
+      ${finial}
+      <path class="f-line" d="M40 118 ${SCROLL}"/>
+      <path class="f-line" transform="translate(340 0) scale(-1 1)" d="M40 118 ${SCROLL}"/>
+      <circle class="f-line" cx="170" cy="96" r="33"/>
+      <circle class="f-thin" cx="170" cy="96" r="27.5"/>
+      <path class="f-gem" d="${diamond(170, 63, 4.5)}"/>
+      <path class="f-gem" d="${diamond(137, 96, 4.5)}"/>
+      <path class="f-gem" d="${diamond(203, 96, 4.5)}"/>
+      ${knotDivider}
+      <rect class="f-tray" x="${t.x}" y="${t.y}" width="${t.w}" height="${t.h}" rx="3"/>
+      ${bracket(t.x - 4, t.y - 4, 1, 1)}${bracket(t.x + t.w + 4, t.y - 4, -1, 1)}
+      ${bracket(t.x - 4, t.y + t.h + 4, 1, -1)}${bracket(t.x + t.w + 4, t.y + t.h + 4, -1, -1)}
+      <path class="f-gem" d="${diamond(18, 250, 8)}"/>
+      <path class="f-gem" d="${diamond(322, 250, 8)}"/>
+      <path class="f-thin" d="M18 236 V214 M18 264 V286 M322 236 V214 M322 264 V286"/>
+      <path class="f-gem" d="${diamond(170, 462, 7)}"/>
+      ${vig ? `${triquetra(44, 430, 7)}${triquetra(296, 430, 7)}` : `<path class="f-orn" d="${diamond(44, 432, 4)}"/><path class="f-orn" d="${diamond(296, 432, 4)}"/>`}
+    </g>
+  </svg>`;
+}
+
+const DIE_ICON = `<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 L35 11.5 V28.5 L20 37 L5 28.5 V11.5 Z M20 3 L12 25 H28 Z M12 25 L5 28.5 M28 25 L35 28.5 M12 25 L20 37 L28 25 M20 3 L5 11.5 L12 25 M20 3 L35 11.5 L28 25"/></svg>`;
 
 /* ================================================================== */
 /* FUNÇÃO PRINCIPAL                                                    */
 /* ================================================================== */
+
+let stageUid = 0;
 
 export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, sharedAudioContext = null, rollMode = 'sum', options = {}) {
   const list = (Array.isArray(configs) ? configs : [{ sides: configs }]).map(c => (typeof c === 'number' ? { sides: c } : c));
@@ -560,26 +756,9 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
   const dt = options.dt != null && Number.isFinite(Number(options.dt)) ? Number(options.dt) : info.dt;
   const success = dt !== null ? total >= dt : null;
 
-  const parts = (options.modifierParts || []).map(p => ({
-    label: p.label || 'BÔNUS',
-    value: Number(p.value) || 0,
-    isPenalty: p.value < 0 || Boolean(p.isPenalty)
-  })).filter(p => p.value);
+  const parts = (options.modifierParts || []).map(p => ({ label: p.label || 'BÔNUS', value: Number(p.value) || 0 })).filter(p => p.value);
   const partsSum = parts.reduce((a, p) => a + p.value, 0);
-  if (partsSum !== modifier) {
-    const diff = modifier - partsSum;
-    if (diff !== 0) parts.push({ label: 'BÔNUS', value: diff, isPenalty: diff < 0 });
-  }
-
-  const activatables = (options.activatables || []).map((a, i) => ({
-    id: a.id || `act-${i}`,
-    label: a.label || 'HABILIDADE',
-    value: Number(a.value) || 0,
-    cost: a.cost || '',
-    canAfford: a.canAfford !== false,
-    selected: false,
-    raw: a
-  }));
+  if (partsSum !== modifier) parts.push({ label: 'BÔNUS', value: modifier - partsSum });
 
   const reduced = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   const quick = options.scene !== 'full';
@@ -588,6 +767,7 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
   const theme = options.theme === 'vigilia' ? 'vigilia' : 'cinematic';
   const accent = /^#[0-9a-f]{6}$/i.test(options.accent || '') ? options.accent : '#e0150d';
   const signed = v => `${v >= 0 ? '+' : '−'}${Math.abs(v)}`;
+  const uid = `bg3f${++stageUid}`;
 
   const payload = {
     values, total, chosenValue, chosenIndex, rollMode,
@@ -608,7 +788,8 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
 
   return new Promise(resolve => {
     let resolved = false;
-    const finish = () => { if (!resolved) { resolved = true; resolve(payload); } };
+    let rolled = false; // antes de rolar, fechar = cancelar (resolve null)
+    const finish = () => { if (!resolved) { resolved = true; resolve(rolled ? payload : null); } };
 
     /* ---------- DOM ---------- */
     const stage = document.createElement('div');
@@ -618,6 +799,7 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
     stage.setAttribute('role', 'dialog');
     stage.setAttribute('aria-label', `Rolagem: ${info.name}`);
     const sub = [info.kind, info.who].filter(Boolean).join(' · ');
+    const place = (x, y, w, h) => `left:${pctX(x)};top:${pctY(y)};width:${pctX(w)};height:${(h / FH) * 100}%`;
     stage.innerHTML = `
       <div class="bg3-shade"></div>
       <div class="bg3-dread-veil"></div>
@@ -627,103 +809,64 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
           ${sub ? `<p class="bg3-sub"><span>${safeHtml(sub)}</span></p>` : ''}
         </header>
         <section class="bg3-board">
-          <i class="bg3-corner tl">${CORNER}</i><i class="bg3-corner tr">${CORNER}</i><i class="bg3-corner bl">${CORNER}</i><i class="bg3-corner br">${CORNER}</i>
-          <div class="bg3-dc">
-            ${dt !== null
-              ? `<span class="bg3-dc-label">Classe de Dificuldade</span><b class="bg3-dc-value">${dt}</b>`
-              : `<span class="bg3-dc-label">Rolagem</span><b class="bg3-dc-value is-mode">${safeHtml(modeLabel(list, rollMode, dreadIndex))}</b>`}
-          </div>
-          <div class="bg3-knot">${KNOT}</div>
-          <div class="bg3-tray">
-            <canvas class="bg3-canvas"></canvas>
+          ${frameSvg(theme, uid)}
+          <button type="button" class="bg3-close" aria-label="Fechar rolagem" title="Fechar (Esc)">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5 L15 15 M15 5 L5 15"/></svg>
+          </button>
+          <span class="bg3-dc-label" style="top:${pctY(46)}">${dt !== null ? 'Classe de Dificuldade' : 'Rolagem'}</span>
+          <b class="bg3-dc-value${dt === null ? ' is-icon' : ''}" style="top:${pctY(96)}">${dt !== null ? dt : DIE_ICON}</b>
+          <div class="bg3-tray" style="${place(TRAY.x, TRAY.y, TRAY.w, TRAY.h)}">
             <div class="bg3-total"><span class="bg3-total-num"></span></div>
             <div class="bg3-sparks"></div>
           </div>
-          <div class="bg3-action">
+          <div class="bg3-action" style="${place(34, 338, 272, 96)}">
             <button type="button" class="bg3-roll-btn"><span>Clique no dado para rolar</span></button>
             <p class="bg3-status" aria-live="polite"></p>
             <div class="bg3-verdict" aria-live="polite"></div>
           </div>
         </section>
-        ${dt !== null ? `<p class="bg3-mode">${safeHtml(modeLabel(list, rollMode, dreadIndex))}</p>` : ''}
-        ${(parts.length || activatables.length) ? `
-        <div class="bg3-bonuses">
-          ${parts.map((p, i) => `
-            <div class="bg3-card ${p.value < 0 ? 'is-penalty' : 'is-bonus'}" data-card="${i}">
-              <span class="bg3-card-value">${signed(p.value)}</span>
-              <i class="bg3-card-gem"></i>
-              <span class="bg3-card-label">${safeHtml(p.label)}</span>
-            </div>`).join('')}
-          ${activatables.map((a, i) => `
-            <button type="button" class="bg3-card is-activatable ${a.value < 0 ? 'is-penalty' : 'is-bonus'} ${!a.canAfford ? 'is-disabled' : ''}" data-activatable-idx="${i}" ${!a.canAfford ? 'disabled title="Recursos insuficientes"' : 'title="Clique para ativar/desativar este efeito"'}>
-              <span class="bg3-card-value">${signed(a.value)}</span>
-              <i class="bg3-card-gem"></i>
-              <span class="bg3-card-label">${safeHtml(a.label)}</span>
-              ${a.cost ? `<span class="bg3-card-cost">${safeHtml(a.cost)}</span>` : ''}
-            </button>`).join('')}
+        <p class="bg3-mode">${safeHtml(modeLabel(list, rollMode, dreadIndex))}</p>
+        ${parts.length ? `
+        <div class="bg3-bonuses">${parts.map((p, i) => `
+          <div class="bg3-card" data-card="${i}">
+            <span class="bg3-card-value">${signed(p.value)}</span>
+            <i class="bg3-card-gem"></i>
+            <span class="bg3-card-label">${safeHtml(p.label)}</span>
+          </div>`).join('')}
         </div>
-        <p class="bg3-bonus-total">Bônus total <b class="bg3-total-mod-val">${signed(modifier)}</b></p>` : ''}
-        <p class="bg3-hint">${waitForClick ? 'Espaço para rolar' : ''}</p>
+        <p class="bg3-bonus-total">Bônus total <b>${signed(modifier)}</b></p>` : ''}
+        <p class="bg3-hint">${waitForClick ? 'Espaço para rolar · Esc para cancelar' : ''}</p>
       </div>`;
     document.body.appendChild(stage);
     activeStage = stage;
 
     const tray = stage.querySelector('.bg3-tray');
-    const canvas = stage.querySelector('.bg3-canvas');
     const totalEl = stage.querySelector('.bg3-total');
     const totalNum = stage.querySelector('.bg3-total-num');
     const sparks = stage.querySelector('.bg3-sparks');
     const btn = stage.querySelector('.bg3-roll-btn');
+    const closeBtn = stage.querySelector('.bg3-close');
     const statusEl = stage.querySelector('.bg3-status');
     const verdictEl = stage.querySelector('.bg3-verdict');
     const hint = stage.querySelector('.bg3-hint');
     const setStatus = text => { statusEl.textContent = text || ''; stage.classList.toggle('has-status', Boolean(text)); };
 
-    /* ---------- Three.js ---------- */
-    let W = tray.clientWidth || 340;
-    let H = tray.clientHeight || 210;
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setSize(W, H, false);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.NeutralToneMapping;
-    renderer.toneMappingExposure = 0.9;
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    /* ---------- cena compartilhada ---------- */
+    const S = getShared();
+    const { renderer, scene, camera, hemi, key, candle, reserve } = S;
+    tray.prepend(renderer.domElement);
+    let W = tray.clientWidth || 280;
+    let H = tray.clientHeight || 172;
 
-    const scene = new THREE.Scene();
-    const pmrem = new THREE.PMREMGenerator(renderer);
-    const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-    scene.environment = envTex;
-
-    // Com mais dados a câmera sobe um pouco, para todos caberem na bandeja
     const n = list.length;
     const CAM_H = n <= 2 ? 7 : n === 3 ? 8.4 : 9.6 + (n - 4) * 0.9;
     const FOV = 30;
-    const camera = new THREE.PerspectiveCamera(FOV, W / H, 0.1, 60);
+    camera.fov = FOV;
     camera.position.set(0, CAM_H, 0);
-    camera.up.set(0, 0, -1);
     camera.lookAt(0, 0, 0);
-
-    const hemi = new THREE.HemisphereLight(0xfff1dc, 0x1a1008, 0.35);
-    scene.add(hemi);
-    const key = new THREE.DirectionalLight(0xffe2b8, 1.7);
-    key.position.set(-4, 10, -5);
-    key.castShadow = true;
-    key.shadow.mapSize.set(1024, 1024);
-    Object.assign(key.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9 });
-    key.shadow.camera.updateProjectionMatrix();
-    key.shadow.radius = 6;
-    key.shadow.bias = -0.0008;
-    scene.add(key);
-    const candle = new THREE.PointLight(theme === 'vigilia' ? 0x9fd8c0 : 0xff9a4a, 7, 14, 1.6);
-    candle.position.set(5, 3, 3);
-    scene.add(candle);
-
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.ShadowMaterial({ opacity: 0.55 }));
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    scene.add(floor);
+    candle.color.set(theme === 'vigilia' ? 0x9fd8c0 : 0xff9a4a);
+    hemi.intensity = 0.35;
+    key.intensity = 1.7;
 
     const halfExtents = () => {
       const hd = CAM_H * Math.tan(THREE.MathUtils.degToRad(FOV / 2));
@@ -731,10 +874,9 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
     };
 
     const dice = list.map((cfg, i) => {
-      const d = buildDie(cfg);
+      const d = takeDie(S, cfg);
       d.index = i;
       d.cfg = cfg;
-      scene.add(d.mesh);
       return d;
     });
 
@@ -752,40 +894,9 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
       });
     };
 
-    // Simulação pré-calculada + renomeação das faces
-    let sim = null;
-    const prepare = () => {
-      const { hw, hd } = halfExtents();
-      sim = simulateThrow(dice, hw, hd, Math.min(4.2, CAM_H * 0.5));
-      dice.forEach((d, i) => {
-        const f = sim.frames[i];
-        const last = f[f.length - 1];
-        const qf = new THREE.Quaternion(last[3], last[4], last[5], last[6]);
-        const face = d.faces.find(x => x.value === values[i]) || d.faces[0];
-        const qt = targetQuaternion(face, (Math.random() - 0.5) * 0.3);
-        d.relabel = qf.clone().invert().multiply(qt);
-        d.restPos = new THREE.Vector3(last[0], last[1], last[2]);
-        d.restQuat = qt;
-      });
-    };
-
-    const tmpQ = new THREE.Quaternion();
-    const yAxis = new THREE.Vector3(0, 1, 0);
-    const applyFrame = (d, k) => {
-      const frames = sim.frames[d.index];
-      const f = frames[Math.min(k, frames.length - 1)];
-      d.mesh.position.set(f[0], f[1], f[2]);
-      tmpQ.set(f[3], f[4], f[5], f[6]);
-      d.mesh.quaternion.copy(tmpQ).multiply(d.relabel);
-    };
-
-    const toScreen = v => {
-      const p = v.clone().project(camera);
-      return { x: (p.x * 0.5 + 0.5) * W, y: (-p.y * 0.5 + 0.5) * H };
-    };
-
     /* ---------- controle de tempo ---------- */
     let mode = 'idle';
+    let sim = null;
     let simStart = 0;
     let simDone = null;
     let dreadRun = null;
@@ -797,6 +908,48 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
     const pending = new Set();
     const timers = new Set();
     const alive = () => { if (closed) throw CLOSED; };
+
+    // Simulação começa já na abertura, fatiada; o clique só espera se ainda não terminou
+    const simPromise = (async () => {
+      await yieldToBrowser();
+      const { hw, hd } = halfExtents();
+      const result = await simulateThrow(dice, hw, hd, Math.min(4.2, CAM_H * 0.5), () => closed);
+      if (!result) return null;
+      dice.forEach((d, i) => {
+        const f = result.frames[i];
+        const last = f[f.length - 1];
+        const qf = new THREE.Quaternion(last[3], last[4], last[5], last[6]);
+        const face = d.faces.find(x => x.value === values[i]) || d.faces[0];
+        const qt = targetQuaternion(face, (Math.random() - 0.5) * 0.3);
+        d.relabel = qf.clone().invert().multiply(qt);
+        d.restPos = new THREE.Vector3(last[0], last[1], last[2]);
+        d.restQuat = qt;
+      });
+      return result;
+    })();
+
+    const tmpQ = new THREE.Quaternion();
+    const tmpQ2 = new THREE.Quaternion();
+    const yAxis = new THREE.Vector3(0, 1, 0);
+    // reprodução com interpolação entre os quadros de 60 Hz
+    const applyFrame = (d, kf) => {
+      const frames = sim.frames[d.index];
+      const last = frames.length - 1;
+      const i = Math.min(Math.floor(kf), last);
+      const j = Math.min(i + 1, last);
+      const t = Math.min(1, kf - Math.floor(kf));
+      const a = frames[i], b = frames[j];
+      d.mesh.position.set(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t);
+      tmpQ.set(a[3], a[4], a[5], a[6]);
+      tmpQ2.set(b[3], b[4], b[5], b[6]);
+      tmpQ.slerp(tmpQ2, t);
+      d.mesh.quaternion.copy(tmpQ).multiply(d.relabel);
+    };
+
+    const toScreen = v => {
+      const p = v.clone().project(camera);
+      return { x: (p.x * 0.5 + 0.5) * W, y: (-p.y * 0.5 + 0.5) * H };
+    };
 
     const tween = (ms, fn, ease = easeInOutCubic) => new Promise(res => {
       if (closed) return res();
@@ -821,35 +974,42 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
     /* ---------- loop ---------- */
     const frame = now => {
       if (closed) return;
-      if (mode === 'idle') {
-        dice.forEach((d, i) => {
-          const t = now / 1000 + i * 1.3;
-          d.mesh.position.y = d.idlePos.y + Math.sin(t * 1.4) * 0.1;
-          d.mesh.quaternion.copy(d.idleQuat).premultiply(tmpQ.setFromAxisAngle(yAxis, Math.sin(t * 0.7) * 0.28));
+      try {
+        if (mode === 'idle') {
+          dice.forEach((d, i) => {
+            const t = now / 1000 + i * 1.3;
+            d.mesh.position.y = d.idlePos.y + Math.sin(t * 1.4) * 0.1;
+            d.mesh.quaternion.copy(d.idleQuat).premultiply(tmpQ.setFromAxisAngle(yAxis, Math.sin(t * 0.7) * 0.28));
+          });
+        } else if (mode === 'throw') {
+          const kf = skipping ? sim.steps : ((now - simStart) / 1000) * SIM_HZ * (quick ? 1.25 : 1);
+          while (nextImpact < sim.impacts.length && sim.impacts[nextImpact].step <= kf) {
+            const im = sim.impacts[nextImpact++];
+            if (!skipping) sfx?.clack(Math.min(1.1, im.v / 6), 0, 1);
+          }
+          dice.forEach(d => applyFrame(d, kf));
+          if (kf >= sim.steps - 1) {
+            mode = 'still';
+            dice.forEach(d => { d.mesh.position.copy(d.restPos); d.mesh.quaternion.copy(d.restQuat); });
+            simDone?.();
+          }
+        }
+        if (dreadRun) {
+          if (skipping) { dreadRun.seq.finish(); dreadRun.done(); }
+          else if (!dreadRun.seq.update(now)) dreadRun.done();
+        }
+        tweens.forEach(tw => {
+          const t = tw.ms ? clamp01((now - tw.start) / tw.ms) : 1;
+          tw.fn(tw.ease(t), t);
+          if (t >= 1) { tweens.delete(tw); tw.res(); }
         });
-      } else if (mode === 'throw') {
-        const k = skipping ? sim.steps : Math.floor(((now - simStart) / 1000) * SIM_HZ * (quick ? 1.25 : 1));
-        while (nextImpact < sim.impacts.length && sim.impacts[nextImpact].step <= k) {
-          const im = sim.impacts[nextImpact++];
-          if (!skipping) sfx?.clack(Math.min(1.1, im.v / 6), 0, 1);
-        }
-        dice.forEach(d => applyFrame(d, k));
-        if (k >= sim.steps - 1) {
-          mode = 'still';
-          dice.forEach(d => { d.mesh.position.copy(d.restPos); d.mesh.quaternion.copy(d.restQuat); });
-          simDone?.();
-        }
+        renderer.render(scene, camera);
+      } catch (err) {
+        // um erro num quadro nunca deve prender a tela: fecha e devolve o resultado
+        console.error(err);
+        closeDiceCinematicAlt({ immediate: true });
+        return;
       }
-      if (dreadRun) {
-        if (skipping) { dreadRun.seq.finish(); dreadRun.done(); dreadRun = null; }
-        else if (!dreadRun.seq.update(now)) { dreadRun.done(); dreadRun = null; }
-      }
-      tweens.forEach(tw => {
-        const t = tw.ms ? clamp01((now - tw.start) / tw.ms) : 1;
-        tw.fn(tw.ease(t), t);
-        if (t >= 1) { tweens.delete(tw); tw.res(); }
-      });
-      renderer.render(scene, camera);
       raf = requestAnimationFrame(frame);
     };
 
@@ -894,7 +1054,7 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
 
     /* ---------- sequência ---------- */
     let state = 'waiting';
-    const pulse = (el, cls = 'is-pulse') => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); };
+    const pulse = (el, c = 'is-pulse') => { el.classList.remove(c); void el.offsetWidth; el.classList.add(c); };
     const setTotal = (v, size) => {
       totalNum.textContent = String(v);
       if (size) totalEl.style.setProperty('--size', `${size}px`);
@@ -902,11 +1062,12 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
 
     const runSequence = async () => {
       state = 'rolling';
+      rolled = true;
       stage.classList.remove('is-waiting');
       stage.classList.add('is-rolling');
       hint.textContent = '';
 
-      // 1. chacoalhar e arremessar
+      // 1. chacoalhar (enquanto a física termina, se ainda não terminou)
       if (!skipping) {
         sfx?.shake(n);
         const from = dice.map(d => d.mesh.position.clone());
@@ -920,6 +1081,10 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
         });
         alive();
       }
+      sim = await simPromise;
+      alive();
+      if (!sim) throw new Error('simulação indisponível');
+
       const startPose = dice.map(d => {
         const f = sim.frames[d.index][0];
         return { p: new THREE.Vector3(f[0], f[1], f[2]), q: new THREE.Quaternion(f[3], f[4], f[5], f[6]).multiply(d.relabel) };
@@ -942,10 +1107,12 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
       if (dreadIndex >= 0) {
         stage.classList.add('is-dread');
         setStatus(vanquished ? 'O Pavor estremece…' : 'O Pavor desperta…');
-        await wait(260);
+        await wait(300);
         alive();
         await new Promise(res => {
           if (skipping) return res();
+          scene.remove(...reserve);
+          keepEffectPrograms(scene);
           const seq = createDreadSequence({
             scene, camera, dice, dreadIndex,
             victims: [...destroyed],
@@ -956,9 +1123,10 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
             onImpact: kind => {
               pulse(stage, kind === 'vanquished' ? 'is-dread-light' : 'is-dread-hit');
               if (kind === 'shatter') setStatus('O Pavor despedaça seus dados');
+              if (kind === 'vanquished') setStatus('A luz rompe o Pavor!');
             }
           });
-          dreadRun = { seq, done: res };
+          dreadRun = { seq, done: () => { dreadRun = null; releaseEffectPrograms(scene); scene.add(...reserve); res(); } };
         });
         alive();
         // ao pular, a sequência não roda: some com os destruídos direto
@@ -976,7 +1144,7 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
 
       // 3. maior/menor: os outros apagam
       const main = chosenIndex >= 0 ? dice[chosenIndex] : (counted.length === 1 ? dice[counted[0]] : null);
-      const losers = dice.filter(d => main && d !== main && !d.gone && !destroyed.has(d.index) && d.index !== dreadIndex);
+      const losers = dice.filter(d => main && d !== main && !d.gone && d.index !== dreadIndex);
       if (losers.length) {
         sfx?.whoosh(0, 0.3);
         await Promise.all(losers.map(d => fadeDie(d, { opacity: 0.3, dark: 0.75 }, 600)));
@@ -1013,7 +1181,7 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
       const sp = toScreen(focus);
       totalEl.style.left = `${sp.x}px`;
       totalEl.style.top = `${sp.y}px`;
-      setTotal(baseValue, Math.round(Math.min(H * (main ? 0.3 : 0.34), 84)));
+      setTotal(baseValue, Math.round(Math.min(H * (main ? 0.32 : 0.36), 84)));
       if (main) {
         const face = main.faces.find(f => f.value === values[main.index]);
         if (face) face.hidden = true;
@@ -1031,21 +1199,18 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
 
       // 6. cartas de bônus voam e somam
       let running = baseValue;
-      stage.querySelectorAll('.bg3-card.is-activatable:not(.is-active-toggle)').forEach(c => c.classList.add('is-spent'));
-      const cards = [...stage.querySelectorAll('.bg3-card:not(.is-activatable), .bg3-card.is-active-toggle')];
-      for (let i = 0; i < activeParts.length; i++) {
+      const cards = [...stage.querySelectorAll('.bg3-card')];
+      for (let i = 0; i < parts.length; i++) {
         const card = cards[i];
-        const part = activeParts[i];
-        const isPenalty = part.value < 0;
-        const value = card ? card.querySelector('.bg3-card-value') : null;
-        if (card) card.classList.add('is-active');
-        if (!skipping && value) {
+        const value = card.querySelector('.bg3-card-value');
+        card.classList.add('is-active');
+        if (!skipping) {
           await wait(200);
           alive();
           const from = value.getBoundingClientRect();
           const to = totalEl.getBoundingClientRect();
           const fly = value.cloneNode(true);
-          fly.className = `bg3-card-value bg3-fly ${isPenalty ? 'is-penalty' : ''}`;
+          fly.className = 'bg3-card-value bg3-fly';
           Object.assign(fly.style, { left: `${from.left}px`, top: `${from.top}px`, width: `${from.width}px`, height: `${from.height}px` });
           stage.appendChild(fly);
           const dx = to.left + to.width / 2 - (from.left + from.width / 2);
@@ -1058,30 +1223,26 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
           ], { duration: 580 * pace, easing: 'cubic-bezier(.45,0,.55,1)', fill: 'forwards' }).finished.catch(() => {});
           fly.remove();
           alive();
-          const steps = Math.min(Math.abs(part.value), 8);
-          const dir = Math.sign(part.value);
+          const steps = Math.min(Math.abs(parts[i].value), 8);
+          const dir = Math.sign(parts[i].value);
           for (let s = 1; s <= steps && !skipping; s++) {
-            setTotal(s === steps ? running + part.value : running + dir * s);
-            if (isPenalty) sfx?.tickDown?.(s) || sfx?.tick(s);
-            else sfx?.tick(s);
+            setTotal(s === steps ? running + parts[i].value : running + dir * s);
+            sfx?.tick(s);
             await wait(70);
           }
           alive();
         }
-        if (card) card.classList.add('is-spent');
-        running += part.value;
+        card.classList.add('is-spent');
+        running += parts[i].value;
         setTotal(running);
-        pulse(totalEl, isPenalty ? 'is-penalty-pulse' : 'is-pulse');
-        if (!skipping) {
-          if (isPenalty) sfx?.penalty?.(i);
-          else sfx?.bell(i);
-        }
-        if (card) card.classList.remove('is-active');
+        pulse(totalEl);
+        if (!skipping) sfx?.bell(i);
+        card.classList.remove('is-active');
         await wait(420);
         alive();
       }
-      setTotal(currentTotal);
-      await wait(activeParts.length ? 420 : 200);
+      setTotal(total);
+      await wait(parts.length ? 420 : 200);
       alive();
 
       // 7. veredito
@@ -1089,8 +1250,8 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
       let word = '', tone = 'neutral';
       if (cls.crit) { word = 'Sucesso Crítico'; tone = 'crit'; }
       else if (cls.fumble) { word = 'Falha Crítica'; tone = 'fumble'; }
-      else if (finalSuccess === true) { word = 'Sucesso'; tone = 'success'; }
-      else if (finalSuccess === false) { word = 'Falha'; tone = 'failure'; }
+      else if (success === true) { word = 'Sucesso'; tone = 'success'; }
+      else if (success === false) { word = 'Falha'; tone = 'failure'; }
       const notes = [];
       if (dreadIndex >= 0) {
         if (vanquished) notes.push('✦ Pavor vencido');
@@ -1100,7 +1261,7 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
       }
       if (cls.ra !== null) notes.push(`RA ${cls.ra} · RB ${cls.rb}`);
       verdictEl.innerHTML = `
-        <strong class="bg3-verdict-word${word ? '' : ' is-total'}">${word || `Total ${currentTotal}`}</strong>
+        <strong class="bg3-verdict-word${word ? '' : ' is-total'}">${word || `Total ${total}`}</strong>
         ${notes.length ? `<span class="bg3-verdict-notes">${notes.map(safeHtml).join('<i>◆</i>')}</span>` : ''}`;
       stage.classList.remove('is-rolling');
       stage.classList.add('is-done', `tone-${tone}`);
@@ -1118,36 +1279,12 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
       timers.add(t);
     };
 
-    let activeParts = [...parts];
-    let currentTotal = total;
-    let finalSuccess = success;
-
     const start = () => {
       if (state !== 'waiting') return;
       state = 'starting';
-
-      const selectedActs = activatables.filter(a => a.selected);
-      if (selectedActs.length) {
-        options.onConsume?.(selectedActs.map(a => a.raw || a));
-      }
-      activeParts = [
-        ...parts,
-        ...selectedActs.map(a => ({ label: a.label, value: a.value, isPenalty: a.value < 0 }))
-      ];
-      const activeMod = activeParts.reduce((acc, p) => acc + p.value, 0);
-      currentTotal = baseValue + activeMod;
-      payload.total = currentTotal;
-      payload.modifier = activeMod;
-      payload.modifierParts = activeParts;
-      if (dt !== null) {
-        finalSuccess = currentTotal >= dt;
-        payload.success = finalSuccess;
-      }
-
       runSequence().catch(err => {
         if (err === CLOSED) return;
         console.error(err);
-        finish();
         closeDiceCinematicAlt();
       });
     };
@@ -1158,29 +1295,20 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
         if (![' ', 'Enter', 'Escape'].includes(e.key)) return;
         e.preventDefault();
         e.stopPropagation();
-        if (state === 'done') { closeDiceCinematicAlt(); return; }
-        if (e.key === 'Escape') { skip(); start(); return; }
+        if (e.key === 'Escape') {
+          // Esc: cancela antes de rolar; durante a animação, pula; no fim, fecha
+          if (state === 'rolling') skip();
+          else closeDiceCinematicAlt();
+          return;
+        }
         if (state === 'waiting') start();
+        else if (state === 'done') closeDiceCinematicAlt();
         else skip();
         return;
       }
       e.stopPropagation();
+      if (e.target.closest('.bg3-close')) { closeDiceCinematicAlt(); return; }
       if (state === 'waiting') {
-        const actBtn = e.target.closest('[data-activatable-idx]');
-        if (actBtn && !actBtn.disabled) {
-          const idx = Number(actBtn.dataset.activatableIdx);
-          const act = activatables[idx];
-          if (act) {
-            act.selected = !act.selected;
-            actBtn.classList.toggle('is-active-toggle', act.selected);
-            const activeActsBonus = activatables.filter(a => a.selected).reduce((acc, a) => acc + a.value, 0);
-            const currentTotalMod = parts.reduce((acc, p) => acc + p.value, 0) + activeActsBonus;
-            const bEl = stage.querySelector('.bg3-total-mod-val');
-            if (bEl) bEl.textContent = signed(currentTotalMod);
-            sfx?.tick(act.selected ? 3 : 1);
-          }
-          return;
-        }
         if (e.target.closest('.bg3-roll-btn, .bg3-tray')) start();
         return;
       }
@@ -1208,35 +1336,42 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
       tweens.forEach(tw => tw.res());
       tweens.clear();
       simDone?.();
-      if (dreadRun) { try { dreadRun.seq.finish(); } catch {} dreadRun.done(); dreadRun = null; }
+      if (dreadRun) { try { dreadRun.seq.finish(); } catch {} dreadRun.done(); }
       stage.removeEventListener('click', onInput);
       window.removeEventListener('keydown', onInput, true);
       window.removeEventListener('resize', onResize);
       if (activeStage === stage) activeStage = null;
       finish();
-      const dispose = () => {
-        scene.traverse(o => {
-          o.geometry?.dispose?.();
-          if (o.material) [].concat(o.material).forEach(m => m.dispose?.()); // texturas de número ficam em cache
-        });
-        envTex.dispose();
-        pmrem.dispose();
-        renderer.dispose();
+      // devolve os dados ao estoque e restaura a cena compartilhada
+      dice.forEach(d => releaseDie(S, d));
+      releaseEffectPrograms(scene);
+      reserve.forEach(l => { if (!l.parent) scene.add(l); });
+      hemi.intensity = 0.35;
+      key.intensity = 1.7;
+      const remove = () => {
+        if (renderer.domElement.parentNode === tray) renderer.domElement.remove();
         stage.remove();
       };
-      if (immediate) { dispose(); return; }
+      if (immediate) { remove(); return; }
       stage.classList.add('is-closing');
-      setTimeout(dispose, 320);
+      setTimeout(remove, 300);
     };
 
     // a bandeja só tem tamanho depois de entrar no DOM
     onResize();
     placeIdle();
-    prepare();
-    raf = requestAnimationFrame(frame);
     requestAnimationFrame(() => stage.classList.add('is-open'));
-    if (!waitForClick) setTimeout(start, 150);
-    else btn.focus({ preventScroll: true });
+    // primeira vez: compila os shaders sem travar a página antes de desenhar
+    const begin = () => {
+      if (closed) return;
+      S.warm = true;
+      raf = requestAnimationFrame(frame);
+      if (!waitForClick) setTimeout(start, 150);
+    };
+    if (S.warm) begin();
+    else renderer.compileAsync(scene, camera).then(begin, begin);
+    if (waitForClick) btn.focus({ preventScroll: true });
+    closeBtn.addEventListener('pointerdown', e => e.stopPropagation());
   });
 }
 
