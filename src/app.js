@@ -265,6 +265,158 @@ const safeUrl=value=>{let s=String(value||'');if(!/^(https?:\/\/|data:image\/|da
 const clone=value=>structuredClone(value);
 const makeId=prefix=>`${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
 
+function getDefaultCardModifiers(card) {
+  if (!card) return [];
+  if (Array.isArray(card.modifiers) && card.modifiers.length > 0) {
+    return card.modifiers;
+  }
+  const titleClean = String(card.title || '').trim().toLowerCase();
+  // Check LESOES_TABLE
+  const lesao = typeof LESOES_TABLE !== 'undefined' ? LESOES_TABLE.find(l => l.name.toLowerCase() === titleClean) : null;
+  if (lesao?.skillPenalties) {
+    return Object.entries(lesao.skillPenalties).map(([skill, val], i) => ({
+      id: `default-lesao-${i}`,
+      type: 'passive',
+      target: skill,
+      value: val,
+      cost: '',
+      label: card.title
+    }));
+  }
+  // Check TRAUMAS_TABLE
+  const trauma = typeof TRAUMAS_TABLE !== 'undefined' ? TRAUMAS_TABLE.find(t => t.name.toLowerCase() === titleClean) : null;
+  if (trauma?.skillPenalties) {
+    return Object.entries(trauma.skillPenalties).map(([skill, val], i) => ({
+      id: `default-trauma-${i}`,
+      type: 'passive',
+      target: skill,
+      value: val,
+      cost: '',
+      label: card.title
+    }));
+  }
+  // Check Foco Mental
+  if (card.id === 'foco-mental' || titleClean === 'foco mental') {
+    return [{ id: 'foco-mod', type: 'activatable', target: 'Mente', value: 4, cost: '2 PD', label: 'Foco Mental' }];
+  }
+  // Check text content for patterns like "Sofre –1 permanente em Percepção e Pontaria"
+  const content = String(card.content || '');
+  const found = [];
+  const regex = /(?:–|-|\+)\s*(\d+)\s*(?:permanente\s*)?(?:em|de)\s+([A-Za-zÀ-ÿ]+(?:\s+e\s+[A-Za-zÀ-ÿ]+)?)/gi;
+  let match;
+  while ((match = regex.exec(content)) !== null) {
+    const isMinus = match[0].startsWith('–') || match[0].startsWith('-');
+    const val = (isMinus ? -1 : 1) * Number(match[1]);
+    const skills = match[2].split(/\s+e\s+/i);
+    skills.forEach((sk, idx) => {
+      found.push({
+        id: `auto-${idx}-${Date.now()}`,
+        type: 'passive',
+        target: sk.trim().toUpperCase(),
+        value: val,
+        cost: '',
+        label: card.title
+      });
+    });
+  }
+  if (found.length) return found;
+
+  return [];
+}
+
+function canAffordCost(st, costStr) {
+  if (!costStr) return true;
+  const match = String(costStr).match(/(\d+)\s*(pd|pv|pe)/i);
+  if (!match) return true;
+  const amount = Number(match[1]) || 0;
+  const res = match[2].toLowerCase();
+  if (res === 'pd') return (Number(st?.pd) || 0) >= amount;
+  if (res === 'pv') return (Number(st?.pv) || 0) > amount;
+  if (res === 'pe') return (Number(st?.pe) || 0) >= amount;
+  return true;
+}
+
+function consumeCardCost(st, costStr, label = '') {
+  if (!costStr || !st) return;
+  const match = String(costStr).match(/(\d+)\s*(pd|pv|pe)/i);
+  if (!match) return;
+  const amount = Number(match[1]) || 0;
+  const res = match[2].toLowerCase();
+  if (res === 'pd') {
+    st.pd = Math.max(0, (Number(st.pd) || 0) - amount);
+    updateResourceUi('pd');
+  } else if (res === 'pv') {
+    st.pv = Math.max(0, (Number(st.pv) || 0) - amount);
+    updateResourceUi('pv');
+  } else if (res === 'pe') {
+    st.pe = Math.max(0, (Number(st.pe) || 0) - amount);
+  }
+  playResourceSound(false);
+  save(false);
+  const toast = document.querySelector('#save-toast');
+  if (toast) {
+    toast.textContent = `-${amount} ${res.toUpperCase()}${label ? ` (${label.toUpperCase()})` : ''}`;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+}
+
+function collectSheetModifiers(sheet, rollName, meta = {}) {
+  const result = {
+    passive: [],
+    activatable: []
+  };
+  if (!sheet || !Array.isArray(sheet.cards)) return result;
+
+  const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+  const cleanRoll = norm(rollName).replace(/^TESTE\s+(DE\s+)?/i, '').trim();
+  const skillName = meta.skillName ? norm(meta.skillName) : '';
+  const attribute = meta.attribute ? norm(meta.attribute) : '';
+
+  const isMatch = (target) => {
+    if (!target) return false;
+    const nTarget = norm(target);
+    if (nTarget === 'TODOS' || nTarget === 'GERAL' || nTarget === '*') return true;
+    if (cleanRoll && (cleanRoll === nTarget || cleanRoll.includes(nTarget) || nTarget.includes(cleanRoll))) return true;
+    if (skillName && (skillName === nTarget || skillName.includes(nTarget) || nTarget.includes(skillName))) return true;
+    if (attribute && (attribute === nTarget || attribute.includes(nTarget) || nTarget.includes(attribute))) return true;
+    return false;
+  };
+
+  sheet.cards.forEach(card => {
+    if (card.profileAbility && sheet.profile && card.profileAbility !== sheet.profile) return;
+
+    const modifiers = Array.isArray(card.modifiers) && card.modifiers.length > 0
+      ? card.modifiers
+      : getDefaultCardModifiers(card);
+
+    modifiers.forEach(mod => {
+      const val = Number(mod.value) || 0;
+      if (!val && mod.type !== 'activatable') return;
+      if (isMatch(mod.target)) {
+        const item = {
+          id: mod.id || makeId('mod'),
+          label: mod.label || card.title,
+          target: mod.target,
+          value: val,
+          type: mod.type || 'passive',
+          cost: mod.cost || (mod.type === 'activatable' ? (card.cost || '') : ''),
+          sourceCardId: card.id,
+          sourceTitle: card.title,
+          isPenalty: val < 0
+        };
+        if (item.type === 'activatable') {
+          result.activatable.push(item);
+        } else {
+          result.passive.push(item);
+        }
+      }
+    });
+  });
+
+  return result;
+}
+
 function normalizeCard(card){
  const titleUp=String(card.title||'').toUpperCase();
  if(card.id==='impeto'||card.profileAbility==='Executor'||titleUp==='ÍMPETO'){
@@ -295,7 +447,18 @@ function normalizeCard(card){
  const markers=(Array.isArray(card.markers)?card.markers:migratedMarkers).map(marker=>({...marker,displayStyle:marker.displayStyle||'default'}));
  if(card.id==='impeto'||card.id==='analise'||card.id==='pistola')markers.forEach(marker=>{if(marker.type==='pips'&&marker.displayStyle==='default')marker.displayStyle='rectangles'});
  const actions=(Array.isArray(card.actions)?card.actions:migratedActions).map(action=>({...action}));
- return {...card,profileAbility:card.profileAbility||knownProfile?.[0],themeLinked:card.themeLinked!==false,markers,actions};
+ const cardMods = (Array.isArray(card.modifiers) && card.modifiers.length > 0)
+   ? card.modifiers
+   : getDefaultCardModifiers(card);
+ const modifiers = cardMods.map(m => ({
+   id: m.id || makeId('mod'),
+   type: m.type || 'passive',
+   target: m.target || 'Todos',
+   value: Number(m.value) || 0,
+   cost: m.cost || '',
+   label: m.label || ''
+ }));
+ return {...card,profileAbility:card.profileAbility||knownProfile?.[0],themeLinked:card.themeLinked!==false,markers,actions,modifiers};
 }
 function ensureProfileAbility(sheet,profile=sheet.profile){const template=PROFILE_ABILITIES[profile];if(!template)return;const expected=String(template.title).toUpperCase(),existing=sheet.cards?.find(card=>card.profileAbility===profile||String(card.title).toUpperCase()===expected);if(existing){existing.profileAbility=profile;return}sheet.cards.push(normalizeCard(clone(template)))}
 function normalizeSheet(raw={}){
@@ -411,7 +574,7 @@ async function loadInitialSheets(){
  if(state?.cinematicCollapsed)state.cinematicCollapsed.abilities=false;
  activeSheetId=state.id;
 }
-let currentRight='abilities',currentView='stats',editMode=false,modeJustChanged=false,editTransitionMode=null,editorMarkers=[],editorActions=[],diceApiPromise,blobBgType='',currentResourceShift=120,mobileTab='agent',sheetDrawerOpen=false,viewSwitchCollapsed=true,presentationMode=false,presentationIndex=0,presentationLockingIn=false,presentationEntering=false,cinematicMobileTab='skills';
+let currentRight='abilities',currentView='stats',editMode=false,modeJustChanged=false,editTransitionMode=null,editorMarkers=[],editorActions=[],editorModifiers=[],diceApiPromise,blobBgType='',currentResourceShift=120,mobileTab='agent',sheetDrawerOpen=false,viewSwitchCollapsed=true,presentationMode=false,presentationIndex=0,presentationLockingIn=false,presentationEntering=false,cinematicMobileTab='skills';
 const CRITICAL_EFFECTS_KEY='ordem-ii-critical-effects-v1';
 let criticalEffects={pv:true,pd:true};
 try{criticalEffects={...criticalEffects,...JSON.parse(localStorage.getItem(CRITICAL_EFFECTS_KEY)||'{}')}}catch{}
@@ -499,7 +662,7 @@ function markerMax(marker){return Math.min(100,evaluateFormula(marker.maxFormula
 function renderMarker(card,marker){const max=markerMax(marker),current=Math.min(Number(marker.current)||0,max||999),id=`${card.id}:${marker.id}`,displayStyle=marker.displayStyle||'default';if(marker.type==='toggle')return `<div class="card-marker marker-toggle style-${displayStyle}"><span>${safe(marker.label)}</span><button class="toggle-switch ${current?'on':''}" data-card-marker="${id}:toggle"><i></i>${current?'LIGADO':'DESLIGADO'}</button></div>`;if(marker.type==='bar'&&displayStyle!=='rectangles')return `<div class="card-marker marker-bar style-${displayStyle}"><div><span>${safe(marker.label)}</span><strong>${current}/${max}</strong></div><button class="progress-track" data-card-marker="${id}:1"><i style="width:${max?current/max*100:0}%"></i></button><div class="marker-buttons"><button data-card-marker="${id}:-1">−</button><button data-card-marker="${id}:1">+</button></div></div>`;if(marker.type==='slots'){const slots=Array.isArray(marker.slots)?marker.slots:[],costRes=(marker.fillCostResource||'pd').toLowerCase(),costAmt=Number(marker.fillCostAmount)||0;if(displayStyle==='rectangles'){const slotItems=Array.from({length:max},(_,i)=>{const val=slots[i],filled=val!==undefined&&val!==null&&val!=='';return `<button type="button" class="value-slot ${filled?'filled':'empty'}" data-use-slot="${id}:${i}" title="${filled?`Espaço ${i+1}: [ ${val} ] (Clique para gastar)`:'Espaço vazio (Clique para preencher)'}"><b class="slot-val">${filled?val:''}</b></button>`}).join('');return `<div class="card-marker marker-value-slots style-rectangles"><span>${safe(marker.label)}</span><div class="value-slots-row">${slotItems}</div></div>`}const fillBtn=costAmt>0?`<button type="button" class="btn-slot-fill" data-fill-marker="${id}" title="Gastar ${costAmt} ${costRes.toUpperCase()} para preencher um espaço">+ PREENCHER (${costAmt} ${costRes.toUpperCase()})</button>`:'';const slotItems=Array.from({length:max},(_,i)=>{const val=slots[i],filled=val!==undefined&&val!==null&&val!=='';return `<button type="button" class="value-slot ${filled?'filled':'empty'}" data-use-slot="${id}:${i}" title="${filled?`Espaço ${i+1}: ${val} (Clique para gastar)`:'Espaço vazio (Clique para preencher)'}"><span class="slot-idx">${i+1}</span><b class="slot-val">${filled?val:'−'}</b></button>`}).join('');return `<div class="card-marker marker-value-slots style-${displayStyle}"><div class="value-slots-top"><span>${safe(marker.label)}</span>${fillBtn}</div><div class="value-slots-row">${slotItems}</div></div>`}if(marker.type==='pips'||(marker.type==='bar'&&displayStyle==='rectangles'))return `<div class="card-marker marker-pips style-${displayStyle}"><span>${safe(marker.label)}</span><div class="marker-pips-track marker-slots">${Array.from({length:max},(_,i)=>`<button class="charge ${i<current?'on':''}" data-card-marker-set="${id}:${i+1}"></button>`).join('')}</div><strong>${current}/${max}</strong></div>`;return `<div class="card-marker style-${displayStyle}"><span>${safe(marker.label)}</span><button data-card-marker="${id}:-1">−</button><strong>${current}${max?`/${max}`:''}</strong><button data-card-marker="${id}:1">+</button></div>`}
 function cardAccent(card){return card.themeLinked!==false?getSheetAccent(state):(card.accent||getSheetAccent(state))}
 function visibleCards(schema){return state.cards.filter(card=>card.schema===schema&&(!card.profileAbility||card.profileAbility===state.profile))}
-function renderResourceCard(card){const image=safeUrl(card.imageUrl)?`<img class="card-image" src="${safeUrl(card.imageUrl)}" alt="">`:'';const markers=(card.markers||[]).map(marker=>renderMarker(card,marker)).join('');const actions=(card.actions||[]).map(action=>`<button class="card-roll" data-expression="${safe(action.expression)}" data-roll-title="${safe(action.name||card.title)}" data-card-id="${card.id}" data-action-id="${action.id}">${die((String(action.expression).match(/d(4|6|8|10|12|20)/i)||[])[1]||20,'micro',true)}<span>${safe(action.name||'Rolar')}</span><small>${safe(action.expression)}</small></button>`).join('');const cost=getCardCost(card);const costBadge=cost?`<span class="dossier-card-cost">${safe(cost)}</span>`:'';const isCondition = Boolean(card.isCondition || /^(lesão|lesao|trauma|condição|condicao)$/i.test(card.type || '') || card.conditionType);const condType = card.conditionType || ((card.type || '').toLowerCase().includes('trauma') ? 'trauma' : 'lesao');const condBadge = isCondition ? `<span class="dossier-condition-badge ${condType}">CONDIÇÃO · ${(card.type || (condType === 'trauma' ? 'Trauma' : 'Lesão')).toUpperCase()}</span>` : '';const deleteBtn = isCondition ? `<button type="button" class="btn-remove-condition" data-delete-card-direct="${safe(card.id)}" title="Curar / Remover Condição">✕</button>` : '';return `<article class="ability resource-card dossier-card ${isCondition ? `is-condition condition-${condType}` : ''} layout-${safe(card.layout||'standard')} ${card.collapsed?'collapsed':''}" draggable="true" data-card-id="${card.id}" data-filter="${safe((card.title+' '+card.type+' '+card.content).toLowerCase())}" style="--card-accent:${safe(cardAccent(card))};--card-ink:${inkFor(cardAccent(card))}"><header class="card-head dossier-card-head"><div class="card-title-group">${condBadge}<span class="dossier-card-tag">${safe(card.icon||'◆')} ${safe(card.title)}</span>${costBadge}</div><div class="card-actions">${deleteBtn}<button type="button" data-toggle-card="${card.id}" title="Recolher / Expandir">⌃</button><button type="button" data-move="${card.id}:-1" title="Mover para cima">↑</button><button type="button" data-move="${card.id}:1" title="Mover para baixo">↓</button><button type="button" data-duplicate-card="${card.id}" title="Duplicar">⧉</button><button type="button" data-edit-card="${card.id}" title="Editar habilidade">${icon('edit',14)}</button></div></header><div class="card-details">${image}<div class="card-meta"><span class="dossier-card-type">${safe(card.type||'Habilidade')}</span></div>${markers}<div class="card-copy">${formatCardText(card.content)}</div><div class="card-rolls">${actions}</div></div></article>`}
+function renderResourceCard(card){const image=safeUrl(card.imageUrl)?`<img class="card-image" src="${safeUrl(card.imageUrl)}" alt="">`:'';const markers=(card.markers||[]).map(marker=>renderMarker(card,marker)).join('');const actions=(card.actions||[]).map(action=>`<button class="card-roll" data-expression="${safe(action.expression)}" data-roll-title="${safe(action.name||card.title)}" data-card-id="${card.id}" data-action-id="${action.id}">${die((String(action.expression).match(/d(4|6|8|10|12|20)/i)||[])[1]||20,'micro',true)}<span>${safe(action.name||'Rolar')}</span><small>${safe(action.expression)}</small></button>`).join('');const cost=getCardCost(card);const costBadge=cost?`<span class="dossier-card-cost">${safe(cost)}</span>`:'';const isCondition = Boolean(card.isCondition || /^(lesão|lesao|trauma|condição|condicao)$/i.test(card.type || '') || card.conditionType);const condType = card.conditionType || ((card.type || '').toLowerCase().includes('trauma') ? 'trauma' : 'lesao');const condBadge = isCondition ? `<span class="dossier-condition-badge ${condType}">CONDIÇÃO · ${(card.type || (condType === 'trauma' ? 'Trauma' : 'Lesão')).toUpperCase()}</span>` : '';const deleteBtn = isCondition ? `<button type="button" class="btn-remove-condition" data-delete-card-direct="${safe(card.id)}" title="Curar / Remover Condição">✕</button>` : '';const modBadges = (Array.isArray(card.modifiers) && card.modifiers.length ? card.modifiers : getDefaultCardModifiers(card)).filter(m => Number(m.value) !== 0 || m.cost).map(m => {const val = Number(m.value) || 0;const isPen = val < 0;const isAct = m.type === 'activatable';const sign = val >= 0 ? '+' : '';const cls = isAct ? 'activatable' : (isPen ? 'penalty' : 'bonus');return `<span class="card-mod-pill ${cls}" title="${safe(m.label || card.title)}">${sign}${val} ${safe(m.target)}${m.cost ? ` (${safe(m.cost)})` : ''}</span>`;}).join('');const modBadgesHtml = modBadges ? `<div class="card-modifiers-list">${modBadges}</div>` : '';return `<article class="ability resource-card dossier-card ${isCondition ? `is-condition condition-${condType}` : ''} layout-${safe(card.layout||'standard')} ${card.collapsed?'collapsed':''}" draggable="true" data-card-id="${card.id}" data-filter="${safe((card.title+' '+card.type+' '+card.content).toLowerCase())}" style="--card-accent:${safe(cardAccent(card))};--card-ink:${inkFor(cardAccent(card))}"><header class="card-head dossier-card-head"><div class="card-title-group">${condBadge}<span class="dossier-card-tag">${safe(card.icon||'◆')} ${safe(card.title)}</span>${costBadge}</div><div class="card-actions">${deleteBtn}<button type="button" data-toggle-card="${card.id}" title="Recolher / Expandir">⌃</button><button type="button" data-move="${card.id}:-1" title="Mover para cima">↑</button><button type="button" data-move="${card.id}:1" title="Mover para baixo">↓</button><button type="button" data-duplicate-card="${card.id}" title="Duplicar">⧉</button><button type="button" data-edit-card="${card.id}" title="Editar habilidade">${icon('edit',14)}</button></div></header><div class="card-details">${image}<div class="card-meta"><span class="dossier-card-type">${safe(card.type||'Habilidade')}</span></div>${markers}<div class="card-copy">${formatCardText(card.content)}</div>${modBadgesHtml}<div class="card-rolls">${actions}</div></div></article>`}
 function dossierResourceEditor(key,badge,title){const maxKey=`max${key[0].toUpperCase()}${key.slice(1)}`,tempKey=`${key}Temp`;return `<div class="resource-row dossier-vital-card resource-${key.toLowerCase()}" data-resource-key="${key}"><div class="vital-header"><span class="vital-badge">${badge}</span><div class="vital-info"><span class="vital-title">${title}</span><span class="vital-numbers"><b>${state[key]}</b><small>/ ${state[maxKey]}</small>${state[tempKey]?`<button type="button" class="temp-badge-btn" data-consume-temp="${key}:1" title="Clique para extinguir 1 ${key.toUpperCase()} temporário (Botão direito para extinguir todos)"><em>+${state[tempKey]}</em></button>`:''}</span></div>${editMode?`<div class="resource-config"><span>MÁX <button data-resource-adjust="${maxKey}:-1">−</button><i>${state[maxKey]}</i><button data-resource-adjust="${maxKey}:1">+</button></span><span>TEMP <button data-resource-adjust="${tempKey}:-1">−</button><i>${state[tempKey]}</i><button data-resource-adjust="${tempKey}:1">+</button></span></div>`:''}</div><div class="pips dossier-pips">${pips(state[key],state[maxKey],key,state[tempKey])}</div></div>`}
 function renderTraditional(trainingOptions,bgIsVideo,aptidaoOptions,aptidaoCount){return `<main class="page traditional-dossier-page ${editTransitionMode?`edit-trans-${editTransitionMode}`:''} mobile-tab-${mobileTab} ${modeJustChanged?'mode-enter':''}${bgIsVideo?' has-video-bg':''}" style="--bg-blur:${state.backgroundBlur??0}px;--bg-zoom:${(state.backgroundZoom??100)/100};">${renderBackgroundLayer(bgIsVideo,false)}<header class="dossier-hero"><div class="dossier-photo-col"><div class="dossier-photo-card ${state.tokenImage?'has-token':''}"><div class="dossier-photo-inner" ${state.tokenImage?`style="background-image:url('${safeUrl(state.tokenImage)}')"`:''}>${state.tokenImage?'':`<div class="dossier-photo-ph">${icon('user',42)}<span>FOTO DO AGENTE</span></div>`}</div>${editMode?`<label class="dossier-upload-btn">${icon('image',14)} TROCAR FOTO<input id="token-upload" type="file" accept="image/*"></label>`:''}</div></div><div class="dossier-info-col"><div class="dossier-meta-row"><span class="dossier-profile-pill profile-${state.profile?.toLowerCase()}">${safe(state.profile||'Executor')}</span></div><div class="dossier-name-row">${editMode?`<input class="dossier-name-input" data-field="name" value="${safe(state.name)}" placeholder="NOME DO AGENTE" aria-label="Nome do agente">`:`<h1 class="dossier-name-display">${safe(state.name||'AGENTE SEM NOME')}</h1>`}</div><div class="dossier-creds-row"><div class="dossier-field"><small>OCUPAÇÃO</small><input data-field="occupation" value="${safe(state.occupation)}" placeholder="Ocupação..." ${editMode?'':'readonly'}></div><div class="dossier-field"><small>PERFIL</small>${customSelect({value:state.profile,options:['Executor','Analista','Vigilante'].map(v=>({value:v,label:v})),id:'profile',className:'profile-select dossier-profile-select',disabled:!editMode})}</div><div class="dossier-field field-level"><small>NÍVEL</small><div class="dossier-level-val"><input class="center" data-field="level" value="${state.level}" inputmode="numeric" ${editMode?'':'readonly'}></div></div></div>${editMode?`<div class="dossier-visual-bar"><label class="dossier-chip">${icon('image',13)} FUNDO<input id="background-upload" type="file" accept="image/*,video/mp4,video/webm"></label>${state.backgroundImage?'<button type="button" class="dossier-chip-btn" data-reset-background>PADRÃO</button>':''}<label class="dossier-chip" title="Cor tema da ficha">TEMA<input type="color" data-theme-color value="${safe(getSheetAccent(state))}"></label>${state.themeColor?'<button type="button" class="dossier-chip-btn" data-reset-theme-color title="Voltar à cor do perfil">PERFIL</button>':''}<label class="dossier-chip" title="Cor dos dados">${icon('dice',13)} DADOS<input id="dice-color" type="color" value="${safe(state.diceColor||getSheetAccent(state))}"></label>${state.diceColor?'<button type="button" class="dossier-chip-btn" data-reset-dice-color>PERFIL</button>':''}<label class="dossier-chip range-chip" title="Desfoque da imagem de fundo"><span>BLUR</span><input type="range" min="0" max="30" step="1" value="${state.backgroundBlur??0}" data-cinematic-bg-blur><span class="slider-val-hint" id="val-hint-blur">${state.backgroundBlur??0}px</span></label><label class="dossier-chip range-chip" title="Zoom da imagem de fundo"><span>ZOOM</span><input type="range" min="30" max="250" step="5" value="${state.backgroundZoom??100}" data-cinematic-bg-zoom><span class="slider-val-hint" id="val-hint-zoom">${state.backgroundZoom??100}%</span></label>${(state.backgroundBlur>0||(state.backgroundZoom&&state.backgroundZoom!==100))?'<button type="button" class="dossier-chip-btn" data-reset-bg-effects>RESET BG</button>':''}</div>`:''}</div><div class="dossier-vitals-col"><div class="dossier-vitals-header"><span>MONITORES VITAIS</span><i class="vitals-pulse"></i></div><div class="dossier-vitals-grid">${dossierResourceEditor('pv','PV','PONTOS DE VIDA')}${dossierResourceEditor('pd','PD','DETERMINAÇÃO')}</div></div></header><div class="dossier-body"><section class="dossier-main-col"><div class="dossier-block dossier-attr-block"><div class="dossier-block-header"><span class="block-tag">SEÇÃO I</span><h2>ATRIBUTOS PRINCIPAIS</h2></div><div class="dossier-attr-grid">${Object.entries(state.attributes).map(([name,value])=>`<article class="dossier-attr-card"><div class="dossier-attr-head"><span>${name}</span></div><button type="button" class="attribute-die dossier-die-btn" data-roll="${name}|${value}" data-roll-labels="${name.toUpperCase()}" title="Clique para rolar ${name} (d${value})">${die(value)}</button>${editMode?attributeStepper(name,value):''}</article>`).join('')}</div></div><div class="dossier-block dossier-skills-block"><div class="dossier-block-header"><span class="block-tag">SEÇÃO II</span><h2>REGISTRO DE PERÍCIAS</h2>${editMode?`<button type="button" class="btn-dossier-add-aptidao" data-add-aptidao title="Adicionar especialização de Aptidão">+ APTIDÃO</button>`:''}</div><div class="dossier-skills-table"><header class="dossier-skills-table-head"><span class="col-name">PERÍCIA ↕</span><span class="col-training">TREINAMENTO ↕</span><span class="col-attr">ATRIBUTO BASE ↕</span><span class="col-extra">EXTRA ↕</span></header><div class="dossier-skills-table-body">${state.skills.map((skill,index)=>{const trained=skill.skillDie>4,attrDie=state.attributes[skill.attribute]||4,isAptidao=skill.name.startsWith('APTIDÃO'),aptidaoField=isAptidao?(skill.name.match(/\(([^)]+)\)/)?.[1]||'HUMANAS'):'',nameCol=editMode&&isAptidao?`<span class="skill-name skill-name-aptidao"><span>APTIDÃO</span>${customSelect({value:aptidaoField,options:aptidaoOptions,id:`aptidao-field:${index}`,className:'aptidao-select'})}<button class="skill-info-button" data-skill-info="${index}" aria-label="Informações sobre ${safe(skill.name)}">${icon('info',14)}</button>${aptidaoCount>1?`<button type="button" class="btn-remove-aptidao" data-remove-aptidao="${index}" title="Remover">${icon('trash',13)}</button>`:''}</span>`:`<span class="skill-name">${safe(skill.name)} <button class="skill-info-button" data-skill-info="${index}" aria-label="Informações sobre ${safe(skill.name)}">${icon('info',14)}</button></span>`;return `<div class="skill-row dossier-skill-row grade-d${skill.skillDie} ${trained?'trained is-trained':'is-untrained'}" data-roll="${safe(skill.name)}|${skill.skillDie},${attrDie}|${skill.extra||0}" data-roll-labels="PERÍCIA|${String(skill.attribute||'').toUpperCase()}">${nameCol}<span class="training">${die(skill.skillDie,'small',trained)}${customSelect({value:skill.training,options:trainingOptions,id:`skill-training:${index}`,className:'skill-select training-select',disabled:!editMode})}</span><span class="attribute-ref">${die(attrDie,'small gem',trained)}${customSelect({value:skill.attribute,options:['Físico','Mente','Emoção'].map(v=>({value:v,label:v})),id:`skill-attribute:${index}`,className:'skill-select attribute-select',disabled:!editMode})}</span><span class="extra">${editMode?`<input data-skill-extra="${index}" type="number" value="${skill.extra||0}">`:`${Number(skill.extra)>=0?'+':''}${skill.extra||0}`}</span></div>`}).join('')}</div></div></div></section><aside class="dossier-side-col"><div class="dossier-tabs-nav right-tabs"><button type="button" class="dossier-tab-btn ${currentRight==='abilities'?'active':''}" data-right="abilities">HABILIDADES</button><button type="button" class="dossier-tab-btn ${currentRight==='items'?'active':''}" data-right="items">ITENS</button><button type="button" class="dossier-tab-btn ${currentRight==='history'?'active':''}" data-right="history">HISTÓRIA</button></div><div class="dossier-tools right-tools"><div class="dossier-search-wrap">${icon('search',14)}<input id="filter" placeholder="Filtrar registros..."></div><button type="button" class="dossier-add-btn add" title="Criar card">${icon('plus',15)}<span>CRIAR CARD</span></button></div><section id="abilities" class="right-content ${currentRight==='abilities'?'active':''}">${visibleCards('abilities').map(renderResourceCard).join('')||'<p class="empty-cards">Nenhuma habilidade registrada. Clique em CRIAR CARD para adicionar.</p>'}</section><section id="items" class="right-content ${currentRight==='items'?'active':''}">${visibleCards('items').map(renderResourceCard).join('')||'<p class="empty-cards">Nenhum item registrado. Clique em CRIAR CARD para adicionar.</p>'}</section><section id="history" class="right-content ${currentRight==='history'?'active':''}"><div class="dossier-history-card"><div class="dossier-history-head"><span>RELATÓRIO DE ANTECEDENTES & MOTIVAÇÕES</span></div><textarea data-field="history" placeholder="Escreva aqui a história, investigações anteriores, vínculos e anotações do agente..." ${editMode?'':'readonly'}>${safe(state.history||'')}</textarea></div></section></aside></div></main>`}
 function resourceEditor(key,label){const maxKey=`max${key[0].toUpperCase()}${key.slice(1)}`,tempKey=`${key}Temp`;return `<div class="resource-row" data-resource-key="${key}"><strong class="mini-torn">${label}</strong><b>${state[key]}${state[tempKey]?`<button type="button" class="temp-badge-btn" data-consume-temp="${key}:1" title="Clique para extinguir 1 ${key.toUpperCase()} temporário (Botão direito para extinguir todos)"><em>+${state[tempKey]}</em></button>`:''}</b><div class="pips">${pips(state[key],state[maxKey],key,state[tempKey])}</div>${editMode?`<div class="resource-config"><span>MÁX <button data-resource-adjust="${maxKey}:-1">−</button><i>${state[maxKey]}</i><button data-resource-adjust="${maxKey}:1">+</button></span><span>TEMP <button data-resource-adjust="${tempKey}:-1">−</button><i>${state[tempKey]}</i><button data-resource-adjust="${tempKey}:1">+</button></span></div>`:''}</div>`}
@@ -1188,7 +1351,8 @@ function render(){
   <div class="modal slot-fill-modal" id="slot-fill-modal"><div class="backdrop slot-fill-backdrop"></div><section><button type="button" class="slot-fill-close">${icon('close')}</button><small id="slot-fill-subtitle">PREENCHER ESPAÇO</small><h2 id="slot-fill-title">VALOR DO DADO</h2><p id="slot-fill-info"></p><div class="slot-fill-actions"><button type="button" class="btn-slot-roll" id="btn-slot-roll-die">${icon('d20',15)} ROLAR 1d6</button><div class="slot-quick-numbers"><button type="button" data-pick-val="1">1</button><button type="button" data-pick-val="2">2</button><button type="button" data-pick-val="3">3</button><button type="button" data-pick-val="4">4</button><button type="button" data-pick-val="5">5</button><button type="button" data-pick-val="6">6</button></div><div class="slot-manual-entry"><label>OUTRO VALOR<input type="number" id="slot-manual-val" min="1" max="99" placeholder="Ex: 4"></label><button type="button" id="btn-slot-confirm-manual">CONFIRMAR</button></div></div></section></div>
   <div class="modal card-editor" id="card-editor"><div class="backdrop editor-backdrop"></div><form id="card-form"><header><div><small>EDITOR DE CARD</small><h2 id="editor-title">NOVA HABILIDADE</h2></div><button type="button" class="editor-close">${icon('close')}</button></header><div class="editor-grid"><label class="span-2">TÍTULO<input name="title" maxlength="64" required></label><label>COLEÇÃO${customSelect({value:'abilities',options:[{value:'abilities',label:'Habilidades'},{value:'items',label:'Itens'}],id:'editor-schema',formName:'schema',className:'editor-select'})}</label><label>TIPO<input name="type" placeholder="Habilidade"></label><label>CUSTO<input name="cost" placeholder="Ex: 2 PD ou 1d4 PV"></label><label>ÍCONE<input name="icon" maxlength="3" placeholder="◆"></label><label>COR<input name="accent" type="color" value="#e91d25"></label><label>USAR COR${customSelect({value:'profile',options:[{value:'profile',label:'Do perfil'},{value:'custom',label:'Personalizada'}],id:'editor-color-mode',formName:'colorMode',className:'editor-select'})}</label><label>APRESENTAÇÃO${customSelect({value:'standard',options:[{value:'standard',label:'Padrão'},{value:'compact',label:'Compacto'},{value:'featured',label:'Destaque'}],id:'editor-layout',formName:'layout',className:'editor-select'})}</label><label>INICIAR${customSelect({value:'false',options:[{value:'false',label:'Expandido'},{value:'true',label:'Recolhido'}],id:'editor-collapsed',formName:'collapsed',className:'editor-select'})}</label><label class="span-2">URL DA IMAGEM<input name="imageUrl" type="url" placeholder="https://..."></label><label class="span-2 content-editor-label">CONTEÚDO<div class="rich-toolbar"><button type="button" data-format="bold"><b>B</b></button><button type="button" data-format="italic"><i>I</i></button><button type="button" data-format="underline"><u>U</u></button><span class="color-picker" title="Cor do texto"><input id="content-color" type="color" value="#67a2ff"><span>A</span></span><button type="button" data-format="color">APLICAR COR</button></div><textarea name="content" rows="5" placeholder="Descrição e regras do card..."></textarea></label>
   <section class="span-2 builder-section"><header><div><b>MARCADORES</b><small>Contador, barra, cargas ou liga/desliga. Fórmulas aceitam @{level}, @{pv} e atributos.</small></div><button type="button" data-add-marker>+ ADICIONAR</button></header><div id="marker-builder"></div></section>
-   <section class="span-2 builder-section"><header><div><b>AÇÕES</b><small>Expressões como 2d6 + 1d8 + @{level}.</small></div><button type="button" data-add-action>+ ADICIONAR</button></header><div id="action-builder"></div></section></div><footer><button type="button" class="delete-card">EXCLUIR</button><span></span><button type="button" class="editor-close secondary">CANCELAR</button><button type="submit">SALVAR CARD</button></footer></form></div>
+   <section class="span-2 builder-section"><header><div><b>AÇÕES</b><small>Expressões como 2d6 + 1d8 + @{level}.</small></div><button type="button" data-add-action>+ ADICIONAR</button></header><div id="action-builder"></div></section>
+   <section class="span-2 builder-section"><header><div><b>MODIFICADORES / BUFFS & NERFS</b><small>Bônus ou penalidades em perícias/testes (ex: –1 em Percepção, +2 em Ataque). Passivas ou ativáveis.</small></div><button type="button" data-add-modifier>+ ADICIONAR</button></header><div id="modifier-builder"></div></section></div><footer><button type="button" class="delete-card">EXCLUIR</button><span></span><button type="button" class="editor-close secondary">CANCELAR</button><button type="submit">SALVAR CARD</button></footer></form></div>
   <div class="modal system-select-modal" id="system-select-modal" style="display:none;"><div class="backdrop" data-close-system-modal></div><section><button type="button" class="skill-info-close" data-close-system-modal>${icon('close')}</button><small style="color:var(--red);font-weight:800;letter-spacing:.15em;">NOVA FICHA</small><h2>ESCOLHA O TIPO DE FICHA</h2><p>Selecione a base mecânica para esta nova ficha. Todas as fichas coexistem na sua base de dados organizada por pastas.</p><div class="system-options-grid"><div class="system-option-card card-v2" data-create-system="ordem2"><span class="badge-system-sigil">SISTEMA II</span><h3>ORDEM PARANORMAL II</h3><p>Playtest Alpha de "A Maldição do Ídolo de Pedra". Atributos em dados (Físico, Mente, Emoção), Pontos de Determinação, Perfis táticos e cards interativos.</p></div><div class="system-option-card card-original" data-create-system="original"><span class="badge-system-sigil">SISTEMA ORIGINAL</span><h3>ORDEM PARANORMAL RPG</h3><p>Sistema clássico de regras d20. 5 Atributos (AGI, FOR, INT, PRE, VIG), Classes, Trilhas, NEX% (0-99%), Sanidade, Esforço, 28 Perícias d20, Rituais e Inventário.</p></div><div class="system-option-card card-threat" data-create-system="threat"><span class="badge-system-sigil">AMEAÇA DA REALIDADE</span><h3>AMEAÇA / CRIATURA</h3><p>Ficha de criatura paranormal ou inimigo com VD (Valor de Desafio), Elementos do Outro Lado, Ações padrão/livre, Ataques e Habilidades de combate.</p></div></div></section></div>
   ${renderBottomNav()}
   ${renderMobileSheetDrawer(sheets,folders,state.id,{open:sheetDrawerOpen,searchQuery:mobileSearchQuery,rollLogCount:rollLog.length,viewMode:state.viewMode,safeUrl})}
@@ -4012,6 +4176,12 @@ function bindVigiliaEvents() {
    state.pv = Math.max(1, state.pv + outcome.pvBonus);
    updateResourceUi('pv');
   }
+  const lesaoMods = [];
+  if (outcome.skillPenalties) {
+   Object.entries(outcome.skillPenalties).forEach(([sk, val]) => {
+    lesaoMods.push({ id: makeId('mod'), type: 'passive', target: sk, value: val, cost: '', label: outcome.name });
+   });
+  }
   state.cards = Array.isArray(state.cards) ? state.cards : [];
   state.cards.push(normalizeCard({
    id: makeId('card'),
@@ -4024,7 +4194,8 @@ function bindVigiliaEvents() {
    isCondition: true,
    conditionType: 'lesao',
    markers: [],
-   actions: []
+   actions: [],
+   modifiers: lesaoMods
   }));
   save(false);
   render();
@@ -4048,6 +4219,12 @@ function bindVigiliaEvents() {
    state.pd = Math.max(1, state.pd + outcome.pdBonus);
    updateResourceUi('pd');
   }
+  const traumaMods = [];
+  if (outcome.skillPenalties) {
+   Object.entries(outcome.skillPenalties).forEach(([sk, val]) => {
+    traumaMods.push({ id: makeId('mod'), type: 'passive', target: sk, value: val, cost: '', label: outcome.name });
+   });
+  }
   state.cards = Array.isArray(state.cards) ? state.cards : [];
   state.cards.push(normalizeCard({
    id: makeId('card'),
@@ -4060,7 +4237,8 @@ function bindVigiliaEvents() {
    isCondition: true,
    conditionType: 'trauma',
    markers: [],
-   actions: []
+   actions: [],
+   modifiers: traumaMods
   }));
   save(false);
   render();
@@ -4768,25 +4946,57 @@ async function roll(name,sides,modifier=0,rollMode='sum',meta={}){
    diceConfigs.push({ sides: state.dadoPavor, color: '#7c3aed', label: 'PAVOR', dread: true });
   }
  }
- const numMod = Number(modifier) || 0;
+ const sheetMods = collectSheetModifiers(state, name, meta);
  let modifierParts = [];
  if (Array.isArray(meta?.modifierParts) && meta.modifierParts.length) {
-  modifierParts = meta.modifierParts.map(p => ({ label: p.label || 'BÔNUS', value: Number(p.value) || 0 }));
+  modifierParts = meta.modifierParts.map(p => ({ label: p.label || 'BÔNUS', value: Number(p.value) || 0, isPenalty: p.value < 0 || Boolean(p.isPenalty) }));
   const sumParts = modifierParts.reduce((acc, p) => acc + p.value, 0);
-  if (sumParts !== numMod) {
-   modifierParts.push({ label: 'BÔNUS', value: numMod - sumParts });
+  if (sumParts !== Number(modifier) && Number(modifier) !== 0) {
+   const diff = Number(modifier) - sumParts;
+   modifierParts.push({ label: 'BÔNUS', value: diff, isPenalty: diff < 0 });
   }
- } else if (numMod !== 0) {
-  modifierParts = [{ label: 'BÔNUS', value: numMod }];
+ } else if (Number(modifier) !== 0) {
+  modifierParts = [{ label: 'BÔNUS', value: Number(modifier), isPenalty: Number(modifier) < 0 }];
  }
+
+ // Incorporar passivas da ficha (como lesões - Sem Olho, traumas, buffs passivos)
+ sheetMods.passive.forEach(p => {
+  modifierParts.push({
+   label: p.label,
+   value: p.value,
+   isPenalty: p.value < 0,
+   sourceTitle: p.sourceTitle
+  });
+ });
+
+ const finalNumMod = modifierParts.reduce((acc, p) => acc + p.value, 0);
+
+ const activatables = sheetMods.activatable.map(a => ({
+  id: a.id,
+  label: a.label,
+  value: a.value,
+  cost: a.cost,
+  isPenalty: a.value < 0,
+  canAfford: canAffordCost(state, a.cost),
+  sourceTitle: a.sourceTitle
+ }));
+
  const options = {
   modifierParts,
+  activatables,
+  onConsume: (activeItems) => {
+   if (Array.isArray(activeItems)) {
+    activeItems.forEach(item => {
+     if (item.cost) consumeCardCost(state, item.cost, item.label);
+    });
+   }
+  },
   scene: meta?.scene || 'quick',
   throw: throwVec
  };
  const res = appSettings.cinematicAltRoll
-  ? await (await import('./fx/dice-cinematic-alt.js')).rollDiceCinematicAlt(diceConfigs, name, numMod, soundContext, rollMode, { ...options, theme: state.viewMode === 'vigilia' ? 'vigilia' : 'cinematic', accent: getSheetAccent(state) })
-  : await rollDice3d(diceConfigs, name, numMod, soundContext, rollMode, options);
+  ? await (await import('./fx/dice-cinematic-alt.js')).rollDiceCinematicAlt(diceConfigs, name, finalNumMod, soundContext, rollMode, { ...options, theme: state.viewMode === 'vigilia' ? 'vigilia' : 'cinematic', accent: getSheetAccent(state) })
+  : await rollDice3d(diceConfigs, name, finalNumMod, soundContext, rollMode, options);
  if(res&&Array.isArray(res.values)){
   if (dreadIndex >= 0 && res.values[dreadIndex] !== undefined) {
    if (res.vanquished) {
@@ -4805,8 +5015,8 @@ async function roll(name,sides,modifier=0,rollMode='sum',meta={}){
   addRollLogEntry({
    title: name,
    dice: res.breakdown || res.values.map((v, i) => ({ sides: diceConfigs[i]?.sides || 20, value: v, label: diceConfigs[i]?.label || '' })),
-   modifier: numMod,
-   modifierParts,
+   modifier: res.modifier !== undefined ? res.modifier : finalNumMod,
+   modifierParts: res.modifierParts || modifierParts,
    total: res.total,
    rollMode
   });
@@ -4914,9 +5124,9 @@ async function castRitual(ritualId){
  }
 }
 function setSelectVisual(id,value){const select=document.querySelector(`[data-select-id="${id}"]`);if(!select)return;const option=[...select.querySelectorAll('.select-option')].find(item=>String(item.dataset.selectValue)===String(value));select.querySelector('.select-display').textContent=option?.dataset.triggerLabel||value;select.querySelectorAll('.select-option').forEach(item=>{item.classList.toggle('selected',item===option);item.querySelector('b').textContent=item===option?'✓':''});if(select.dataset.formName)select.previousElementSibling.value=value}
-function renderCardBuilders(){const markerBuilder=document.querySelector('#marker-builder'),actionBuilder=document.querySelector('#action-builder');if(!markerBuilder||!actionBuilder)return;markerBuilder.innerHTML=editorMarkers.map((marker,index)=>`<article class="builder-row"><div class="builder-row-head"><b>MARCADOR ${index+1}</b><button type="button" data-remove-marker="${index}">${icon('trash',15)}</button></div><div class="marker-types">${[['counter','CONTADOR'],['bar','BARRA'],['pips','CARGAS'],['slots','SLOTS'],['toggle','LIGA/DESLIGA']].map(([type,label])=>`<button type="button" class="${marker.type===type?'active':''}" data-marker-type="${index}:${type}">${label}</button>`).join('')}</div>${marker.type==='pips'||marker.type==='bar'||marker.type==='slots'?`<div class="marker-display-styles"><span>ESTILO VISUAL</span><button type="button" class="${(marker.displayStyle||'default')==='default'?'active':''}" data-marker-style="${index}:default">ATUAL</button><button type="button" class="${marker.displayStyle==='rectangles'?'active':''}" data-marker-style="${index}:rectangles">RETANGULAR</button></div>`:''}<div class="builder-fields"><label>LABEL<input data-marker-field="${index}:label" value="${safe(marker.label)}"></label><label>ATUAL<input type="number" min="0" data-marker-field="${index}:current" value="${Number(marker.current)||0}"></label>${marker.type!=='toggle'?`<label>MÁXIMO / FÓRMULA<input data-marker-field="${index}:maxFormula" value="${safe(marker.maxFormula||'0')}" placeholder="@{level} + 2"></label>`:''}${marker.type==='slots'?`<label>RECURSO PREENCHER<select data-marker-field="${index}:fillCostResource"><option value="none" ${(!marker.fillCostResource||marker.fillCostResource==='none')?'selected':''}>Nenhum</option><option value="pd" ${marker.fillCostResource==='pd'?'selected':''}>PD</option><option value="pv" ${marker.fillCostResource==='pv'?'selected':''}>PV</option></select></label><label>CUSTO RECURSO<input type="number" min="0" data-marker-field="${index}:fillCostAmount" value="${Number(marker.fillCostAmount)||0}"></label>`:''}</div></article>`).join('')||'<p class="builder-empty">Nenhum marcador neste card.</p>';actionBuilder.innerHTML=editorActions.map((action,index)=>{const slotsMarkers=editorMarkers.filter(m=>m.type==='slots');return `<article class="builder-row action-row"><div class="builder-fields"><label>NOME<input data-action-field="${index}:name" value="${safe(action.name)}" placeholder="Ataque"></label><label>EXPRESSÃO<input data-action-field="${index}:expression" value="${safe(action.expression)}" placeholder="3d6"></label>${slotsMarkers.length?`<label>PREENCHER MARCADOR<select data-action-field="${index}:targetMarker"><option value="">Nenhum</option>${slotsMarkers.map((m,i)=>`<option value="${safe(m.id||`marker-${i}`)}" ${action.targetMarker===(m.id||`marker-${i}`)?'selected':''}>${safe(m.label||`Slots ${i+1}`)}</option>`).join('')}</select></label>`:''}<button type="button" data-remove-action="${index}">${icon('trash',16)}</button></div></article>`}).join('')||'<p class="builder-empty">Nenhuma ação de rolagem neste card.</p>';bindBuilderEvents()}
-function bindBuilderEvents(){document.querySelectorAll('[data-marker-type]').forEach(el=>el.onclick=()=>{const[index,type]=el.dataset.markerType.split(':');editorMarkers[index].type=type;if(type==='slots'&&!editorMarkers[index].fillCostResource)editorMarkers[index].fillCostResource='pd';renderCardBuilders()});document.querySelectorAll('[data-marker-style]').forEach(el=>el.onclick=()=>{const[index,displayStyle]=el.dataset.markerStyle.split(':');editorMarkers[index].displayStyle=displayStyle;renderCardBuilders()});document.querySelectorAll('[data-remove-marker]').forEach(el=>el.onclick=()=>{editorMarkers.splice(Number(el.dataset.removeMarker),1);renderCardBuilders()});document.querySelectorAll('[data-remove-action]').forEach(el=>el.onclick=()=>{editorActions.splice(Number(el.dataset.removeAction),1);renderCardBuilders()});document.querySelectorAll('[data-marker-field]').forEach(el=>{const handler=()=>{const[index,key]=el.dataset.markerField.split(':');editorMarkers[index][key]=['current','fillCostAmount'].includes(key)?Number(el.value)||0:el.value};el.oninput=handler;el.onchange=handler});document.querySelectorAll('[data-action-field]').forEach(el=>{const handler=()=>{const[index,key]=el.dataset.actionField.split(':');editorActions[index][key]=el.value};el.oninput=handler;el.onchange=handler})}
-function openCardEditor(cardId=null){const modal=document.querySelector('#card-editor'),form=document.querySelector('#card-form'),card=state.cards.find(item=>item.id===cardId);form.reset();form.dataset.cardId=cardId||'';document.querySelector('#editor-title').textContent=card?'EDITAR CARD':`NOVO ${currentRight==='items'?'ITEM':'RECURSO'}`;setSelectVisual('editor-schema',card?.schema||currentRight);setSelectVisual('editor-layout',card?.layout||'standard');setSelectVisual('editor-collapsed',String(card?.collapsed||false));setSelectVisual('editor-color-mode',card?.themeLinked===false?'custom':'profile');form.elements.title.value=card?.title||'';form.elements.type.value=card?.type||(currentRight==='items'?'Equipamento':'Habilidade');form.elements.cost.value=card?(card.cost!==undefined?card.cost:getCardCost(card)):'';form.elements.icon.value=card?.icon||'◆';form.elements.accent.value=card?.accent||PROFILE_COLORS[state.profile]||'#e91d25';form.elements.imageUrl.value=card?.imageUrl||'';form.elements.content.value=card?.content||'';editorMarkers=clone(card?.markers||[]);editorActions=clone(card?.actions||[]);form.querySelector('.delete-card').hidden=!card;renderCardBuilders();modal.classList.remove('closing');modal.classList.add('open')}
+function renderCardBuilders(){const markerBuilder=document.querySelector('#marker-builder'),actionBuilder=document.querySelector('#action-builder'),modifierBuilder=document.querySelector('#modifier-builder');if(!markerBuilder||!actionBuilder)return;markerBuilder.innerHTML=editorMarkers.map((marker,index)=>`<article class="builder-row"><div class="builder-row-head"><b>MARCADOR ${index+1}</b><button type="button" data-remove-marker="${index}">${icon('trash',15)}</button></div><div class="marker-types">${[['counter','CONTADOR'],['bar','BARRA'],['pips','CARGAS'],['slots','SLOTS'],['toggle','LIGA/DESLIGA']].map(([type,label])=>`<button type="button" class="${marker.type===type?'active':''}" data-marker-type="${index}:${type}">${label}</button>`).join('')}</div>${marker.type==='pips'||marker.type==='bar'||marker.type==='slots'?`<div class="marker-display-styles"><span>ESTILO VISUAL</span><button type="button" class="${(marker.displayStyle||'default')==='default'?'active':''}" data-marker-style="${index}:default">ATUAL</button><button type="button" class="${marker.displayStyle==='rectangles'?'active':''}" data-marker-style="${index}:rectangles">RETANGULAR</button></div>`:''}<div class="builder-fields"><label>LABEL<input data-marker-field="${index}:label" value="${safe(marker.label)}"></label><label>ATUAL<input type="number" min="0" data-marker-field="${index}:current" value="${Number(marker.current)||0}"></label>${marker.type!=='toggle'?`<label>MÁXIMO / FÓRMULA<input data-marker-field="${index}:maxFormula" value="${safe(marker.maxFormula||'0')}" placeholder="@{level} + 2"></label>`:''}${marker.type==='slots'?`<label>RECURSO PREENCHER<select data-marker-field="${index}:fillCostResource"><option value="none" ${(!marker.fillCostResource||marker.fillCostResource==='none')?'selected':''}>Nenhum</option><option value="pd" ${marker.fillCostResource==='pd'?'selected':''}>PD</option><option value="pv" ${marker.fillCostResource==='pv'?'selected':''}>PV</option></select></label><label>CUSTO RECURSO<input type="number" min="0" data-marker-field="${index}:fillCostAmount" value="${Number(marker.fillCostAmount)||0}"></label>`:''}</div></article>`).join('')||'<p class="builder-empty">Nenhum marcador neste card.</p>';actionBuilder.innerHTML=editorActions.map((action,index)=>{const slotsMarkers=editorMarkers.filter(m=>m.type==='slots');return `<article class="builder-row action-row"><div class="builder-fields"><label>NOME<input data-action-field="${index}:name" value="${safe(action.name)}" placeholder="Ataque"></label><label>EXPRESSÃO<input data-action-field="${index}:expression" value="${safe(action.expression)}" placeholder="3d6"></label>${slotsMarkers.length?`<label>PREENCHER MARCADOR<select data-action-field="${index}:targetMarker"><option value="">Nenhum</option>${slotsMarkers.map((m,i)=>`<option value="${safe(m.id||`marker-${i}`)}" ${action.targetMarker===(m.id||`marker-${i}`)?'selected':''}>${safe(m.label||`Slots ${i+1}`)}</option>`).join('')}</select></label>`:''}<button type="button" data-remove-action="${index}">${icon('trash',16)}</button></div></article>`}).join('')||'<p class="builder-empty">Nenhuma ação de rolagem neste card.</p>';if(modifierBuilder){modifierBuilder.innerHTML=editorModifiers.map((mod,index)=>{const isPassive=(mod.type||'passive')==='passive';return `<article class="builder-row modifier-row"><div class="builder-row-head"><b>MODIFICADOR ${index+1}</b><button type="button" data-remove-modifier="${index}">${icon('trash',15)}</button></div><div class="modifier-types"><button type="button" class="${isPassive?'active':''}" data-modifier-type="${index}:passive">PASSIVA (AUTOMÁTICA)</button><button type="button" class="${!isPassive?'active':''}" data-modifier-type="${index}:activatable">ATIVÁVEL (NA ROLAGEM)</button></div><div class="builder-fields"><label>ALVO / PERÍCIA<input data-modifier-field="${index}:target" value="${safe(mod.target||'')}" placeholder="Ex: Percepção, Pontaria ou Todos"></label><label>VALOR (+ ou −)<input type="number" data-modifier-field="${index}:value" value="${Number(mod.value)||0}" placeholder="-1"></label>${!isPassive?`<label>CUSTO RECURSO<input data-modifier-field="${index}:cost" value="${safe(mod.cost||'')}" placeholder="Ex: 2 PD ou 1 PV"></label>`:''}<label>RÓTULO / NOME NA ROLAGEM<input data-modifier-field="${index}:label" value="${safe(mod.label||'')}" placeholder="Nome na carta"></label></div></article>`}).join('')||'<p class="builder-empty">Nenhum modificador neste card.</p>'}bindBuilderEvents()}
+function bindBuilderEvents(){document.querySelectorAll('[data-marker-type]').forEach(el=>el.onclick=()=>{const[index,type]=el.dataset.markerType.split(':');editorMarkers[index].type=type;if(type==='slots'&&!editorMarkers[index].fillCostResource)editorMarkers[index].fillCostResource='pd';renderCardBuilders()});document.querySelectorAll('[data-marker-style]').forEach(el=>el.onclick=()=>{const[index,displayStyle]=el.dataset.markerStyle.split(':');editorMarkers[index].displayStyle=displayStyle;renderCardBuilders()});document.querySelectorAll('[data-remove-marker]').forEach(el=>el.onclick=()=>{editorMarkers.splice(Number(el.dataset.removeMarker),1);renderCardBuilders()});document.querySelectorAll('[data-remove-action]').forEach(el=>el.onclick=()=>{editorActions.splice(Number(el.dataset.removeAction),1);renderCardBuilders()});document.querySelectorAll('[data-marker-field]').forEach(el=>{const handler=()=>{const[index,key]=el.dataset.markerField.split(':');editorMarkers[index][key]=['current','fillCostAmount'].includes(key)?Number(el.value)||0:el.value};el.oninput=handler;el.onchange=handler});document.querySelectorAll('[data-action-field]').forEach(el=>{const handler=()=>{const[index,key]=el.dataset.actionField.split(':');editorActions[index][key]=el.value};el.oninput=handler;el.onchange=handler});document.querySelectorAll('[data-modifier-type]').forEach(el=>el.onclick=()=>{const[index,type]=el.dataset.modifierType.split(':');editorModifiers[index].type=type;renderCardBuilders()});document.querySelectorAll('[data-remove-modifier]').forEach(el=>el.onclick=()=>{editorModifiers.splice(Number(el.dataset.removeModifier),1);renderCardBuilders()});document.querySelectorAll('[data-modifier-field]').forEach(el=>{const handler=()=>{const[index,key]=el.dataset.modifierField.split(':');editorModifiers[index][key]=key==='value'?(Number(el.value)||0):el.value};el.oninput=handler;el.onchange=handler})}
+function openCardEditor(cardId=null){const modal=document.querySelector('#card-editor'),form=document.querySelector('#card-form'),card=state.cards.find(item=>item.id===cardId);form.reset();form.dataset.cardId=cardId||'';document.querySelector('#editor-title').textContent=card?'EDITAR CARD':`NOVO ${currentRight==='items'?'ITEM':'RECURSO'}`;setSelectVisual('editor-schema',card?.schema||currentRight);setSelectVisual('editor-layout',card?.layout||'standard');setSelectVisual('editor-collapsed',String(card?.collapsed||false));setSelectVisual('editor-color-mode',card?.themeLinked===false?'custom':'profile');form.elements.title.value=card?.title||'';form.elements.type.value=card?.type||(currentRight==='items'?'Equipamento':'Habilidade');form.elements.cost.value=card?(card.cost!==undefined?card.cost:getCardCost(card)):'';form.elements.icon.value=card?.icon||'◆';form.elements.accent.value=card?.accent||PROFILE_COLORS[state.profile]||'#e91d25';form.elements.imageUrl.value=card?.imageUrl||'';form.elements.content.value=card?.content||'';editorMarkers=clone(card?.markers||[]);editorActions=clone(card?.actions||[]);editorModifiers=clone(card?.modifiers||(card?getDefaultCardModifiers(card):[]));form.querySelector('.delete-card').hidden=!card;renderCardBuilders();modal.classList.remove('closing');modal.classList.add('open')}
 function closeCardEditor(){const modal=document.querySelector('#card-editor');if(!modal)return;modal.classList.add('closing');setTimeout(()=>modal.classList.remove('open','closing'),160)}
 function openSkillInfo(index){if(!state.skills||!state.skills[index])return;const skill=state.skills[index],modal=document.querySelector('#skill-info-modal'),upper=String(skill.name).toUpperCase(),info=SKILL_INFO[upper]||(upper.startsWith('APTIDÃO')?SKILL_INFO['APTIDÃO (HUMANAS)']:null)||SKILL_INFO['APTIDÃO']||['Use esta perícia em testes relacionados à sua especialidade.',skill.attribute];document.querySelector('#skill-info-title').textContent=skill.name;document.querySelector('#skill-info-copy').textContent=info[0];document.querySelector('#skill-info-attribute').textContent=`ATRIBUTO SUGERIDO · ${info[1]||skill.attribute}`;modal.classList.add('open')}
 function closeSkillInfo(){document.querySelector('#skill-info-modal')?.classList.remove('open')}
@@ -5231,7 +5441,7 @@ function bind(){
  document.querySelectorAll('[data-resource-adjust]').forEach(el=>el.onclick=()=>{if(presentationMode){notifyPresentationLocked();return;}const[key,delta]=el.dataset.resourceAdjust.split(':');state[key]=Math.max(0,Number(state[key]||0)+Number(delta));if(key==='maxPv')state.pv=Math.min(state.pv,state[key]);if(key==='maxPd')state.pd=Math.min(state.pd,state[key]);if(key.toLowerCase().includes('pv')||key.toLowerCase().includes('pd'))playResourceSound(Number(delta)>0);save(false);render()});
  document.querySelectorAll('[data-attribute-step]').forEach(el=>el.onclick=()=>{if(presentationMode){notifyPresentationLocked();return;}const[name,delta]=el.dataset.attributeStep.split(':'),at=DICE_STEPS.indexOf(state.attributes[name]);state.attributes[name]=DICE_STEPS[Math.max(0,Math.min(DICE_STEPS.length-1,at+Number(delta)))];save(false);render()});
  document.querySelectorAll('[data-skill-extra]').forEach(el=>el.onchange=()=>{const rawId=el.dataset.skillExtra,numIdx=Number(rawId);if(!isNaN(numIdx)&&state.skills&&state.skills[numIdx]){state.skills[numIdx].extra=Number(el.value)||0}else if(state.pericias&&state.pericias[rawId]){state.pericias[rawId].extra=Number(el.value)||0}save(false)});
- document.querySelectorAll('[data-roll]').forEach(el=>el.onclick=e=>{if(e.target.closest('.custom-select,.extra input,[data-skill-extra],.card-actions,.skill-info-button,[data-remove-aptidao],[data-add-aptidao],.btn-remove-aptidao'))return;if(presentationMode){notifyPresentationLocked();return;}const[name,sides,bonus]=el.dataset.roll.split('|');const bonusNum=Number(bonus)||0;const rawLabels=el.dataset.rollLabels;const dieLabels=rawLabels?rawLabels.split('|'):[];const modifierParts=bonusNum?[{label:'EXTRA',value:bonusNum}]:[];roll(name,sides,bonusNum,'sum',{dieLabels,modifierParts,scene:'full'})});
+ document.querySelectorAll('[data-roll]').forEach(el=>el.onclick=e=>{if(e.target.closest('.custom-select,.extra input,[data-skill-extra],.card-actions,.skill-info-button,[data-remove-aptidao],[data-add-aptidao],.btn-remove-aptidao'))return;if(presentationMode){notifyPresentationLocked();return;}const[name,sides,bonus]=el.dataset.roll.split('|');const bonusNum=Number(bonus)||0;const rawLabels=el.dataset.rollLabels;const dieLabels=rawLabels?rawLabels.split('|'):[];const modifierParts=bonusNum?[{label:'EXTRA',value:bonusNum}]:[];roll(name,sides,bonusNum,'sum',{dieLabels,modifierParts,scene:'full',skillName:name})});
   document.querySelectorAll('[data-expression]').forEach(el=>el.onclick=async()=>{if(presentationMode){notifyPresentationLocked();return;}const cardId=el.dataset.cardId,actionId=el.dataset.actionId,card=cardId?state.cards.find(c=>c.id===cardId):null,action=card?.actions?.find(a=>a.id===actionId),res=await rollExpression(el.dataset.rollTitle,el.dataset.expression);if(!res||!Array.isArray(res.values)||!card)return;const targetMarker=card.markers?.find(m=>m.id===action?.targetMarker)||card.markers?.find(m=>m.type==='slots');if(targetMarker&&targetMarker.type==='slots'){const max=markerMax(targetMarker);if(!Array.isArray(targetMarker.slots))targetMarker.slots=[];targetMarker.slots=res.values.slice(0,max);while(targetMarker.slots.length<max)targetMarker.slots.push(null);targetMarker.current=targetMarker.slots.filter(v=>v!==null&&v!==undefined&&v!=='').length;save(false);render();const toast=document.querySelector('#save-toast');if(toast){toast.textContent=`${(targetMarker.label||'Slots').toUpperCase()} PREENCHIDA COM [ ${targetMarker.slots.filter(v=>v!==null).join(', ')} ]!`;toast.classList.add('show');setTimeout(()=>{toast.classList.remove('show');toast.textContent='SALVO'},2200)}}});
   document.querySelectorAll('[data-card-marker]').forEach(el=>el.onclick=()=>{if(presentationMode){notifyPresentationLocked();return;}const[cardId,markerId,action]=el.dataset.cardMarker.split(':'),marker=state.cards.find(c=>c.id===cardId)?.markers.find(m=>m.id===markerId);if(!marker)return;const max=markerMax(marker);marker.current=action==='toggle'?(marker.current?0:1):Math.max(0,Math.min(max||999,(Number(marker.current)||0)+Number(action)));save(false);updateMarkerUi(cardId,markerId)});
   document.querySelectorAll('[data-card-marker-set]').forEach(el=>el.onclick=()=>{if(presentationMode){notifyPresentationLocked();return;}const[cardId,markerId,value]=el.dataset.cardMarkerSet.split(':'),marker=state.cards.find(c=>c.id===cardId)?.markers.find(m=>m.id===markerId);if(marker){marker.current=marker.current===Number(value)?Number(value)-1:Number(value);save(false);updateMarkerUi(cardId,markerId)}});
@@ -5266,8 +5476,8 @@ function bind(){
   document.querySelectorAll('[data-duplicate-card]').forEach(el=>el.onclick=()=>{const c=state.cards.find(x=>x.id===el.dataset.duplicateCard),copy={...clone(c),id:makeId('card'),title:`${c.title} — CÓPIA`};copy.markers.forEach(m=>m.id=makeId('marker'));copy.actions.forEach(a=>a.id=makeId('action'));state.cards.splice(state.cards.indexOf(c)+1,0,copy);save(false);render()});
   document.querySelectorAll('[data-move]').forEach(el=>el.onclick=()=>{const[id,delta]=el.dataset.move.split(':'),from=state.cards.findIndex(c=>c.id===id),to=Math.max(0,Math.min(state.cards.length-1,from+Number(delta)));if(from!==to){const[c]=state.cards.splice(from,1);state.cards.splice(to,0,c);save(false);render()}});
   document.querySelectorAll('.resource-card').forEach(card=>{card.ondragstart=e=>e.dataTransfer.setData('text/card-id',card.dataset.cardId);card.ondragover=e=>e.preventDefault();card.ondrop=e=>{e.preventDefault();const from=state.cards.findIndex(c=>c.id===e.dataTransfer.getData('text/card-id')),to=state.cards.findIndex(c=>c.id===card.dataset.cardId);if(from>=0&&to>=0&&from!==to){const[moved]=state.cards.splice(from,1);state.cards.splice(to,0,moved);save(false);render()}}});
-  document.querySelectorAll('.editor-close,.editor-backdrop').forEach(el=>el.onclick=closeCardEditor);document.querySelectorAll('[data-format]').forEach(el=>el.onclick=()=>applyTextFormat(el.dataset.format));document.querySelectorAll('[data-skill-info]').forEach(el=>el.onclick=e=>{e.stopPropagation();openSkillInfo(Number(el.dataset.skillInfo))});document.querySelectorAll('.skill-info-close,.skill-info-backdrop').forEach(el=>el.onclick=closeSkillInfo);document.querySelector('[data-add-marker]').onclick=()=>{if(editorMarkers.length<5){editorMarkers.push({id:makeId('marker'),type:'counter',displayStyle:'default',label:`Marcador ${editorMarkers.length+1}`,current:0,maxFormula:'@{level} + 2'});renderCardBuilders()}};document.querySelector('[data-add-action]').onclick=()=>{if(editorActions.length<7){editorActions.push({id:makeId('action'),name:`Ação ${editorActions.length+1}`,expression:'1d8'});renderCardBuilders()}};
-  document.querySelector('#card-form').onsubmit=e=>{e.preventDefault();const form=e.currentTarget,data=Object.fromEntries(new FormData(form)),existing=state.cards.find(c=>c.id===form.dataset.cardId),card=existing||{id:makeId('card')};Object.assign(card,{schema:data.schema,title:data.title.trim()||'SEM TÍTULO',type:data.type.trim()||'Habilidade',cost:(data.cost||'').trim(),icon:data.icon.trim()||'◆',accent:data.accent,themeLinked:data.colorMode==='profile',layout:data.layout,collapsed:data.collapsed==='true',imageUrl:data.imageUrl.trim(),content:data.content.trim(),markers:clone(editorMarkers),actions:clone(editorActions)});card.markers.forEach(marker=>{marker.current=Math.min(Number(marker.current)||0,marker.type==='toggle'?1:markerMax(marker)||999);if(marker.type==='slots'&&!Array.isArray(marker.slots)){const max=markerMax(marker);marker.slots=Array.from({length:max},()=>null)}});if(!existing)state.cards.push(card);currentRight=card.schema;save(false);closeCardEditor();render()};
+  document.querySelectorAll('.editor-close,.editor-backdrop').forEach(el=>el.onclick=closeCardEditor);document.querySelectorAll('[data-format]').forEach(el=>el.onclick=()=>applyTextFormat(el.dataset.format));document.querySelectorAll('[data-skill-info]').forEach(el=>el.onclick=e=>{e.stopPropagation();openSkillInfo(Number(el.dataset.skillInfo))});document.querySelectorAll('.skill-info-close,.skill-info-backdrop').forEach(el=>el.onclick=closeSkillInfo);document.querySelector('[data-add-marker]').onclick=()=>{if(editorMarkers.length<5){editorMarkers.push({id:makeId('marker'),type:'counter',displayStyle:'default',label:`Marcador ${editorMarkers.length+1}`,current:0,maxFormula:'@{level} + 2'});renderCardBuilders()}};document.querySelector('[data-add-action]').onclick=()=>{if(editorActions.length<7){editorActions.push({id:makeId('action'),name:`Ação ${editorActions.length+1}`,expression:'1d8'});renderCardBuilders()}};const addModBtn=document.querySelector('[data-add-modifier]');if(addModBtn)addModBtn.onclick=()=>{if(editorModifiers.length<8){editorModifiers.push({id:makeId('mod'),type:'passive',target:'Todos',value:1,cost:'',label:''});renderCardBuilders()}};
+  document.querySelector('#card-form').onsubmit=e=>{e.preventDefault();const form=e.currentTarget,data=Object.fromEntries(new FormData(form)),existing=state.cards.find(c=>c.id===form.dataset.cardId),card=existing||{id:makeId('card')};Object.assign(card,{schema:data.schema,title:data.title.trim()||'SEM TÍTULO',type:data.type.trim()||'Habilidade',cost:(data.cost||'').trim(),icon:data.icon.trim()||'◆',accent:data.accent,themeLinked:data.colorMode==='profile',layout:data.layout,collapsed:data.collapsed==='true',imageUrl:data.imageUrl.trim(),content:data.content.trim(),markers:clone(editorMarkers),actions:clone(editorActions),modifiers:clone(editorModifiers)});card.markers.forEach(marker=>{marker.current=Math.min(Number(marker.current)||0,marker.type==='toggle'?1:markerMax(marker)||999);if(marker.type==='slots'&&!Array.isArray(marker.slots)){const max=markerMax(marker);marker.slots=Array.from({length:max},()=>null)}});if(!existing)state.cards.push(card);currentRight=card.schema;save(false);closeCardEditor();render()};
   document.querySelector('.delete-card').onclick=()=>{const id=document.querySelector('#card-form').dataset.cardId;if(id){state.cards=state.cards.filter(c=>c.id!==id);save(false);closeCardEditor();render()}};
   document.querySelectorAll('#token-upload,#token-upload-secondary,#token-upload-cinematic').forEach(input=>input.onchange=()=>readImage(input.files[0],'tokenImage',2048));const backgroundUpload=document.querySelector('#background-upload');if(backgroundUpload)backgroundUpload.onchange=()=>readMedia(backgroundUpload.files[0],'backgroundImage');document.querySelectorAll('[data-reset-background]').forEach(el=>el.onclick=()=>{state.backgroundImage='';state.backgroundBlur=0;state.backgroundZoom=100;save(false);render()});document.querySelectorAll('[data-reset-bg-effects]').forEach(el=>el.onclick=()=>{state.backgroundBlur=0;state.backgroundZoom=100;save(false);render()});document.querySelectorAll('[data-cinematic-bg-blur]').forEach(input=>{input.oninput=()=>{const val=Math.max(0,Math.min(50,Number(input.value)||0));state.backgroundBlur=val;document.querySelectorAll('.page,.cinematic-page').forEach(page=>page.style.setProperty('--bg-blur',`${val}px`));const hint=input.parentElement?.querySelector('.slider-val-hint')||document.querySelector('#val-hint-blur');if(hint)hint.textContent=`${val}px`};input.onchange=()=>save(false);input.ondblclick=()=>{state.backgroundBlur=0;save(false);render()}});document.querySelectorAll('[data-cinematic-bg-zoom]').forEach(input=>{input.oninput=()=>{const val=Math.max(20,Math.min(300,Number(input.value)||100));state.backgroundZoom=val;document.querySelectorAll('.page,.cinematic-page').forEach(page=>page.style.setProperty('--bg-zoom',`${val/100}`));const hint=input.parentElement?.querySelector('.slider-val-hint')||document.querySelector('#val-hint-zoom');if(hint)hint.textContent=`${val}%`};input.onchange=()=>save(false);input.ondblclick=()=>{state.backgroundZoom=100;save(false);render()}});document.querySelectorAll('[data-theme-color]').forEach(input=>{input.oninput=()=>{state.themeColor=input.value;document.querySelector('.cinematic-page')?.style.setProperty('--cinematic-accent',input.value);document.documentElement.style.setProperty('--cinematic-accent-ink',inkFor(input.value))};input.onchange=()=>{state.themeColor=input.value;save(false);render()}});document.querySelectorAll('[data-reset-theme-color]').forEach(el=>el.onclick=()=>{state.themeColor='';save(false);render()});const diceColor=document.querySelector('#dice-color');if(diceColor)diceColor.onchange=()=>{state.diceColor=diceColor.value;save(false);render()};document.querySelectorAll('[data-reset-dice-color]').forEach(el=>el.onclick=()=>{state.diceColor='';save(false);render()});
     document.querySelectorAll('[data-sheet-id]').forEach(el=>el.onclick=(e)=>{

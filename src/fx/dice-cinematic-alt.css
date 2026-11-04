@@ -353,6 +353,58 @@
 }
 .bg3-card.is-active { transform: translateY(-5px); border-color: var(--line); box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 45%, transparent), 0 10px 24px rgba(0, 0, 0, .7); }
 .bg3-card.is-spent { opacity: .38; }
+
+/* Penalidades / Nerfs */
+.bg3-card.is-penalty { border-top: 2px solid #ef4444; }
+.bg3-card.is-penalty .bg3-card-value { color: #fca5a5; text-shadow: 0 0 10px rgba(239, 68, 68, .4); }
+.bg3-card.is-penalty .bg3-card-gem { border-color: rgba(239, 68, 68, .7); background: rgba(239, 68, 68, .3); }
+.bg3-card.is-penalty.is-active { border-color: #ef4444; box-shadow: 0 0 24px rgba(239, 68, 68, .6), 0 10px 24px rgba(0, 0, 0, .7); }
+
+/* Cartas ativáveis (Poderes/Buffs com custo ou toggle) */
+button.bg3-card.is-activatable {
+  font: inherit;
+  cursor: pointer;
+  border: 1px dashed var(--line-soft);
+  border-top: 2px dashed var(--line);
+  background: linear-gradient(180deg, #1f1d24, #141318);
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+button.bg3-card.is-activatable:hover:not(.is-disabled) {
+  filter: brightness(1.2);
+  transform: translateY(-2px);
+  border-color: var(--line);
+}
+button.bg3-card.is-activatable.is-active-toggle {
+  border-style: solid;
+  border-color: #f59e0b;
+  border-top-color: #fbbf24;
+  background: linear-gradient(180deg, #2c2416, #18140c);
+  box-shadow: 0 0 18px rgba(245, 158, 11, .4), 0 8px 20px rgba(0, 0, 0, .8);
+}
+button.bg3-card.is-activatable.is-active-toggle .bg3-card-gem {
+  background: rgba(245, 158, 11, .5);
+  border-color: #fbbf24;
+  box-shadow: 0 0 8px #f59e0b;
+}
+button.bg3-card.is-activatable.is-disabled {
+  opacity: .32;
+  cursor: not-allowed;
+  filter: grayscale(.8);
+}
+.bg3-card-cost {
+  display: inline-block;
+  padding: 2px 6px;
+  font-family: var(--label-font);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, .15);
+  border: 1px solid rgba(245, 158, 11, .3);
+  border-radius: 3px;
+  margin-top: 2px;
+}
+
 .bg3-fly {
   position: fixed;
   z-index: 3;
@@ -360,6 +412,17 @@
   place-items: center;
   pointer-events: none;
   text-shadow: 0 0 16px color-mix(in srgb, var(--accent) 90%, transparent), 0 0 4px #fff;
+}
+.bg3-fly.is-penalty {
+  color: #ef4444;
+  text-shadow: 0 0 20px rgba(239, 68, 68, .95), 0 0 4px #fff;
+}
+
+.is-penalty-pulse { animation: bg3-penalty-pulse .45s cubic-bezier(.16, 1, .3, 1) forwards; }
+@keyframes bg3-penalty-pulse {
+  0% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0)); }
+  35% { transform: scale(1.18); filter: drop-shadow(0 0 32px rgba(239, 68, 68, .9)) hue-rotate(-20deg); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(239, 68, 68, .4)); }
 }
 .bg3-bonus-total {
   margin: 0;

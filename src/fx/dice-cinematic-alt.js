@@ -161,6 +161,9 @@ export function createRollAudio(ctx) {
     tick(i = 0) {
       tone(ctx.currentTime, 1400 + i * 90, 0.05, { type: 'triangle', gain: 0.03, attack: 0.001, send: 0.15 });
     },
+    tickDown(i = 0) {
+      tone(ctx.currentTime, Math.max(160, 850 - i * 70), 0.045, { type: 'sawtooth', gain: 0.025, attack: 0.001, send: 0.1 });
+    },
     // bônus chegando: sino
     bell(i = 0) {
       const notes = [659.25, 739.99, 880, 987.77, 1108.73, 1318.51];
@@ -168,6 +171,13 @@ export function createRollAudio(ctx) {
       const t = ctx.currentTime;
       [[1, 0.14, 1.4], [2.0, 0.055, 0.9], [2.76, 0.045, 0.6], [5.4, 0.018, 0.3]].forEach(([r, g, d]) => tone(t, f * r, d, { gain: g, attack: 0.002, send: 0.55 }));
       tone(t, f / 2, 0.5, { gain: 0.04, attack: 0.004, send: 0.3 });
+    },
+    // penalidade chegando: tom sombrio e grave
+    penalty(i = 0) {
+      const t = ctx.currentTime;
+      tone(t, 140 - i * 15, 0.42, { type: 'sawtooth', gain: 0.12, attack: 0.005, glide: 65, send: 0.4 });
+      tone(t, 65, 0.6, { type: 'sine', gain: 0.22, attack: 0.008, glide: 40, send: 0.3 });
+      noise(t, 0.14, { type: 'lowpass', freq: 360, gain: 0.22, attack: 0.002, send: 0.25 });
     },
     // acordes de veredito
     verdict(kind) {
@@ -550,9 +560,26 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
   const dt = options.dt != null && Number.isFinite(Number(options.dt)) ? Number(options.dt) : info.dt;
   const success = dt !== null ? total >= dt : null;
 
-  const parts = (options.modifierParts || []).map(p => ({ label: p.label || 'BÔNUS', value: Number(p.value) || 0 })).filter(p => p.value);
+  const parts = (options.modifierParts || []).map(p => ({
+    label: p.label || 'BÔNUS',
+    value: Number(p.value) || 0,
+    isPenalty: p.value < 0 || Boolean(p.isPenalty)
+  })).filter(p => p.value);
   const partsSum = parts.reduce((a, p) => a + p.value, 0);
-  if (partsSum !== modifier) parts.push({ label: 'BÔNUS', value: modifier - partsSum });
+  if (partsSum !== modifier) {
+    const diff = modifier - partsSum;
+    if (diff !== 0) parts.push({ label: 'BÔNUS', value: diff, isPenalty: diff < 0 });
+  }
+
+  const activatables = (options.activatables || []).map((a, i) => ({
+    id: a.id || `act-${i}`,
+    label: a.label || 'HABILIDADE',
+    value: Number(a.value) || 0,
+    cost: a.cost || '',
+    canAfford: a.canAfford !== false,
+    selected: false,
+    raw: a
+  }));
 
   const reduced = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   const quick = options.scene !== 'full';
@@ -619,15 +646,23 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
           </div>
         </section>
         ${dt !== null ? `<p class="bg3-mode">${safeHtml(modeLabel(list, rollMode, dreadIndex))}</p>` : ''}
-        ${parts.length ? `
-        <div class="bg3-bonuses">${parts.map((p, i) => `
-          <div class="bg3-card" data-card="${i}">
-            <span class="bg3-card-value">${signed(p.value)}</span>
-            <i class="bg3-card-gem"></i>
-            <span class="bg3-card-label">${safeHtml(p.label)}</span>
-          </div>`).join('')}
+        ${(parts.length || activatables.length) ? `
+        <div class="bg3-bonuses">
+          ${parts.map((p, i) => `
+            <div class="bg3-card ${p.value < 0 ? 'is-penalty' : 'is-bonus'}" data-card="${i}">
+              <span class="bg3-card-value">${signed(p.value)}</span>
+              <i class="bg3-card-gem"></i>
+              <span class="bg3-card-label">${safeHtml(p.label)}</span>
+            </div>`).join('')}
+          ${activatables.map((a, i) => `
+            <button type="button" class="bg3-card is-activatable ${a.value < 0 ? 'is-penalty' : 'is-bonus'} ${!a.canAfford ? 'is-disabled' : ''}" data-activatable-idx="${i}" ${!a.canAfford ? 'disabled title="Recursos insuficientes"' : 'title="Clique para ativar/desativar este efeito"'}>
+              <span class="bg3-card-value">${signed(a.value)}</span>
+              <i class="bg3-card-gem"></i>
+              <span class="bg3-card-label">${safeHtml(a.label)}</span>
+              ${a.cost ? `<span class="bg3-card-cost">${safeHtml(a.cost)}</span>` : ''}
+            </button>`).join('')}
         </div>
-        <p class="bg3-bonus-total">Bônus total <b>${signed(modifier)}</b></p>` : ''}
+        <p class="bg3-bonus-total">Bônus total <b class="bg3-total-mod-val">${signed(modifier)}</b></p>` : ''}
         <p class="bg3-hint">${waitForClick ? 'Espaço para rolar' : ''}</p>
       </div>`;
     document.body.appendChild(stage);
@@ -996,18 +1031,21 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
 
       // 6. cartas de bônus voam e somam
       let running = baseValue;
-      const cards = [...stage.querySelectorAll('.bg3-card')];
-      for (let i = 0; i < parts.length; i++) {
+      stage.querySelectorAll('.bg3-card.is-activatable:not(.is-active-toggle)').forEach(c => c.classList.add('is-spent'));
+      const cards = [...stage.querySelectorAll('.bg3-card:not(.is-activatable), .bg3-card.is-active-toggle')];
+      for (let i = 0; i < activeParts.length; i++) {
         const card = cards[i];
-        const value = card.querySelector('.bg3-card-value');
-        card.classList.add('is-active');
-        if (!skipping) {
+        const part = activeParts[i];
+        const isPenalty = part.value < 0;
+        const value = card ? card.querySelector('.bg3-card-value') : null;
+        if (card) card.classList.add('is-active');
+        if (!skipping && value) {
           await wait(200);
           alive();
           const from = value.getBoundingClientRect();
           const to = totalEl.getBoundingClientRect();
           const fly = value.cloneNode(true);
-          fly.className = 'bg3-card-value bg3-fly';
+          fly.className = `bg3-card-value bg3-fly ${isPenalty ? 'is-penalty' : ''}`;
           Object.assign(fly.style, { left: `${from.left}px`, top: `${from.top}px`, width: `${from.width}px`, height: `${from.height}px` });
           stage.appendChild(fly);
           const dx = to.left + to.width / 2 - (from.left + from.width / 2);
@@ -1020,26 +1058,30 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
           ], { duration: 580 * pace, easing: 'cubic-bezier(.45,0,.55,1)', fill: 'forwards' }).finished.catch(() => {});
           fly.remove();
           alive();
-          const steps = Math.min(Math.abs(parts[i].value), 8);
-          const dir = Math.sign(parts[i].value);
+          const steps = Math.min(Math.abs(part.value), 8);
+          const dir = Math.sign(part.value);
           for (let s = 1; s <= steps && !skipping; s++) {
-            setTotal(s === steps ? running + parts[i].value : running + dir * s);
-            sfx?.tick(s);
+            setTotal(s === steps ? running + part.value : running + dir * s);
+            if (isPenalty) sfx?.tickDown?.(s) || sfx?.tick(s);
+            else sfx?.tick(s);
             await wait(70);
           }
           alive();
         }
-        card.classList.add('is-spent');
-        running += parts[i].value;
+        if (card) card.classList.add('is-spent');
+        running += part.value;
         setTotal(running);
-        pulse(totalEl);
-        if (!skipping) sfx?.bell(i);
-        card.classList.remove('is-active');
+        pulse(totalEl, isPenalty ? 'is-penalty-pulse' : 'is-pulse');
+        if (!skipping) {
+          if (isPenalty) sfx?.penalty?.(i);
+          else sfx?.bell(i);
+        }
+        if (card) card.classList.remove('is-active');
         await wait(420);
         alive();
       }
-      setTotal(total);
-      await wait(parts.length ? 420 : 200);
+      setTotal(currentTotal);
+      await wait(activeParts.length ? 420 : 200);
       alive();
 
       // 7. veredito
@@ -1047,8 +1089,8 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
       let word = '', tone = 'neutral';
       if (cls.crit) { word = 'Sucesso Crítico'; tone = 'crit'; }
       else if (cls.fumble) { word = 'Falha Crítica'; tone = 'fumble'; }
-      else if (success === true) { word = 'Sucesso'; tone = 'success'; }
-      else if (success === false) { word = 'Falha'; tone = 'failure'; }
+      else if (finalSuccess === true) { word = 'Sucesso'; tone = 'success'; }
+      else if (finalSuccess === false) { word = 'Falha'; tone = 'failure'; }
       const notes = [];
       if (dreadIndex >= 0) {
         if (vanquished) notes.push('✦ Pavor vencido');
@@ -1058,7 +1100,7 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
       }
       if (cls.ra !== null) notes.push(`RA ${cls.ra} · RB ${cls.rb}`);
       verdictEl.innerHTML = `
-        <strong class="bg3-verdict-word${word ? '' : ' is-total'}">${word || `Total ${total}`}</strong>
+        <strong class="bg3-verdict-word${word ? '' : ' is-total'}">${word || `Total ${currentTotal}`}</strong>
         ${notes.length ? `<span class="bg3-verdict-notes">${notes.map(safeHtml).join('<i>◆</i>')}</span>` : ''}`;
       stage.classList.remove('is-rolling');
       stage.classList.add('is-done', `tone-${tone}`);
@@ -1076,9 +1118,32 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
       timers.add(t);
     };
 
+    let activeParts = [...parts];
+    let currentTotal = total;
+    let finalSuccess = success;
+
     const start = () => {
       if (state !== 'waiting') return;
       state = 'starting';
+
+      const selectedActs = activatables.filter(a => a.selected);
+      if (selectedActs.length) {
+        options.onConsume?.(selectedActs.map(a => a.raw || a));
+      }
+      activeParts = [
+        ...parts,
+        ...selectedActs.map(a => ({ label: a.label, value: a.value, isPenalty: a.value < 0 }))
+      ];
+      const activeMod = activeParts.reduce((acc, p) => acc + p.value, 0);
+      currentTotal = baseValue + activeMod;
+      payload.total = currentTotal;
+      payload.modifier = activeMod;
+      payload.modifierParts = activeParts;
+      if (dt !== null) {
+        finalSuccess = currentTotal >= dt;
+        payload.success = finalSuccess;
+      }
+
       runSequence().catch(err => {
         if (err === CLOSED) return;
         console.error(err);
@@ -1101,6 +1166,21 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
       }
       e.stopPropagation();
       if (state === 'waiting') {
+        const actBtn = e.target.closest('[data-activatable-idx]');
+        if (actBtn && !actBtn.disabled) {
+          const idx = Number(actBtn.dataset.activatableIdx);
+          const act = activatables[idx];
+          if (act) {
+            act.selected = !act.selected;
+            actBtn.classList.toggle('is-active-toggle', act.selected);
+            const activeActsBonus = activatables.filter(a => a.selected).reduce((acc, a) => acc + a.value, 0);
+            const currentTotalMod = parts.reduce((acc, p) => acc + p.value, 0) + activeActsBonus;
+            const bEl = stage.querySelector('.bg3-total-mod-val');
+            if (bEl) bEl.textContent = signed(currentTotalMod);
+            sfx?.tick(act.selected ? 3 : 1);
+          }
+          return;
+        }
         if (e.target.closest('.bg3-roll-btn, .bg3-tray')) start();
         return;
       }

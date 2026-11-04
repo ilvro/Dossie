@@ -198,7 +198,8 @@
             "maxFormula": "4"
           }
         ],
-        "actions": []
+        "actions": [],
+        "modifiers": []
       },
       {
         "id": "leitura-de-combate",
@@ -210,7 +211,8 @@
         "icon": "◆",
         "markers": [],
         "actions": [],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       },
       {
         "id": "segredo-do-aco",
@@ -222,7 +224,8 @@
         "icon": "◆",
         "markers": [],
         "actions": [],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       },
       {
         "id": "equip-rhiona",
@@ -245,7 +248,39 @@
             "expression": "RA + 3"
           }
         ],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
+      },
+      {
+        "id": "card-1793824428861-lndc8",
+        "schema": "abilities",
+        "title": "Sem Olho",
+        "type": "Lesão",
+        "content": "Você perde o uso de um olho. Sofre –1 permanente em Percepção e Pontaria.",
+        "accent": "#e0150d",
+        "themeLinked": false,
+        "isCondition": true,
+        "conditionType": "lesao",
+        "markers": [],
+        "actions": [],
+        "modifiers": [
+          {
+            "id": "mod-1793824428861-oki8t",
+            "type": "passive",
+            "target": "PERCEPÇÃO",
+            "value": -1,
+            "cost": "",
+            "label": "Sem Olho"
+          },
+          {
+            "id": "mod-1793824428861-axzft",
+            "type": "passive",
+            "target": "PONTARIA",
+            "value": -1,
+            "cost": "",
+            "label": "Sem Olho"
+          }
+        ]
       }
     ],
     "id": "sheet-vigilia-rhiona",
@@ -304,7 +339,7 @@
     "favorite": false,
     "dadoPavor": null,
     "traumasCountScene": 2,
-    "lesoesCountScene": 1,
+    "lesoesCountScene": 2,
     "pavorEmbraced": false
   },
   {
@@ -498,7 +533,8 @@
         "icon": "◆",
         "cost": "2 PD",
         "markers": [],
-        "actions": []
+        "actions": [],
+        "modifiers": []
       },
       {
         "id": "esquiva",
@@ -516,7 +552,8 @@
             "expression": "1d6 + 1d8"
           }
         ],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       },
       {
         "id": "espectro-lobo",
@@ -537,7 +574,8 @@
           }
         ],
         "actions": [],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       },
       {
         "id": "equip-rowan",
@@ -570,7 +608,8 @@
             "expression": "RA + 2"
           }
         ],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       }
     ],
     "id": "sheet-vigilia-rowan",
@@ -827,7 +866,8 @@
             "maxFormula": "5"
           }
         ],
-        "actions": []
+        "actions": [],
+        "modifiers": []
       },
       {
         "id": "arsenal-herborista",
@@ -855,7 +895,8 @@
             "expression": "RA + 1"
           }
         ],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       },
       {
         "id": "equip-muirenn",
@@ -878,7 +919,8 @@
             "expression": "RA + 0"
           }
         ],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       }
     ],
     "id": "sheet-vigilia-muirenn",
@@ -1140,7 +1182,8 @@
             "maxFormula": "4"
           }
         ],
-        "actions": []
+        "actions": [],
+        "modifiers": []
       },
       {
         "id": "curandeiro",
@@ -1159,7 +1202,8 @@
             "expression": "1d6 + 1d10"
           }
         ],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       },
       {
         "id": "mentoria",
@@ -1171,7 +1215,8 @@
         "icon": "◆",
         "markers": [],
         "actions": [],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       },
       {
         "id": "equip-cavan",
@@ -1194,7 +1239,8 @@
             "expression": "RA + 1"
           }
         ],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       }
     ],
     "id": "sheet-vigilia-cavan",
@@ -1455,7 +1501,8 @@
         "cost": "",
         "layout": "standard",
         "collapsed": false,
-        "imageUrl": ""
+        "imageUrl": "",
+        "modifiers": []
       },
       {
         "id": "impeto-fervilhante",
@@ -1471,7 +1518,8 @@
         "cost": "",
         "layout": "standard",
         "collapsed": false,
-        "imageUrl": ""
+        "imageUrl": "",
+        "modifiers": []
       },
       {
         "id": "equip-malik",
@@ -1494,7 +1542,8 @@
             "expression": "RA + 1"
           }
         ],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       }
     ],
     "id": "sheet-vigilia-malik",
@@ -1748,7 +1797,8 @@
         "icon": "◆",
         "cost": "2 PD",
         "markers": [],
-        "actions": []
+        "actions": [],
+        "modifiers": []
       },
       {
         "id": "antecipacao-tatica",
@@ -1761,7 +1811,8 @@
         "icon": "◆",
         "markers": [],
         "actions": [],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       },
       {
         "id": "sorrateiro",
@@ -1774,7 +1825,8 @@
         "icon": "◆",
         "markers": [],
         "actions": [],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       },
       {
         "id": "equip-sira",
@@ -1797,7 +1849,8 @@
             "expression": "RA + 3"
           }
         ],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       }
     ],
     "id": "sheet-vigilia-sira",
@@ -2046,7 +2099,8 @@
         "markers": [],
         "actions": [],
         "themeLinked": true,
-        "profileAbility": "Vigilante"
+        "profileAbility": "Vigilante",
+        "modifiers": []
       },
       {
         "id": "card-sorcha-guardia",
@@ -2059,7 +2113,8 @@
         "icon": "🛡",
         "markers": [],
         "actions": [],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       },
       {
         "id": "card-sorcha-instinto",
@@ -2071,7 +2126,8 @@
         "icon": "👁",
         "markers": [],
         "actions": [],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       },
       {
         "id": "card-sorcha-equip",
@@ -2094,7 +2150,8 @@
             "expression": "RA + 2"
           }
         ],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       }
     ],
     "id": "sheet-vigilia-sorcha",
@@ -2367,7 +2424,8 @@
         ],
         "actions": [],
         "themeLinked": true,
-        "profileAbility": "Executor"
+        "profileAbility": "Executor",
+        "modifiers": []
       },
       {
         "id": "card-cormac-heranca",
@@ -2379,7 +2437,8 @@
         "icon": "👑",
         "markers": [],
         "actions": [],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       },
       {
         "id": "card-cormac-plano",
@@ -2392,7 +2451,8 @@
         "icon": "♟",
         "markers": [],
         "actions": [],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       },
       {
         "id": "card-cormac-equip",
@@ -2415,7 +2475,8 @@
             "expression": "RA + 3"
           }
         ],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       }
     ],
     "id": "sheet-vigilia-cormac",
@@ -2678,7 +2739,8 @@
         "actions": [],
         "layout": "standard",
         "collapsed": false,
-        "imageUrl": ""
+        "imageUrl": "",
+        "modifiers": []
       },
       {
         "id": "foco-mental",
@@ -2693,7 +2755,17 @@
         "actions": [],
         "layout": "standard",
         "collapsed": false,
-        "imageUrl": ""
+        "imageUrl": "",
+        "modifiers": [
+          {
+            "id": "foco-mod",
+            "type": "activatable",
+            "target": "Mente",
+            "value": 4,
+            "cost": "2 PD",
+            "label": "Foco Mental"
+          }
+        ]
       }
     ],
     "id": "sheet-1789933906659-msnzp",
@@ -2907,7 +2979,8 @@
             "maxFormula": "5"
           }
         ],
-        "actions": []
+        "actions": [],
+        "modifiers": []
       },
       {
         "id": "analise",
@@ -2932,7 +3005,8 @@
         "actions": [],
         "layout": "standard",
         "collapsed": false,
-        "imageUrl": ""
+        "imageUrl": "",
+        "modifiers": []
       },
       {
         "id": "foco-mental",
@@ -2953,7 +3027,17 @@
         ],
         "layout": "standard",
         "collapsed": false,
-        "imageUrl": ""
+        "imageUrl": "",
+        "modifiers": [
+          {
+            "id": "foco-mod",
+            "type": "activatable",
+            "target": "Mente",
+            "value": 4,
+            "cost": "2 PD",
+            "label": "Foco Mental"
+          }
+        ]
       },
       {
         "id": "prontidao",
@@ -2967,7 +3051,8 @@
         "icon": "��",
         "markers": [],
         "actions": [],
-        "cost": "2 PD"
+        "cost": "2 PD",
+        "modifiers": []
       }
     ],
     "id": "sheet-1789935686382-iplu3",
@@ -3181,7 +3266,8 @@
             "maxFormula": "5"
           }
         ],
-        "actions": []
+        "actions": [],
+        "modifiers": []
       },
       {
         "id": "analise",
@@ -3206,7 +3292,8 @@
         "actions": [],
         "layout": "standard",
         "collapsed": false,
-        "imageUrl": ""
+        "imageUrl": "",
+        "modifiers": []
       },
       {
         "id": "card-1790292112563-3b2t2",
@@ -3227,7 +3314,8 @@
         ],
         "layout": "standard",
         "collapsed": false,
-        "imageUrl": ""
+        "imageUrl": "",
+        "modifiers": []
       },
       {
         "id": "prontidao",
@@ -3241,7 +3329,8 @@
         "icon": "◆",
         "markers": [],
         "actions": [],
-        "cost": "2 PD"
+        "cost": "2 PD",
+        "modifiers": []
       }
     ],
     "id": "sheet-1790292112563-5tjih",
@@ -3448,7 +3537,8 @@
             "maxFormula": "5"
           }
         ],
-        "actions": []
+        "actions": [],
+        "modifiers": []
       },
       {
         "id": "foco-mental",
@@ -3463,7 +3553,17 @@
         "actions": [],
         "layout": "compact",
         "collapsed": false,
-        "imageUrl": ""
+        "imageUrl": "",
+        "modifiers": [
+          {
+            "id": "foco-mod",
+            "type": "activatable",
+            "target": "Mente",
+            "value": 4,
+            "cost": "2 PD",
+            "label": "Foco Mental"
+          }
+        ]
       }
     ],
     "id": "sheet-1789935462676-fbt69",
@@ -3670,7 +3770,8 @@
             "maxFormula": "5"
           }
         ],
-        "actions": []
+        "actions": [],
+        "modifiers": []
       },
       {
         "id": "analise",
@@ -3695,7 +3796,8 @@
         "actions": [],
         "layout": "standard",
         "collapsed": false,
-        "imageUrl": ""
+        "imageUrl": "",
+        "modifiers": []
       },
       {
         "id": "foco-mental",
@@ -3717,7 +3819,17 @@
         "layout": "standard",
         "collapsed": false,
         "imageUrl": "",
-        "cost": "2 PD"
+        "cost": "2 PD",
+        "modifiers": [
+          {
+            "id": "foco-mod",
+            "type": "activatable",
+            "target": "Mente",
+            "value": 4,
+            "cost": "2 PD",
+            "label": "Foco Mental"
+          }
+        ]
       },
       {
         "id": "card-1789936718103-s3tky",
@@ -3732,7 +3844,8 @@
         "imageUrl": "",
         "content": "Um pequeno caderno de anotações.",
         "markers": [],
-        "actions": []
+        "actions": [],
+        "modifiers": []
       }
     ],
     "id": "sheet-1789936171837-fv94u",
@@ -3939,7 +4052,8 @@
             "maxFormula": "5"
           }
         ],
-        "actions": []
+        "actions": [],
+        "modifiers": []
       },
       {
         "id": "analise",
@@ -3961,7 +4075,8 @@
             "maxFormula": "4"
           }
         ],
-        "actions": []
+        "actions": [],
+        "modifiers": []
       },
       {
         "id": "foco-mental",
@@ -3976,7 +4091,17 @@
         "actions": [],
         "layout": "compact",
         "collapsed": false,
-        "imageUrl": ""
+        "imageUrl": "",
+        "modifiers": [
+          {
+            "id": "foco-mod",
+            "type": "activatable",
+            "target": "Mente",
+            "value": 4,
+            "cost": "2 PD",
+            "label": "Foco Mental"
+          }
+        ]
       }
     ],
     "id": "sheet-1789934192511-ffzfi",
@@ -4211,7 +4336,8 @@
         "themeLinked": true,
         "layout": "standard",
         "collapsed": false,
-        "imageUrl": ""
+        "imageUrl": "",
+        "modifiers": []
       },
       {
         "id": "foco-mental",
@@ -4240,7 +4366,17 @@
         "themeLinked": true,
         "layout": "standard",
         "collapsed": false,
-        "imageUrl": ""
+        "imageUrl": "",
+        "modifiers": [
+          {
+            "id": "foco-mod",
+            "type": "activatable",
+            "target": "Mente",
+            "value": 4,
+            "cost": "2 PD",
+            "label": "Foco Mental"
+          }
+        ]
       },
       {
         "id": "analise",
@@ -4262,7 +4398,8 @@
           }
         ],
         "actions": [],
-        "themeLinked": true
+        "themeLinked": true,
+        "modifiers": []
       }
     ],
     "impeto": 0,
@@ -4470,7 +4607,8 @@
             "maxFormula": "5"
           }
         ],
-        "actions": []
+        "actions": [],
+        "modifiers": []
       },
       {
         "id": "prontidao",
@@ -4487,7 +4625,8 @@
         "collapsed": false,
         "imageUrl": "",
         "profileAbility": "Vigilante",
-        "cost": "2 PD"
+        "cost": "2 PD",
+        "modifiers": []
       },
       {
         "id": "card-1789953737390-6hpho",
@@ -4502,7 +4641,8 @@
         "imageUrl": "",
         "content": "Quando **[color=#2e7d32]ajuda[/color]** outro personagem, você pode fazer um teste da perícia que usou para ajudar contra **[color=#2e7d32]DT 7[/color]**. Se passar, o personagem ajudado pode substituir um dos dados rolados por ele pela sua rolagem alta.",
         "markers": [],
-        "actions": []
+        "actions": [],
+        "modifiers": []
       }
     ],
     "id": "sheet-1789934661352-pwiz0",
