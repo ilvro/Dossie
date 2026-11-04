@@ -83,156 +83,188 @@ export function createRollAudio(ctx) {
   };
 
   const env = (g, t, peak, attack, decay) => {
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(peak, t + attack);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+    try {
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(Math.max(0.0001, peak), t + attack);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+    } catch {}
   };
 
   const noise = (t, dur, { type = 'bandpass', freq = 1000, q = 1, gain = 0.2, attack = 0.002, send = 0.15 } = {}) => {
-    const src = ctx.createBufferSource();
-    src.buffer = noiseBuf;
-    const f = ctx.createBiquadFilter();
-    f.type = type;
-    f.frequency.setValueAtTime(freq, t);
-    f.Q.setValueAtTime(q, t);
-    const g = ctx.createGain();
-    env(g, t, gain, attack, dur);
-    src.connect(f).connect(g);
-    route(g, send);
-    src.start(t, Math.random() * 0.5);
-    src.stop(t + attack + dur + 0.05);
-    return { src, f, g };
+    try {
+      const src = ctx.createBufferSource();
+      src.buffer = noiseBuf;
+      const f = ctx.createBiquadFilter();
+      f.type = type;
+      f.frequency.setValueAtTime(Math.max(20, freq), t);
+      f.Q.setValueAtTime(Math.max(0.1, q), t);
+      const g = ctx.createGain();
+      env(g, t, gain, attack, dur);
+      src.connect(f).connect(g);
+      route(g, send);
+      src.start(t, Math.random() * 0.5);
+      src.stop(t + attack + dur + 0.05);
+      return { src, f, g };
+    } catch {
+      return null;
+    }
   };
 
   const tone = (t, freq, dur, { type = 'sine', gain = 0.1, attack = 0.003, send = 0.2, glide = null } = {}) => {
-    const o = ctx.createOscillator();
-    o.type = type;
-    o.frequency.setValueAtTime(freq, t);
-    if (glide) o.frequency.exponentialRampToValueAtTime(glide, t + attack + dur);
-    const g = ctx.createGain();
-    env(g, t, gain, attack, dur);
-    o.connect(g);
-    route(g, send);
-    o.start(t);
-    o.stop(t + attack + dur + 0.05);
-    return o;
+    try {
+      const o = ctx.createOscillator();
+      o.type = type;
+      o.frequency.setValueAtTime(Math.max(20, freq), t);
+      if (glide && glide > 0) o.frequency.exponentialRampToValueAtTime(Math.max(20, glide), t + attack + dur);
+      const g = ctx.createGain();
+      env(g, t, gain, attack, dur);
+      o.connect(g);
+      route(g, send);
+      o.start(t);
+      o.stop(t + attack + dur + 0.05);
+      return o;
+    } catch {
+      return null;
+    }
   };
 
   // Resina batendo na madeira: modos inarmônicos curtos + corpo grave da bandeja
   const clack = (strength = 1, at = 0, bright = 1) => {
-    const t = ctx.currentTime + Math.max(0, at);
-    const s = Math.max(0.05, Math.min(1.2, strength));
-    const f0 = (2300 + Math.random() * 1500) * bright;
-    [[1, 1, 0.055], [1.58, 0.55, 0.04], [2.37, 0.35, 0.028], [3.11, 0.2, 0.02]].forEach(([r, a, d]) => {
-      tone(t, f0 * r * (0.98 + Math.random() * 0.04), d * (0.7 + s * 0.5), { gain: 0.13 * a * s, attack: 0.0008, send: 0.12 });
-    });
-    noise(t, 0.012, { type: 'highpass', freq: 2500, gain: 0.38 * s, attack: 0.0005, send: 0.08 });
-    // corpo de madeira
-    tone(t, 150 + Math.random() * 60, 0.07 * (0.6 + s * 0.6), { gain: 0.5 * s * Math.sqrt(s), attack: 0.001, glide: 80, send: 0.1 });
-    noise(t, 0.04, { type: 'bandpass', freq: 380 + Math.random() * 120, q: 3, gain: 0.32 * s, attack: 0.001, send: 0.1 });
+    try {
+      const t = ctx.currentTime + Math.max(0, at);
+      const s = Math.max(0.05, Math.min(1.2, strength));
+      const f0 = (2300 + Math.random() * 1500) * bright;
+      [[1, 1, 0.055], [1.58, 0.55, 0.04], [2.37, 0.35, 0.028], [3.11, 0.2, 0.02]].forEach(([r, a, d]) => {
+        tone(t, f0 * r * (0.98 + Math.random() * 0.04), d * (0.7 + s * 0.5), { gain: 0.13 * a * s, attack: 0.0008, send: 0.12 });
+      });
+      noise(t, 0.012, { type: 'highpass', freq: 2500, gain: 0.38 * s, attack: 0.0005, send: 0.08 });
+      // corpo de madeira
+      tone(t, 150 + Math.random() * 60, 0.07 * (0.6 + s * 0.6), { gain: 0.5 * s * Math.sqrt(s), attack: 0.001, glide: 80, send: 0.1 });
+      noise(t, 0.04, { type: 'bandpass', freq: 380 + Math.random() * 120, q: 3, gain: 0.32 * s, attack: 0.001, send: 0.1 });
+    } catch {}
   };
 
   const engine = {
     clack,
     // dados chacoalhando na mão antes do arremesso
     shake(count = 1) {
-      const n = 9 + Math.min(count, 4) * 2;
-      for (let i = 0; i < n; i++) clack(0.09 + Math.random() * 0.09, i * 0.034 + Math.random() * 0.018, 0.85);
-      noise(ctx.currentTime, 0.32, { type: 'bandpass', freq: 900, q: 0.7, gain: 0.04, attack: 0.08, send: 0.05 });
+      try {
+        const n = 9 + Math.min(count, 4) * 2;
+        for (let i = 0; i < n; i++) clack(0.09 + Math.random() * 0.09, i * 0.034 + Math.random() * 0.018, 0.85);
+        noise(ctx.currentTime, 0.32, { type: 'bandpass', freq: 900, q: 0.7, gain: 0.04, attack: 0.08, send: 0.05 });
+      } catch {}
     },
     whoosh(at = 0, dur = 0.45) {
-      const t = ctx.currentTime + at;
-      const n = noise(t, dur, { type: 'bandpass', freq: 500, q: 1.2, gain: 0.07, attack: dur * 0.6, send: 0.3 });
-      n.f.frequency.exponentialRampToValueAtTime(2600, t + dur);
+      try {
+        const t = ctx.currentTime + at;
+        const n = noise(t, dur, { type: 'bandpass', freq: 500, q: 1.2, gain: 0.07, attack: dur * 0.6, send: 0.3 });
+        if (n?.f) n.f.frequency.exponentialRampToValueAtTime(2600, t + dur);
+      } catch {}
     },
     // dado balançando até apoiar na face final
     settle() {
-      [0, 0.07, 0.12, 0.155, 0.18].forEach((d, i) => clack(0.32 * Math.pow(0.6, i), d, 0.9));
-      tone(ctx.currentTime, 70, 0.35, { gain: 0.16, attack: 0.004, glide: 45, send: 0.2 });
+      try {
+        [0, 0.07, 0.12, 0.155, 0.18].forEach((d, i) => clack(0.32 * Math.pow(0.6, i), d, 0.9));
+        tone(ctx.currentTime, 70, 0.35, { gain: 0.16, attack: 0.004, glide: 45, send: 0.2 });
+      } catch {}
     },
     // número aparecendo: pulso grave e brilho
     reveal() {
-      const t = ctx.currentTime;
-      tone(t, 98, 0.9, { gain: 0.18, attack: 0.01, glide: 55, send: 0.35 });
-      tone(t, 784, 0.9, { gain: 0.035, attack: 0.02, send: 0.6 });
-      tone(t, 1175, 0.7, { gain: 0.02, attack: 0.03, send: 0.6 });
+      try {
+        const t = ctx.currentTime;
+        tone(t, 98, 0.9, { gain: 0.18, attack: 0.01, glide: 55, send: 0.35 });
+        tone(t, 784, 0.9, { gain: 0.035, attack: 0.02, send: 0.6 });
+        tone(t, 1175, 0.7, { gain: 0.02, attack: 0.03, send: 0.6 });
+      } catch {}
     },
     // contagem do bônus somando
     tick(i = 0) {
-      tone(ctx.currentTime, 1400 + i * 90, 0.05, { type: 'triangle', gain: 0.03, attack: 0.001, send: 0.15 });
+      try {
+        tone(ctx.currentTime, 1400 + i * 90, 0.05, { type: 'triangle', gain: 0.03, attack: 0.001, send: 0.15 });
+      } catch {}
     },
     tickDown(i = 0) {
-      tone(ctx.currentTime, Math.max(160, 850 - i * 70), 0.045, { type: 'sawtooth', gain: 0.025, attack: 0.001, send: 0.1 });
+      try {
+        tone(ctx.currentTime, Math.max(160, 850 - i * 70), 0.045, { type: 'sawtooth', gain: 0.025, attack: 0.001, send: 0.1 });
+      } catch {}
     },
     // bônus chegando: sino
     bell(i = 0) {
-      const notes = [659.25, 739.99, 880, 987.77, 1108.73, 1318.51];
-      const f = notes[i % notes.length];
-      const t = ctx.currentTime;
-      [[1, 0.14, 1.4], [2.0, 0.055, 0.9], [2.76, 0.045, 0.6], [5.4, 0.018, 0.3]].forEach(([r, g, d]) => tone(t, f * r, d, { gain: g, attack: 0.002, send: 0.55 }));
-      tone(t, f / 2, 0.5, { gain: 0.04, attack: 0.004, send: 0.3 });
+      try {
+        const notes = [659.25, 739.99, 880, 987.77, 1108.73, 1318.51];
+        const f = notes[i % notes.length];
+        const t = ctx.currentTime;
+        [[1, 0.14, 1.4], [2.0, 0.055, 0.9], [2.76, 0.045, 0.6], [5.4, 0.018, 0.3]].forEach(([r, g, d]) => tone(t, f * r, d, { gain: g, attack: 0.002, send: 0.55 }));
+        tone(t, f / 2, 0.5, { gain: 0.04, attack: 0.004, send: 0.3 });
+      } catch {}
     },
     // penalidade chegando: tom sombrio e grave
     penalty(i = 0) {
-      const t = ctx.currentTime;
-      tone(t, 140 - i * 15, 0.42, { type: 'sawtooth', gain: 0.12, attack: 0.005, glide: 65, send: 0.4 });
-      tone(t, 65, 0.6, { type: 'sine', gain: 0.22, attack: 0.008, glide: 40, send: 0.3 });
-      noise(t, 0.14, { type: 'lowpass', freq: 360, gain: 0.22, attack: 0.002, send: 0.25 });
+      try {
+        const t = ctx.currentTime;
+        tone(t, Math.max(40, 140 - i * 15), 0.42, { type: 'sawtooth', gain: 0.12, attack: 0.005, glide: 65, send: 0.4 });
+        tone(t, 65, 0.6, { type: 'sine', gain: 0.22, attack: 0.008, glide: 40, send: 0.3 });
+        noise(t, 0.14, { type: 'lowpass', freq: 360, gain: 0.22, attack: 0.002, send: 0.25 });
+      } catch {}
     },
     // acordes de veredito
     verdict(kind) {
-      const t = ctx.currentTime;
-      const pad = (freqs, { dur = 2.2, gain = 0.05, cutoff = 2200, drop = 1, attack = 0.12, type = 'sawtooth' } = {}) => {
-        const lp = ctx.createBiquadFilter();
-        lp.type = 'lowpass';
-        lp.frequency.setValueAtTime(cutoff * 0.4, t);
-        lp.frequency.linearRampToValueAtTime(cutoff, t + attack + 0.2);
-        lp.frequency.exponentialRampToValueAtTime(cutoff * 0.3, t + dur);
-        const g = ctx.createGain();
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.linearRampToValueAtTime(gain, t + attack);
-        g.gain.setValueAtTime(gain, t + dur * 0.35);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-        lp.connect(g);
-        route(g, 0.6);
-        freqs.forEach(f => [-7, 7].forEach(dt => {
-          const o = ctx.createOscillator();
-          o.type = type;
-          o.frequency.setValueAtTime(f, t);
-          if (drop !== 1) o.frequency.exponentialRampToValueAtTime(f * drop, t + dur);
-          o.detune.value = dt;
-          o.connect(lp);
-          o.start(t);
-          o.stop(t + dur + 0.05);
-        }));
-      };
-      if (kind === 'crit') {
-        tone(t, 55, 1.6, { gain: 0.3, attack: 0.005, glide: 38, send: 0.4 });
-        noise(t, 1.2, { type: 'lowpass', freq: 220, gain: 0.18, attack: 0.005, send: 0.4 });
-        pad([261.63, 329.63, 392, 523.25, 659.25], { dur: 3.4, gain: 0.04, cutoff: 3200 });
-        [2, 3, 4, 5].forEach((n, i) => setTimeout(() => engine.bell(n), 90 * i));
-        tone(t + 0.25, 2637, 1.8, { gain: 0.018, attack: 0.4, send: 0.9 });
-      } else if (kind === 'success') {
-        tone(t, 73.4, 1.1, { gain: 0.2, attack: 0.005, glide: 50, send: 0.35 });
-        pad([293.66, 369.99, 440, 587.33], { dur: 2.6, gain: 0.04, cutoff: 2600 });
-        [1, 2, 3].forEach((n, i) => setTimeout(() => engine.bell(n), 110 * i));
-      } else if (kind === 'failure') {
-        tone(t, 61.7, 1.4, { gain: 0.24, attack: 0.006, glide: 36, send: 0.4 });
-        pad([146.83, 174.61, 220], { dur: 2.4, gain: 0.05, cutoff: 900, drop: 0.96, attack: 0.05 });
-      } else if (kind === 'fumble') {
-        tone(t, 41.2, 2.0, { gain: 0.32, attack: 0.006, glide: 28, send: 0.5 });
-        noise(t, 1.6, { type: 'lowpass', freq: 160, gain: 0.22, attack: 0.01, send: 0.5 });
-        pad([73.42, 103.83, 146.83, 155.56], { dur: 3, gain: 0.05, cutoff: 700, drop: 0.92, attack: 0.04 });
-      } else {
-        pad([293.66, 440, 587.33], { dur: 1.8, gain: 0.025, cutoff: 1800, type: 'triangle' });
-      }
+      try {
+        const t = ctx.currentTime;
+        const pad = (freqs, { dur = 2.2, gain = 0.05, cutoff = 2200, drop = 1, attack = 0.12, type = 'sawtooth' } = {}) => {
+          const lp = ctx.createBiquadFilter();
+          lp.type = 'lowpass';
+          lp.frequency.setValueAtTime(Math.max(20, cutoff * 0.4), t);
+          lp.frequency.linearRampToValueAtTime(Math.max(20, cutoff), t + attack + 0.2);
+          lp.frequency.exponentialRampToValueAtTime(Math.max(20, cutoff * 0.3), t + dur);
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.linearRampToValueAtTime(Math.max(0.0001, gain), t + attack);
+          g.gain.setValueAtTime(Math.max(0.0001, gain), t + dur * 0.35);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+          lp.connect(g);
+          route(g, 0.6);
+          freqs.forEach(f => [-7, 7].forEach(dt => {
+            const o = ctx.createOscillator();
+            o.type = type;
+            o.frequency.setValueAtTime(Math.max(20, f), t);
+            if (drop !== 1) o.frequency.exponentialRampToValueAtTime(Math.max(20, f * drop), t + dur);
+            o.detune.value = dt;
+            o.connect(lp);
+            o.start(t);
+            o.stop(t + dur + 0.05);
+          }));
+        };
+        if (kind === 'crit') {
+          tone(t, 55, 1.6, { gain: 0.3, attack: 0.005, glide: 38, send: 0.4 });
+          noise(t, 1.2, { type: 'lowpass', freq: 220, gain: 0.18, attack: 0.005, send: 0.4 });
+          pad([261.63, 329.63, 392, 523.25, 659.25], { dur: 3.4, gain: 0.04, cutoff: 3200 });
+          [2, 3, 4, 5].forEach((n, i) => setTimeout(() => engine.bell(n), 90 * i));
+          tone(t + 0.25, 2637, 1.8, { gain: 0.018, attack: 0.4, send: 0.9 });
+        } else if (kind === 'success') {
+          tone(t, 73.4, 1.1, { gain: 0.2, attack: 0.005, glide: 50, send: 0.35 });
+          pad([293.66, 369.99, 440, 587.33], { dur: 2.6, gain: 0.04, cutoff: 2600 });
+          [1, 2, 3].forEach((n, i) => setTimeout(() => engine.bell(n), 110 * i));
+        } else if (kind === 'failure') {
+          tone(t, 61.7, 1.4, { gain: 0.24, attack: 0.006, glide: 36, send: 0.4 });
+          pad([146.83, 174.61, 220], { dur: 2.4, gain: 0.05, cutoff: 900, drop: 0.96, attack: 0.05 });
+        } else if (kind === 'fumble') {
+          tone(t, 41.2, 2.0, { gain: 0.32, attack: 0.006, glide: 28, send: 0.5 });
+          noise(t, 1.6, { type: 'lowpass', freq: 160, gain: 0.22, attack: 0.01, send: 0.5 });
+          pad([73.42, 103.83, 146.83, 155.56], { dur: 3, gain: 0.05, cutoff: 700, drop: 0.92, attack: 0.04 });
+        } else {
+          pad([293.66, 440, 587.33], { dur: 1.8, gain: 0.025, cutoff: 1800, type: 'triangle' });
+        }
+      } catch {}
     },
     // pavor destruindo um dado
     shatter() {
-      const t = ctx.currentTime;
-      noise(t, 0.35, { type: 'highpass', freq: 1800, gain: 0.16, attack: 0.002, send: 0.4 });
-      tone(t, 90, 0.5, { gain: 0.18, attack: 0.003, glide: 40, send: 0.3 });
-      for (let i = 0; i < 5; i++) clack(0.3, 0.03 + i * 0.03 + Math.random() * 0.02, 1.3);
+      try {
+        const t = ctx.currentTime;
+        noise(t, 0.35, { type: 'highpass', freq: 1800, gain: 0.16, attack: 0.002, send: 0.4 });
+        tone(t, 90, 0.5, { gain: 0.18, attack: 0.003, glide: 40, send: 0.3 });
+        for (let i = 0; i < 5; i++) clack(0.3, 0.03 + i * 0.03 + Math.random() * 0.02, 1.3);
+      } catch {}
     }
   };
   engines.set(ctx, engine);
@@ -1050,17 +1082,25 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
     const yAxis = new THREE.Vector3(0, 1, 0);
     // reprodução com interpolação entre os quadros de 60 Hz
     const applyFrame = (d, kf) => {
+      if (!sim?.frames?.[d.index]?.length) return;
       const frames = sim.frames[d.index];
       const last = frames.length - 1;
-      const i = Math.min(Math.floor(kf), last);
+      const clampedKf = Math.max(0, Math.min(kf, last));
+      const i = Math.floor(clampedKf);
       const j = Math.min(i + 1, last);
-      const t = Math.min(1, kf - Math.floor(kf));
-      const a = frames[i], b = frames[j];
+      const t = Math.min(1, Math.max(0, clampedKf - i));
+      const a = frames[i] || frames[last];
+      const b = frames[j] || frames[last];
+      if (!a || !b) return;
       d.mesh.position.set(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t);
       tmpQ.set(a[3], a[4], a[5], a[6]);
       tmpQ2.set(b[3], b[4], b[5], b[6]);
       tmpQ.slerp(tmpQ2, t);
-      d.mesh.quaternion.copy(tmpQ).multiply(d.relabel);
+      if (d.relabel) {
+        d.mesh.quaternion.copy(tmpQ).multiply(d.relabel);
+      } else {
+        d.mesh.quaternion.copy(tmpQ);
+      }
     };
 
     const toScreen = v => {
@@ -1099,15 +1139,20 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
             d.mesh.quaternion.copy(d.idleQuat).premultiply(tmpQ.setFromAxisAngle(yAxis, Math.sin(t * 0.7) * 0.28));
           });
         } else if (mode === 'throw') {
-          const kf = skipping ? sim.steps : ((now - simStart) / 1000) * SIM_HZ * (quick ? 1.25 : 1);
+          const kf = skipping ? sim.steps : Math.max(0, ((now - simStart) / 1000) * SIM_HZ * (quick ? 1.25 : 1));
           while (nextImpact < sim.impacts.length && sim.impacts[nextImpact].step <= kf) {
             const im = sim.impacts[nextImpact++];
-            if (!skipping) sfx?.clack(Math.min(1.1, im.v / 6), 0, 1);
+            if (!skipping) {
+              try { sfx?.clack(Math.min(1.1, im.v / 6), 0, 1); } catch {}
+            }
           }
           dice.forEach(d => applyFrame(d, kf));
           if (kf >= sim.steps - 1) {
             mode = 'still';
-            dice.forEach(d => { d.mesh.position.copy(d.restPos); d.mesh.quaternion.copy(d.restQuat); });
+            dice.forEach(d => {
+              if (d.restPos) d.mesh.position.copy(d.restPos);
+              if (d.restQuat) d.mesh.quaternion.copy(d.restQuat);
+            });
             simDone?.();
           }
         }
@@ -1117,15 +1162,21 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
         }
         tweens.forEach(tw => {
           const t = tw.ms ? clamp01((now - tw.start) / tw.ms) : 1;
-          tw.fn(tw.ease(t), t);
+          try { tw.fn(tw.ease(t), t); } catch {}
           if (t >= 1) { tweens.delete(tw); tw.res(); }
         });
         renderer.render(scene, camera);
       } catch (err) {
-        // um erro num quadro nunca deve prender a tela: fecha e devolve o resultado
-        console.error(err);
-        closeDiceCinematicAlt({ immediate: true });
-        return;
+        // Falhas não-fatais em um quadro não devem abortar e fechar a rolagem
+        console.warn('Recuperando erro em quadro da rolagem cinemática:', err);
+        if (mode === 'throw') {
+          mode = 'still';
+          dice.forEach(d => {
+            if (d.restPos) d.mesh.position.copy(d.restPos);
+            if (d.restQuat) d.mesh.quaternion.copy(d.restQuat);
+          });
+          simDone?.();
+        }
       }
       raf = requestAnimationFrame(frame);
     };
@@ -1200,7 +1251,29 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
       }
       sim = await currentSimPromise;
       alive();
-      if (!sim) throw new Error('simulação indisponível');
+      if (!sim || !sim.frames) {
+        // Fallback seguro: se a simulação falhar ou vier vazia, sintetiza frames mínimos
+        // para que o fluxo termine e mostre o resultado em vez de abortar o modal
+        const STEPS = 90;
+        sim = {
+          steps: STEPS,
+          frames: dice.map(d => {
+            const arr = [];
+            const rQ = targetQuaternion(d.faces.find(f => f.value === values[d.index]) || d.faces[0]);
+            for (let k = 0; k <= STEPS; k++) {
+              const u = k / STEPS;
+              arr.push([
+                d.restPos.x * u,
+                d.restPos.y * u + Math.sin(u * Math.PI) * 1.5,
+                d.restPos.z * u,
+                rQ.x, rQ.y, rQ.z, rQ.w
+              ]);
+            }
+            return arr;
+          }),
+          impacts: []
+        };
+      }
 
       const startPose = dice.map(d => {
         const f = sim.frames[d.index][0];
@@ -1325,34 +1398,38 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
         }
         const value = card.querySelector('.bg3-card-value');
         card.classList.add('is-active');
-        if (!skipping) {
-          await wait(200);
-          alive();
-          const from = value.getBoundingClientRect();
-          const to = totalEl.getBoundingClientRect();
-          const fly = value.cloneNode(true);
-          fly.className = `bg3-card-value bg3-fly${part.isPenalty ? ' is-penalty' : ''}`;
-          Object.assign(fly.style, { left: `${from.left}px`, top: `${from.top}px`, width: `${from.width}px`, height: `${from.height}px` });
-          stage.appendChild(fly);
-          const dx = to.left + to.width / 2 - (from.left + from.width / 2);
-          const dy = to.top + to.height / 2 - (from.top + from.height / 2);
-          sfx?.whoosh(0, 0.5);
-          await fly.animate([
-            { transform: 'translate(0,0) scale(1)', opacity: 1 },
-            { transform: `translate(${dx * 0.5}px, ${dy * 0.55 - 40}px) scale(1.5)`, opacity: 1, offset: 0.5 },
-            { transform: `translate(${dx}px, ${dy}px) scale(.6)`, opacity: 0.15 }
-          ], { duration: 580 * pace, easing: 'cubic-bezier(.45,0,.55,1)', fill: 'forwards' }).finished.catch(() => {});
-          fly.remove();
-          alive();
-          const steps = Math.min(Math.abs(part.value), 8);
-          const dir = Math.sign(part.value);
-          for (let s = 1; s <= steps && !skipping; s++) {
-            setTotal(s === steps ? running + part.value : running + dir * s);
-            if (part.isPenalty) sfx?.tickDown(s);
-            else sfx?.tick(s);
-            await wait(70);
+        if (!skipping && value) {
+          try {
+            await wait(200);
+            alive();
+            const from = value.getBoundingClientRect();
+            const to = totalEl.getBoundingClientRect();
+            const fly = value.cloneNode(true);
+            fly.className = `bg3-card-value bg3-fly${part.isPenalty ? ' is-penalty' : ''}`;
+            Object.assign(fly.style, { left: `${from.left}px`, top: `${from.top}px`, width: `${from.width}px`, height: `${from.height}px` });
+            stage.appendChild(fly);
+            const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+            const dy = to.top + to.height / 2 - (from.top + from.height / 2);
+            sfx?.whoosh(0, 0.5);
+            await fly.animate([
+              { transform: 'translate(0,0) scale(1)', opacity: 1 },
+              { transform: `translate(${dx * 0.5}px, ${dy * 0.55 - 40}px) scale(1.5)`, opacity: 1, offset: 0.5 },
+              { transform: `translate(${dx}px, ${dy}px) scale(.6)`, opacity: 0.15 }
+            ], { duration: 580 * pace, easing: 'cubic-bezier(.45,0,.55,1)', fill: 'forwards' }).finished.catch(() => {});
+            fly.remove();
+            alive();
+            const steps = Math.min(Math.abs(part.value), 8);
+            const dir = Math.sign(part.value);
+            for (let s = 1; s <= steps && !skipping; s++) {
+              setTotal(s === steps ? running + part.value : running + dir * s);
+              if (part.isPenalty) sfx?.tickDown(s);
+              else sfx?.tick(s);
+              await wait(70);
+            }
+            alive();
+          } catch (cardAnimErr) {
+            console.warn('[dice-cinematic-alt] card anim error:', cardAnimErr);
           }
-          alive();
         }
         card.classList.add('is-spent');
         running += part.value;
@@ -1559,9 +1636,11 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
       return o;
     };
 
-    const start = () => {
+      let rollStartTime = 0;
+      const start = () => {
       if (state !== 'waiting') return;
       state = 'starting';
+      rollStartTime = performance.now();
 
       const selectedActs = activatables.filter(a => a.selected);
       if (selectedActs.some(a => a.subType === 'impeto')) impetoCharges = Math.max(0, impetoCharges - 1);
@@ -1617,8 +1696,16 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
 
       runSequence().catch(err => {
         if (err === CLOSED) return;
-        console.error(err);
-        closeDiceCinematicAlt();
+        console.error('[dice-cinematic-alt] sequence error, attempting recovery:', err);
+        try {
+          state = 'done';
+          evaluateVerdict();
+          postRoll?.render?.();
+          finish();
+        } catch (recoverErr) {
+          console.error('[dice-cinematic-alt] recovery failed:', recoverErr);
+          closeDiceCinematicAlt();
+        }
       });
     };
 
@@ -1830,7 +1917,13 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
         }
         return;
       }
-      if (state === 'rolling') skip();
+      if (state === 'rolling') {
+        // Debounce de 400ms para evitar que cliques rápidos ou duplo clique no botão ROLAR
+        // disparem skip() instantaneamente antes de começar a animação
+        if (performance.now() - rollStartTime > 400) {
+          skip();
+        }
+      }
     };
     stage.addEventListener('click', onInput);
     window.addEventListener('keydown', onInput, true);

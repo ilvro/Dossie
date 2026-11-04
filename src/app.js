@@ -5224,7 +5224,11 @@ function bindSheetInteractions() {
  }
 }
 function parseRollExpression(expression){const vars=formulaVariables();let expanded=String(expression||'').replace(/@\{([^}]+)\}/g,(_,key)=>String(vars[formulaKey(key)]??0));const dice=[];expanded=expanded.replace(/(\d*)d(4|6|8|10|12|20)/gi,(_,count,sides)=>{for(let i=0;i<Math.min(12,Number(count)||1);i++)dice.push(Number(sides));return '0'});let modifier=0;try{if(/^[\d+\-*/().\s]+$/.test(expanded))modifier=Math.floor(Function(`"use strict";return (${expanded||0})`)())}catch{}return{dice,modifier}}
+let lastSheetRollTimestamp = 0;
 async function roll(name,sides,modifier=0,rollMode='sum',meta={}){
+ const nowTime = Date.now();
+ if (nowTime - lastSheetRollTimestamp < 350) return null;
+ lastSheetRollTimestamp = nowTime;
  const throwVec = takePendingThrow();
  const list=Array.isArray(sides)?sides:String(sides).split(',').map(Number).filter(side=>DICE_STEPS.includes(side));
  if(!list.length)return null;
