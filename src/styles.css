@@ -5677,16 +5677,21 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
 .vigilia-abilities-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  max-height: min(500px, calc(100vh - 420px));
-  min-height: 0;
+  gap: 14px;
+  max-height: min(620px, calc(100vh - 340px));
+  min-height: 200px;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior-y: contain;
   touch-action: pan-y;
   padding-right: 8px;
+  padding-bottom: 32px;
   scrollbar-width: thin;
   scrollbar-color: #52665a rgba(20, 32, 26, 0.4);
+}
+
+.vigilia-abilities-list > * {
+  flex-shrink: 0;
 }
 
 .vigilia-abilities-list::-webkit-scrollbar {
@@ -5708,9 +5713,14 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
   background: #738e7f;
 }
 
-.vigilia-power-card,
-.vigilia-equipment-section {
+.vigilia-power-card {
   margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.vigilia-equipment-section {
+  flex-shrink: 0;
+  margin-top: 6px;
 }
 
 .power-banner-wrap {
@@ -6471,7 +6481,9 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
   border-radius: 6px;
   padding: 10px 14px;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  flex-shrink: 0;
+  min-height: fit-content;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
   margin-bottom: 12px;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;

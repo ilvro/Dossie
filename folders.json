@@ -28,7 +28,7 @@
     "parentId": "folder-vigilia",
     "color": "#cbd5e1",
     "icon": "folder",
-    "collapsed": true,
+    "collapsed": false,
     "order": 1,
     "system": false
   },

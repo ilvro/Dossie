@@ -517,7 +517,7 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
               <button type="button" class="vigilia-add-card-btn" data-cinematic-add="abilities">+ HABILIDADE</button>
             ` : ''}
 
-            <!-- Bloco de Equipamento -->
+            <!-- Bloco de Equipamento (Dentro da rolagem coesa de habilidades) -->
             <div class="vigilia-equipment-section">
               <div class="power-banner-wrap">
                 <img src="./assets/vigilia/banner-power.png" alt="" class="power-banner-img" draggable="false">
