@@ -18,6 +18,7 @@ if (typeof Uint8Array !== 'undefined') {
 }
 
 import { DEFAULT_SHEETS } from './default-sheets.js';
+import { iniciarMesa } from './mesa.js';
 import {
   DEFAULT_ORIGINAL_SHEET,
   normalizeOriginalSheet,
@@ -828,6 +829,8 @@ let folders=normalizeFolders(DEFAULT_FOLDERS);
 let sheets=[];
 let state=normalizeSheet();
 let activeSheetId=state.id;
+// A ligação com a mesa (src/mesa.js): começa vazia e vira a real quando a plataforma responde.
+let mesa={publicarRolagem(){},publicarRecursos(){},agendar(){}};
 
 async function loadInitialSheets(){
  try{
@@ -1865,6 +1868,7 @@ function save(showToast=true,toastMsg='SALVO',commit=false){
  }else refreshDirty();
  if(showToast)persistSheetsNow(); else schedulePersist();
  syncUnsavedBar();
+ mesa.publicarRecursos(state);mesa.agendar();
 
  if(showToast){
   const toast=document.querySelector('#save-toast');
@@ -5395,6 +5399,7 @@ async function roll(name,sides,modifier=0,rollMode='sum',meta={}){
     setTimeout(() => render(), 4300);
    }
   }
+  mesa.publicarRolagem(state,{titulo:name,total:res.total,modificador:res.modifier!==undefined?res.modifier:finalNumMod});
   addRollLogEntry({
    title: name,
    dice: res.breakdown || res.values.map((v, i) => ({ sides: diceConfigs[i]?.sides || 20, value: v, label: diceConfigs[i]?.label || '' })),
@@ -6464,3 +6469,8 @@ installDragRoll({
  isDisabled: () => rollSceneEnabled()
 });
 render();
+iniciarMesa({fichas:()=>sheets,aberta:()=>state,abrir:id=>switchToSheet(id)}).then(m=>{
+ mesa=m;mesa.publicarRecursos(state);
+ const pedida=new URLSearchParams(location.search).get('ficha');
+ if(pedida&&sheets.some(sheet=>sheet.id===pedida)&&pedida!==state.id)switchToSheet(pedida);
+}).catch(()=>{});

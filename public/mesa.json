@@ -1,0 +1,10 @@
+{
+  "app": "ficha",
+  "nome": "Ficha",
+  "contrato": 1,
+  "icone": "./icons/ordem-192.png",
+  "rotas": { "ficha": "./?ficha={id}" },
+  "oferece": ["personagem"],
+  "emite": ["ficha.rolagem", "ficha.recursos"],
+  "atende": ["ficha.abrir"]
+}
