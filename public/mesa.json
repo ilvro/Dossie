@@ -1,6 +1,6 @@
 {
   "app": "ficha",
-  "nome": "Ficha",
+  "nome": "Dossiê",
   "contrato": 1,
   "icone": "./icons/ordem-192.png",
   "rotas": { "ficha": "./?ficha={id}" },
