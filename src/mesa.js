@@ -150,6 +150,51 @@ export async function iniciarMesa(ficha, ambiente = {}) {
         ficha.abrir(ref.id);
         return { ok: true };
     });
+
+    barramento.atender('ficha.ajustar-recursos', dados => {
+        const ref = dados?.ficha;
+        if (ref?.app !== 'ficha' || ref.tipo !== 'ficha') return { ok: false, motivo: 'A Ficha só ajusta recursos de fichas suas.' };
+        const sheet = ficha.fichas().find(s => s.id === ref.id);
+        if (!sheet) return { ok: false, motivo: 'Esta ficha não existe aqui.' };
+
+        const n = v => Math.max(0, Math.round(Number(v) || 0));
+        const maxPv = ehAmeaca(sheet) ? (n(sheet.pvMax) > 0 ? n(sheet.pvMax) : n(sheet.maxPv)) : n(sheet.maxPv);
+        const atualPv = n(sheet.pv);
+
+        if (dados.pv !== undefined || dados.deltaPv !== undefined) {
+            let novoPv = atualPv;
+            if (dados.pv !== undefined) {
+                novoPv = Math.round(Number(dados.pv) || 0);
+            } else if (dados.deltaPv !== undefined) {
+                novoPv = Math.round(atualPv + Number(dados.deltaPv));
+            }
+            novoPv = Math.min(maxPv, Math.max(0, novoPv));
+            sheet.pv = novoPv;
+        }
+
+        if (ehPersonagem(sheet)) {
+            const original = sheet.systemMode === 'original';
+            const campoPd = original ? (sheet.usaPD ? 'pe' : 'san') : 'pd';
+            const campoMaxPd = original ? (sheet.usaPD ? 'maxPe' : 'maxSan') : 'maxPd';
+            const maxPd = n(sheet[campoMaxPd]);
+            const atualPd = n(sheet[campoPd]);
+
+            if (dados.pd !== undefined || dados.deltaPd !== undefined) {
+                let novoPd = atualPd;
+                if (dados.pd !== undefined) {
+                    novoPd = Math.round(Number(dados.pd) || 0);
+                } else if (dados.deltaPd !== undefined) {
+                    novoPd = Math.round(atualPd + Number(dados.deltaPd));
+                }
+                novoPd = Math.min(maxPd, Math.max(0, novoPd));
+                sheet[campoPd] = novoPd;
+            }
+        }
+
+        ficha.atualizar?.(sheet);
+        publicarRecursos(sheet);
+        return { ok: true, ...(recursosDaFicha(sheet) ?? {}) };
+    });
     const aoMudarCampanha = event => { if (event.key === CHAVE_CAMPANHA_ATIVA) agendar(); };
     globalThis.addEventListener?.('storage', aoMudarCampanha);
     agendar();

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { IDBFactory } from '../../Atlas/node_modules/fake-indexeddb/build/esm/index.js';
 import { iniciarMesa, recursosDaFicha, ehPersonagem, ehAmeaca, ehPublicavel, tipoDaEntidade, refDaFicha } from '../src/mesa.js';
-import { abrirRepositorioCampanha } from '../vendor/mesa-core/index.js';
+import { abrirRepositorioCampanha, criarBarramento } from '../vendor/mesa-core/index.js';
 
 test('PV e PD por modo; ameaça só tem PV (PD zero)', () => {
   assert.deepEqual(recursosDaFicha({ id: 'a', systemMode: 'ordem2', pv: 8, maxPv: 10, pd: 3, maxPd: 6 }), { pv: 8, pvMax: 10, pd: 3, pdMax: 6 });
@@ -25,15 +25,35 @@ test('sem plataforma, iniciarMesa devolve ganchos inofensivos', async () => {
 });
 
 /** Uma Ficha de teste: o banco da campanha é de verdade (fake-indexeddb); as fichas vêm de uma lista que o teste muda, como a Ficha muda a dela. */
-async function cenario(sheets) {
+async function cenario(sheets, ganchos = {}) {
   const idb = new IDBFactory(), emissor = await abrirRepositorioCampanha({ app: 'mesa', idb });
   const campanha = await emissor.criarCampanha({ nome: 'A Ilha' });
   const guardado = new Map([['mesa:campanha-ativa', campanha.id]]);
   globalThis.localStorage = { getItem: k => guardado.get(k) ?? null, setItem: (k, v) => { guardado.set(k, String(v)); }, removeItem: k => { guardado.delete(k); } };
-  const eventos = [], canal = { postMessage: m => eventos.push(m), onmessage: null, close() {} };
-  const mesa = await iniciarMesa({ fichas: () => sheets, aberta: () => sheets[0] ?? null, abrir() {} }, { BroadcastChannel: class {}, criarCanal: () => canal, indexedDB: idb });
+  const canais = new Set();
+  const criarCanal = () => {
+    const c = {
+      onmessage: null,
+      postMessage(m) {
+        for (const outro of canais) {
+          if (outro !== c && outro.onmessage) outro.onmessage({ data: m });
+        }
+      },
+      close() { canais.delete(c); }
+    };
+    canais.add(c);
+    return c;
+  };
+  const eventos = [];
+  const canalFicha = criarCanal();
+  const postOriginal = canalFicha.postMessage.bind(canalFicha);
+  canalFicha.postMessage = m => {
+    eventos.push(m);
+    postOriginal(m);
+  };
+  const mesa = await iniciarMesa({ fichas: () => sheets, aberta: () => sheets[0] ?? null, abrir() {}, ...ganchos }, { BroadcastChannel: class {}, criarCanal: () => canalFicha, indexedDB: idb });
   const entidades = async () => (await emissor.listarEntidades(campanha.id)).map(e => ({ nome: e.nome, tipo: e.tipo, criadaPor: e.criadaPor, ficha: e.refs.find(r => r.app === 'ficha')?.id }));
-  return { mesa, emissor, campanha, eventos, guardado, entidades };
+  return { mesa, emissor, campanha, eventos, guardado, entidades, criarCanal };
 }
 
 test('sincronizar: personagens e ameaças viram entidades separadas; renomear atualiza; apagar a ficha tira a entidade; lista vazia não apaga nada', async () => {
@@ -77,4 +97,127 @@ test('sincronizar: as assinaturas ficam guardadas por campanha (a Ficha não rel
     const salvo = JSON.parse(guardado.get(`mesa:ficha-assinaturas:${campanha.id}`));
     assert.deepEqual(Object.keys(salvo).sort(), ['p1', 't1']); assert.equal(salvo.t1, 'Zumbi|');
   } finally { mesa.parar(); }
+});
+
+test('ficha.ajustar-recursos: delta e valor absoluto para personagem (ordem2 e original) e limites [0, max]', async () => {
+  const atualizadas = [];
+  const sheets = [
+    { id: 'p1', name: 'Muirenn', systemMode: 'ordem2', pv: 8, maxPv: 10, pd: 3, maxPd: 6 },
+    { id: 'p2', name: 'Artur', systemMode: 'original', pv: 5, maxPv: 9, san: 7, maxSan: 12 },
+    { id: 'p3', name: 'Kaiser', systemMode: 'original', usaPD: true, pv: 5, maxPv: 9, pe: 2, maxPe: 4, san: 7, maxSan: 12 }
+  ];
+  const { mesa, campanha, criarCanal } = await cenario(sheets, {
+    atualizar: sheet => atualizadas.push({ ...sheet })
+  });
+
+  const cliente = criarBarramento({ app: 'atlas', campanhaId: campanha.id, criarCanal });
+
+  try {
+    // 1. Delta PV e PD normais (Ordem 2)
+    const r1 = await cliente.pedir('ficha.ajustar-recursos', {
+      ficha: refDaFicha('p1'),
+      deltaPv: -3,
+      deltaPd: 2
+    });
+    assert.equal(r1.ok, true);
+    assert.deepEqual(r1.resposta, { ok: true, pv: 5, pvMax: 10, pd: 5, pdMax: 6 });
+    assert.equal(sheets[0].pv, 5);
+    assert.equal(sheets[0].pd, 5);
+    assert.equal(atualizadas.length, 1);
+    assert.equal(atualizadas[0].id, 'p1');
+
+    // 2. Limite inferior [0, max] com deltas negativos grandes
+    const r2 = await cliente.pedir('ficha.ajustar-recursos', {
+      ficha: refDaFicha('p1'),
+      deltaPv: -100,
+      deltaPd: -100
+    });
+    assert.equal(r2.ok, true);
+    assert.deepEqual(r2.resposta, { ok: true, pv: 0, pvMax: 10, pd: 0, pdMax: 6 });
+    assert.equal(sheets[0].pv, 0);
+    assert.equal(sheets[0].pd, 0);
+
+    // 3. Valor absoluto e limite superior [0, max]
+    const r3 = await cliente.pedir('ficha.ajustar-recursos', {
+      ficha: refDaFicha('p1'),
+      pv: 999,
+      pd: 999
+    });
+    assert.equal(r3.ok, true);
+    assert.deepEqual(r3.resposta, { ok: true, pv: 10, pvMax: 10, pd: 6, pdMax: 6 });
+    assert.equal(sheets[0].pv, 10);
+    assert.equal(sheets[0].pd, 6);
+
+    // 4. Sistema Original com Sanidade (usa san e maxSan)
+    const r4 = await cliente.pedir('ficha.ajustar-recursos', {
+      ficha: refDaFicha('p2'),
+      deltaPv: 2,
+      deltaPd: -3
+    });
+    assert.equal(r4.ok, true);
+    assert.deepEqual(r4.resposta, { ok: true, pv: 7, pvMax: 9, pd: 4, pdMax: 12 });
+    assert.equal(sheets[1].pv, 7);
+    assert.equal(sheets[1].san, 4);
+
+    // 5. Sistema Original com PE (usaPD: true usa pe e maxPe)
+    const r5 = await cliente.pedir('ficha.ajustar-recursos', {
+      ficha: refDaFicha('p3'),
+      deltaPd: 1
+    });
+    assert.equal(r5.ok, true);
+    assert.deepEqual(r5.resposta, { ok: true, pv: 5, pvMax: 9, pd: 3, pdMax: 4 });
+    assert.equal(sheets[2].pe, 3);
+
+    // 6. Ficha inexistente devolve erro
+    const r6 = await cliente.pedir('ficha.ajustar-recursos', {
+      ficha: refDaFicha('inexistente'),
+      deltaPv: -1
+    });
+    assert.deepEqual(r6, { ok: false, motivo: 'recusado', detalhe: 'Esta ficha não existe aqui.' });
+  } finally {
+    mesa.parar();
+    cliente.fechar();
+  }
+});
+
+test('ficha.ajustar-recursos: ameaça tem apenas PV ajustado (PD permanece zero e intocado) e respeita [0, pvMax]', async () => {
+  const sheets = [
+    { id: 't1', name: 'Zumbi de Sangue', systemMode: 'threat', pv: 45, pvMax: 45 }
+  ];
+  const { mesa, campanha, criarCanal } = await cenario(sheets);
+  const cliente = criarBarramento({ app: 'atlas', campanhaId: campanha.id, criarCanal });
+
+  try {
+    // 1. Dano em ameaça com deltaPv negativo
+    const r1 = await cliente.pedir('ficha.ajustar-recursos', {
+      ficha: refDaFicha('t1'),
+      deltaPv: -15,
+      deltaPd: -5 // Ameaça não tem PD, deltaPd deve ser ignorado
+    });
+    assert.equal(r1.ok, true);
+    assert.deepEqual(r1.resposta, { ok: true, pv: 30, pvMax: 45, pd: 0, pdMax: 0 });
+    assert.equal(sheets[0].pv, 30);
+    assert.equal(sheets[0].pd, undefined);
+
+    // 2. Limite inferior em 0
+    const r2 = await cliente.pedir('ficha.ajustar-recursos', {
+      ficha: refDaFicha('t1'),
+      deltaPv: -50
+    });
+    assert.equal(r2.ok, true);
+    assert.deepEqual(r2.resposta, { ok: true, pv: 0, pvMax: 45, pd: 0, pdMax: 0 });
+    assert.equal(sheets[0].pv, 0);
+
+    // 3. Valor absoluto respeitando o teto pvMax
+    const r3 = await cliente.pedir('ficha.ajustar-recursos', {
+      ficha: refDaFicha('t1'),
+      pv: 100
+    });
+    assert.equal(r3.ok, true);
+    assert.deepEqual(r3.resposta, { ok: true, pv: 45, pvMax: 45, pd: 0, pdMax: 0 });
+    assert.equal(sheets[0].pv, 45);
+  } finally {
+    mesa.parar();
+    cliente.fechar();
+  }
 });

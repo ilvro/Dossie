@@ -6468,9 +6468,29 @@ installDragRoll({
  // Com a cena ligada o arremesso acontece dentro dela (dice-hand.js)
  isDisabled: () => rollSceneEnabled()
 });
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  if (new URLSearchParams(location.search).get('compacto') === '1') {
+    document.body.dataset.compacto = '1';
+  }
+  window.addEventListener('message', ev => {
+    if (ev.origin === location.origin && ev.data?.tipo === 'dossie:abrir-ficha' && ev.data.fichaId) {
+      switchToSheet(ev.data.fichaId);
+    }
+  });
+}
+
 render();
-iniciarMesa({fichas:()=>sheets,aberta:()=>state,abrir:id=>switchToSheet(id)}).then(m=>{
- mesa=m;mesa.publicarRecursos(state);
- const pedida=new URLSearchParams(location.search).get('ficha');
- if(pedida&&sheets.some(sheet=>sheet.id===pedida)&&pedida!==state.id)switchToSheet(pedida);
-}).catch(()=>{});
+iniciarMesa({
+  fichas: () => sheets,
+  aberta: () => state,
+  abrir: id => switchToSheet(id),
+  atualizar: sheet => {
+    save(false);
+    if (state?.id === sheet.id) render();
+  }
+}).then(m => {
+  mesa = m;
+  mesa.publicarRecursos(state);
+  const pedida = new URLSearchParams(location.search).get('ficha');
+  if (pedida && sheets.some(sheet => sheet.id === pedida) && pedida !== state.id) switchToSheet(pedida);
+}).catch(() => {});

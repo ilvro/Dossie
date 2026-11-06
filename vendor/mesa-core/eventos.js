@@ -30,6 +30,8 @@ export const CATALOGO = {
     'jukebox.efeito': { natureza: 'pedido', dono: 'jukebox', validar: ref('ref') },
     'atlas.focar': { natureza: 'pedido', dono: 'atlas', validar: ref('ref') },
     'ficha.abrir': { natureza: 'pedido', dono: 'ficha', validar: ref('ref') },
+    'ficha.ajustar-recursos': { natureza: 'pedido', dono: 'ficha', validar: todos(ref('ficha'), num('deltaPv', true), num('deltaPd', true), num('pv', true), num('pd', true)) },
+    'atlas.preparar-cena': { natureza: 'pedido', dono: 'atlas', validar: todos(refOuNulo('mapa'), texto('comodo', true), texto('clima', true)) },
     'atelie.abrir': { natureza: 'pedido', dono: 'atelie', validar: ref('ref') },
 };
 /** Confere um envelope recebido. Nunca lança: o canal é compartilhado e qualquer aba pode mandar lixo. */

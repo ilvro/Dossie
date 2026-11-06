@@ -7764,3 +7764,83 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
   #dice-stage-result.visible .roll-die-tag,
   .roll-dread-badge { animation: none !important; }
 }
+
+/* Modo Compacto (?compacto=1) para integração e prévia no Atlas/Mesa */
+body[data-compacto="1"] {
+  overflow: auto !important;
+  background: var(--bg, #08070d) !important;
+}
+
+body[data-compacto="1"] .nav-rail,
+body[data-compacto="1"] .workspace-sidebar,
+body[data-compacto="1"] .workspace-navigator,
+body[data-compacto="1"] .view-mode-switch,
+body[data-compacto="1"] .floating,
+body[data-compacto="1"] .bottom-nav,
+body[data-compacto="1"] .mobile-landscape-trigger,
+body[data-compacto="1"] .cinematic-mobile-tabs-bar,
+body[data-compacto="1"] .save-toast,
+body[data-compacto="1"] .btn-collapse-switch,
+body[data-compacto="1"] [data-toggle-navigator],
+body[data-compacto="1"] .view-mode-trigger {
+  display: none !important;
+}
+
+body[data-compacto="1"] .page,
+body[data-compacto="1"] .traditional-dossier-page,
+body[data-compacto="1"] .threat-book-page,
+body[data-compacto="1"] .vigilia-page {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  padding: 12px 14px 40px 14px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+
+body[data-compacto="1"] .threat-book-page .sheet-background-layer {
+  left: 0 !important;
+  width: 100% !important;
+}
+
+body[data-compacto="1"] .threat-dossier-card {
+  max-width: 100% !important;
+  padding: 0 !important;
+}
+
+body[data-compacto="1"] .threat-book-columns-layout {
+  grid-template-columns: 1fr !important;
+  gap: 16px !important;
+}
+
+body[data-compacto="1"] .threat-book-spread.spread-flow {
+  grid-template-columns: 1fr !important;
+  gap: 16px !important;
+}
+
+body[data-compacto="1"] .dossier-hero {
+  grid-template-columns: 1fr !important;
+  padding: 12px !important;
+  gap: 12px !important;
+}
+
+body[data-compacto="1"] .dossier-body {
+  grid-template-columns: 1fr !important;
+  padding: 12px !important;
+  gap: 16px !important;
+}
+
+body[data-compacto="1"] .dossier-creds-row {
+  grid-template-columns: 1fr 1fr !important;
+}
+
+body[data-compacto="1"] .dossier-field.field-level {
+  grid-column: 1 / -1 !important;
+}
+
+body[data-compacto="1"] .dossier-vitals-col {
+  grid-column: 1 / -1 !important;
+}
