@@ -1000,6 +1000,26 @@
   .rh-foot { bottom: calc(12px + env(safe-area-inset-bottom)); }
 }
 
+@media (max-height: 580px), (max-width: 460px) {
+  .rh-title { font-size: clamp(16px, 4.5vw, 24px); }
+  .rh-formula { font-size: 11px; }
+  .rh-total { font-size: clamp(38px, 9vh, 58px); }
+  .rh-breakdown { max-width: 92vw; flex-wrap: wrap; gap: 6px; }
+  .rh-die, .rh-part.die { width: 32px; height: 32px; font-size: 14px; }
+  .rh-verdict, .rh-banner { font-size: 12px; letter-spacing: 0.14em; padding: 4px 12px; }
+  .rh-foot { bottom: 8px; }
+}
+
+body[data-compacto="1"] .roll-hud .rh-title { font-size: clamp(16px, 4.5vw, 24px); }
+body[data-compacto="1"] .roll-hud .rh-formula { font-size: 11px; }
+body[data-compacto="1"] .roll-hud .rh-total { font-size: clamp(38px, 9vh, 58px); }
+body[data-compacto="1"] .roll-hud .rh-breakdown { max-width: 92vw; flex-wrap: wrap; gap: 6px; }
+body[data-compacto="1"] .roll-hud .rh-die,
+body[data-compacto="1"] .roll-hud .rh-part.die { width: 32px; height: 32px; font-size: 14px; }
+body[data-compacto="1"] .roll-hud .rh-verdict,
+body[data-compacto="1"] .roll-hud .rh-banner { font-size: 12px; letter-spacing: 0.14em; padding: 4px 12px; }
+body[data-compacto="1"] .roll-hud .rh-foot { bottom: 8px; }
+
 /* Fase 8.4: Rolar arrastando */
 body.drag-aiming {
   cursor: grabbing !important;

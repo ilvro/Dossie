@@ -195,8 +195,14 @@ export function createRollHud(stage, { title, configs, modifierParts = [], rollM
   // Posiciona cabeçalho e total a partir das bordas do círculo projetadas na tela.
   function layout({ headBottom, totalTop }) {
     const h = innerHeight;
-    root.style.setProperty('--rh-head-bottom', `${Math.round(h - Math.max(130, headBottom))}px`);
-    root.style.setProperty('--rh-total-top', `${Math.round(Math.min(h - 210, Math.max(h * .5, totalTop)))}px`);
+    const w = innerWidth;
+    if (h < 560 || w < 460 || document.body?.dataset?.compacto === '1') {
+      root.style.setProperty('--rh-head-bottom', `${Math.round(h - Math.max(76, h * 0.22))}px`);
+      root.style.setProperty('--rh-total-top', `${Math.round(Math.min(h - 145, Math.max(h * 0.44, totalTop)))}px`);
+    } else {
+      root.style.setProperty('--rh-head-bottom', `${Math.round(h - Math.max(130, headBottom))}px`);
+      root.style.setProperty('--rh-total-top', `${Math.round(Math.min(h - 210, Math.max(h * .5, totalTop)))}px`);
+    }
   }
 
   let sum = null;

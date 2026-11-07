@@ -873,6 +873,82 @@ button.bg3-card.is-activatable.is-disabled {
   .bg3-stage { --board-w: min(320px, calc(100vw - 64px)); }
 }
 
+@media (max-height: 680px), (max-width: 480px) {
+  .bg3-stage { --board-w: min(230px, 64vw, 46vh); }
+  .bg3-panel {
+    max-height: 98vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    gap: 4px;
+    padding: 6px 8px;
+  }
+  .bg3-head {
+    gap: 2px;
+    padding: 2px 14px;
+    margin-bottom: 0;
+  }
+  .bg3-title,
+  .bg3-skill {
+    font-size: clamp(14px, 4vw, 20px);
+  }
+  .bg3-sub span {
+    font-size: 10px;
+    padding: 2px 8px;
+  }
+  .bg3-bonuses,
+  .bg3-mods {
+    gap: 4px;
+  }
+  .bg3-card {
+    min-height: 64px;
+    width: 58px;
+    padding: 8px 4px 6px;
+    gap: 3px;
+  }
+  .bg3-confirm-done-btn {
+    padding: 3px 10px;
+    font-size: 8px;
+  }
+}
+
+body[data-compacto="1"] .bg3-stage {
+  --board-w: min(230px, 64vw, 46vh);
+}
+body[data-compacto="1"] .bg3-panel {
+  max-height: 98vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  gap: 4px;
+  padding: 6px 8px;
+}
+body[data-compacto="1"] .bg3-head {
+  gap: 2px;
+  padding: 2px 14px;
+  margin-bottom: 0;
+}
+body[data-compacto="1"] .bg3-title,
+body[data-compacto="1"] .bg3-skill {
+  font-size: clamp(14px, 4vw, 20px);
+}
+body[data-compacto="1"] .bg3-sub span {
+  font-size: 10px;
+  padding: 2px 8px;
+}
+body[data-compacto="1"] .bg3-bonuses,
+body[data-compacto="1"] .bg3-mods {
+  gap: 4px;
+}
+body[data-compacto="1"] .bg3-card {
+  min-height: 64px;
+  width: 58px;
+  padding: 8px 4px 6px;
+  gap: 3px;
+}
+body[data-compacto="1"] .bg3-confirm-done-btn {
+  padding: 3px 10px;
+  font-size: 8px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .bg3-stage *,
   .bg3-stage *::before,
