@@ -1,4 +1,4 @@
-// Só em desenvolvimento (entra pelo `app.js` dentro de `if (import.meta.env.DEV)`; o Vite elimina este módulo do build).
+// Em desenvolvimento e no app de desktop (entra pelo `app.js` dentro de `if (import.meta.env.DEV || import.meta.env.VITE_PONTE === '1')`; o Vite elimina este módulo do build do Pages).
 // Ferramentas do Dossiê para o assistente (Claude via ponte do mesa-dev): listar, ler, criar e ajustar fichas e ameaças.
 // Cada ferramenta é criada por `ferramentasDoDossie(ctx)`; o contexto é injetável para testar sem navegador (ver tests/ponte.test.mjs).
 //

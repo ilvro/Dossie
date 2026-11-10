@@ -6503,8 +6503,8 @@ iniciarMesa({
   if (pedida && sheets.some(sheet => sheet.id === pedida) && pedida !== state.id) switchToSheet(pedida);
 }).catch(() => {});
 
-// Ponte do assistente (só em desenvolvimento): o Vite remove este trecho do build.
-if (import.meta.env.DEV) {
+// Ponte do assistente (em desenvolvimento e no app de desktop): o Vite remove este trecho do build do Pages.
+if (import.meta.env.DEV || import.meta.env.VITE_PONTE === '1') {
   import('./ponte.js').then(m => m.iniciarPonte({
     fichas: () => sheets,
     aberta: () => state,
