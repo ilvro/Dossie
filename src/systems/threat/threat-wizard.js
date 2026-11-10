@@ -34,7 +34,7 @@ const PASSOS = [
 
 const VDS_POPULARES = [20, 40, 60, 80, 100, 140, 180, 240, 320, 400];
 
-const ARQUETIPOS = [
+export const ARQUETIPOS = [
   {
     id: 'tank',
     nome: 'Tank',
@@ -194,7 +194,7 @@ export function fecharThreatWizard(animado = false) {
 /**
  * Aplica as escolhas do wizard sobre o objeto da ficha
  */
-function aplicarEscolhas(sheet, d) {
+export function aplicarEscolhas(sheet, d) {
   const bal = getBalance(d.vd, d.preset);
   const arq = ARQUETIPOS.find(a => a.id === d.arquetipo) || ARQUETIPOS[0];
 
@@ -236,9 +236,9 @@ function aplicarEscolhas(sheet, d) {
   };
 
   sheet.salvaguardas = {
-    fortitude: { dados: resMap.fortitude?.dados || 3, bonus: resMap.fortitude?.bonus || 10 },
-    reflexos: { dados: resMap.reflexos?.dados || 2, bonus: resMap.reflexos?.bonus || 5 },
-    vontade: { dados: resMap.vontade?.dados || 2, bonus: resMap.vontade?.bonus || 0 }
+    fortitude: { dados: resMap.fortitude?.dados ?? 3, bonus: resMap.fortitude?.bonus ?? 10 },
+    reflexos: { dados: resMap.reflexos?.dados ?? 2, bonus: resMap.reflexos?.bonus ?? 5 },
+    vontade: { dados: resMap.vontade?.dados ?? 2, bonus: resMap.vontade?.bonus ?? 0 }
   };
 
   // Sentidos proporcionais

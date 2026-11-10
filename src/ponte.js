@@ -1,0 +1,361 @@
+// Só em desenvolvimento (entra pelo `app.js` dentro de `if (import.meta.env.DEV)`; o Vite elimina este módulo do build).
+// Ferramentas do Dossiê para o assistente (Claude via ponte do mesa-dev): listar, ler, criar e ajustar fichas e ameaças.
+// Cada ferramenta é criada por `ferramentasDoDossie(ctx)`; o contexto é injetável para testar sem navegador (ver tests/ponte.test.mjs).
+//
+// ctx = { fichas(), aberta(), criar({ sistema, raw }) → ficha, salvar(), abrir(id), sincronizar(), confirmar(texto) → boolean | Promise<boolean>, armazenamento? }
+// O app é quem sabe criar (o mesmo caminho do clique em "nova ficha", sem tutorial nem wizard); aqui só se monta o que a ficha nova leva.
+import { conectarPonte, json } from '../vendor/mesa-core/ponte.js';
+import { formatarRef } from '../vendor/mesa-core/refs.js';
+import { refDaFicha, ehAmeaca, ehPersonagem } from './mesa.js';
+import {
+    THREAT_ELEMENTS, THREAT_SIZES, ACTION_TYPES, DAMAGE_TYPES, CREATURE_TYPES_PARANORMAL, CREATURE_TYPES_MUNDANE, THREAT_RANGES
+} from './systems/threat/threat-data.js';
+import { getBalance } from './systems/threat/threat-balance.js';
+import { normalizeThreatSheet } from './systems/threat/threat-system.js';
+import { aplicarEscolhas, ARQUETIPOS } from './systems/threat/threat-wizard.js';
+import { CLASSES } from './data/original-data.js';
+
+export const CHAVE_CRIADOS = 'ficha:ponte-criados';
+const PRESETS = ['equilibrada', 'editora', 'leve'];
+const ATRIBUTOS_ORIGINAL = ['for', 'agi', 'vig', 'int', 'pre'];
+const ATRIBUTOS_ORDEM2 = { Físico: 'Físico', Mente: 'Mente', Emoção: 'Emoção' };
+const ELEMENTOS = Object.keys(THREAT_ELEMENTS).filter(e => e !== 'mundana');
+
+const semAcento = t => String(t ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+const opcoes = lista => lista.map(x => `"${x}"`).join(', ');
+const nomeDe = ficha => String(ficha.name || 'Sem nome');
+
+/** Valida um valor contra uma lista (sem diferenciar maiúsculas/acentos) e devolve o item da lista; erro com as opções. */
+function daLista(valor, lista, campo) {
+    const achado = lista.find(x => semAcento(x) === semAcento(valor));
+    if (!achado) throw new Error(`${campo} "${valor}" não existe. Opções: ${opcoes(lista)}.`);
+    return achado;
+}
+function inteiro(valor, campo, min, max) {
+    const n = Number(valor);
+    if (!Number.isFinite(n) || !Number.isInteger(n) || n < min || n > max) throw new Error(`"${campo}" deve ser um número inteiro de ${min} a ${max} (recebi ${JSON.stringify(valor)}).`);
+    return n;
+}
+function textoCurto(valor, campo, max = 4000) {
+    if (typeof valor !== 'string') throw new Error(`"${campo}" deve ser texto.`);
+    return valor.slice(0, max);
+}
+
+// ─── Quem criou: lista de ids no localStorage (só em desenvolvimento) ────────────────────────────────────────────
+function armazem(ctx) { return ctx.armazenamento ?? globalThis.localStorage; }
+export function idsCriados(ctx) {
+    try {
+        const lista = JSON.parse(armazem(ctx)?.getItem(CHAVE_CRIADOS) ?? '[]');
+        return Array.isArray(lista) ? lista.filter(x => typeof x === 'string') : [];
+    } catch { return []; }
+}
+function registrarCriado(ctx, id) {
+    try {
+        const lista = idsCriados(ctx);
+        if (!lista.includes(id)) armazem(ctx)?.setItem(CHAVE_CRIADOS, JSON.stringify([...lista, id]));
+    } catch { /* sem armazenamento: o assistente passa a pedir confirmação para essa ficha, o que é o lado seguro */ }
+}
+
+// ─── Campos simples editáveis, por tipo de ficha ──────────────────────────────────────────────────────────────────
+// campo do assistente → { chave: na ficha, ler(valor) → valor validado, descricao }
+const texto = (chave, descricao, max) => ({ chave, descricao, ler: (v, campo) => textoCurto(v, campo, max) });
+const numero = (chave, descricao, min, max) => ({ chave, descricao, ler: (v, campo) => inteiro(v, campo, min, max) });
+const CAMPOS = {
+    ameaca: {
+        nome: texto('name', 'Nome da ameaça.', 120),
+        subtitulo: texto('subtitulo', 'Subtítulo (ex.: "SANGUE").', 120),
+        vd: numero('vd', 'Valor de Desafio (só o rótulo; não recalcula os números).', 0, 400),
+        pv: numero('pv', 'PV atuais.', 0, 99999),
+        pvMax: numero('pvMax', 'PV máximos.', 0, 99999),
+        defesa: numero('defesa', 'Defesa.', 0, 200),
+        tipo: { chave: 'tipo', descricao: 'Tipo da criatura (Criatura, Relíquia, Humano, Animal, Veículo).', ler: (v, campo) => daLista(v, [...CREATURE_TYPES_PARANORMAL, ...CREATURE_TYPES_MUNDANE], campo) },
+        tamanho: { chave: 'tamanho', descricao: `Tamanho: ${THREAT_SIZES.join(', ')}.`, ler: (v, campo) => daLista(v, THREAT_SIZES, campo) },
+        notas: texto('notasMestre', 'Notas do mestre (texto livre).', 8000)
+    },
+    ordem2: {
+        nome: texto('name', 'Nome do personagem.', 120),
+        ocupacao: texto('occupation', 'Ocupação.', 120),
+        historia: texto('history', 'História / anotações.', 8000),
+        pv: numero('pv', 'PV atuais.', 0, 999),
+        pvMax: numero('maxPv', 'PV máximos.', 0, 999),
+        pd: numero('pd', 'PD (Pontos de Determinação) atuais.', 0, 999),
+        pdMax: numero('maxPd', 'PD máximos.', 0, 999)
+    },
+    original: {
+        nome: texto('name', 'Nome do personagem.', 120),
+        jogador: texto('jogador', 'Nome do jogador.', 120),
+        historia: texto('history', 'História / anotações.', 8000),
+        pv: numero('pv', 'PV atuais (o máximo vem da classe, do NEX e do Vigor).', 0, 999),
+        pe: numero('pe', 'PE atuais.', 0, 999),
+        san: numero('san', 'Sanidade atual.', 0, 999)
+    }
+};
+const sistemaDaFicha = ficha => (ehAmeaca(ficha) ? 'ameaca' : ficha.systemMode === 'original' ? 'original' : 'ordem2');
+const todosOsCampos = () => [...new Set(Object.values(CAMPOS).flatMap(c => Object.keys(c)))];
+
+// ─── Resumos legíveis ─────────────────────────────────────────────────────────────────────────────────────────────
+const lista = ficha => {
+    const sistema = sistemaDaFicha(ficha);
+    return {
+        id: ficha.id, ref: formatarRef(refDaFicha(ficha.id)), nome: nomeDe(ficha),
+        tipo: ehAmeaca(ficha) ? 'ameaca' : 'personagem', sistema,
+        ...(sistema === 'ameaca' ? { vd: ficha.vd, elementos: ficha.elementos ?? [] } : {}),
+        ...(sistema === 'original' ? { classe: ficha.classeId, nex: ficha.nex } : {})
+    };
+};
+const poolTexto = p => (p ? `${p.dados}d20${p.bonus ? (p.bonus > 0 ? '+' : '') + p.bonus : ''}` : '');
+
+function resumoDaFicha(ficha, ctx) {
+    const base = { ...lista(ficha), criadaPeloAssistente: idsCriados(ctx).includes(ficha.id) };
+    if (ehAmeaca(ficha)) {
+        return {
+            ...base, categoria: ficha.categoria, subtitulo: ficha.subtitulo, criatura: ficha.tipo, tamanho: ficha.tamanho,
+            pv: `${ficha.pv}/${ficha.pvMax}`, defesa: ficha.defesa, atributos: ficha.atributos,
+            salvaguardas: Object.fromEntries(Object.entries(ficha.salvaguardas ?? {}).map(([k, p]) => [k, poolTexto(p)])),
+            resistencias: ficha.resistencias, vulnerabilidades: ficha.vulnerabilidades, imunidades: ficha.imunidades,
+            presenca: ficha.presenca?.ativa ? `DT ${ficha.presenca.dt}, ${ficha.presenca.dano} ${ficha.presenca.tipoDano}, imune a partir de NEX ${ficha.presenca.imuneNex}%` : 'sem presença perturbadora',
+            deslocamentoMetros: ficha.deslocamento?.metros,
+            acoes: (ficha.acoes ?? []).map(a => ({
+                nome: a.nome, tipoAcao: a.tipoAcao, texto: a.texto || undefined,
+                ataques: (a.ataques ?? []).map(t => ({ nome: t.nome, alcance: t.alcance, teste: poolTexto(t.teste), dano: `${t.dano} ${t.tipoDano}`, critico: t.critico }))
+            })),
+            notas: ficha.notasMestre || undefined
+        };
+    }
+    if (ficha.systemMode === 'original') {
+        return {
+            ...base, jogador: ficha.jogador || undefined, classe: ficha.classeId, trilha: ficha.trilhaId, origem: ficha.origemId, nex: ficha.nex, atributos: ficha.atributos,
+            pv: `${ficha.pv}/${ficha.maxPv}`, pe: `${ficha.pe}/${ficha.maxPe}`, sanidade: `${ficha.san}/${ficha.maxSan}`, historia: ficha.history || undefined
+        };
+    }
+    return {
+        ...base, ocupacao: ficha.occupation, perfil: ficha.profile, atributos: ficha.attributes,
+        pv: `${ficha.pv}/${ficha.maxPv}`, pd: `${ficha.pd}/${ficha.maxPd}`, historia: ficha.history || undefined
+    };
+}
+
+// ─── Ameaça: o cálculo do wizard, reaproveitado ───────────────────────────────────────────────────────────────────
+function lerAcoes(acoes, bal, atributos) {
+    if (acoes === undefined) return null;
+    if (!Array.isArray(acoes)) throw new Error('"acoes" deve ser uma lista de { nome, tipoAcao, texto?, dano?, tipoDano?, alcance? }.');
+    const tipos = ACTION_TYPES.map(t => t.id);
+    return acoes.map((a, i) => {
+        if (!a || typeof a !== 'object' || !String(a.nome ?? '').trim()) throw new Error(`Ação ${i + 1}: falta o "nome".`);
+        const tipoAcao = a.tipoAcao === undefined ? 'padrao' : daLista(a.tipoAcao, tipos, `Ação "${a.nome}": tipoAcao`);
+        const ataques = [];
+        if (a.dano !== undefined && String(a.dano).trim()) {
+            ataques.push({
+                id: `atk-${i + 1}`, nome: String(a.nome).trim(),
+                alcance: a.alcance === undefined ? 'corpo' : THREAT_RANGES.find(r => semAcento(r.id) === semAcento(a.alcance) || semAcento(r.nome) === semAcento(a.alcance))?.id
+                    ?? (() => { throw new Error(`Ação "${a.nome}": alcance "${a.alcance}" não existe. Opções: ${opcoes(THREAT_RANGES.map(r => r.id))}.`); })(),
+                multiplicador: 1, teste: { dados: Math.max(1, atributos?.for || bal.ataque.dados), bonus: bal.ataque.bonus },
+                dano: String(a.dano).trim(),
+                tipoDano: a.tipoDano === undefined ? 'Impacto' : daLista(a.tipoDano, DAMAGE_TYPES, `Ação "${a.nome}": tipoDano`),
+                critico: '20/x2'
+            });
+        }
+        return {
+            id: `act-${i + 1}`, tipoAcao, nome: String(a.nome).trim(), gatilho: '', custo: '', usos: null, ataques,
+            texto: a.texto === undefined ? '' : textoCurto(a.texto, 'texto'), coluna: 'direita', ativaQuando: null, fase: null
+        };
+    });
+}
+
+/** Monta a ficha de ameaça como o wizard a monta (`aplicarEscolhas`), validando contra as listas do `threat-data.js`. */
+export function montarAmeaca(args) {
+    const nome = String(args.nome ?? '').trim();
+    if (!nome) throw new Error('Falta o "nome" da ameaça.');
+    const vd = inteiro(args.vd, 'vd', 10, 400);
+    const categoria = args.categoria === undefined ? 'paranormal' : daLista(args.categoria, ['paranormal', 'mundana'], 'Categoria');
+    const preset = args.preset === undefined ? 'equilibrada' : daLista(args.preset, PRESETS, 'Preset');
+    const arquetipo = args.arquetipo === undefined ? null : daLista(args.arquetipo, ARQUETIPOS.map(a => a.id), 'Arquétipo');
+    let elementos = [];
+    if (categoria === 'paranormal') {
+        if (!Array.isArray(args.elementos) || !args.elementos.length) throw new Error(`Informe ao menos um elemento em "elementos". Opções: ${opcoes(ELEMENTOS)}.`);
+        elementos = [...new Set(args.elementos.map(e => daLista(e, ELEMENTOS, 'Elemento')))];
+    } else if (Array.isArray(args.elementos) && args.elementos.length) throw new Error('Ameaça "mundana" não tem elementos; omita "elementos" ou use categoria "paranormal".');
+    const tipos = categoria === 'mundana' ? CREATURE_TYPES_MUNDANE : CREATURE_TYPES_PARANORMAL;
+    const tipo = args.tipo === undefined ? tipos[0] : daLista(args.tipo, tipos, `Tipo (${categoria})`);
+    const tamanho = args.tamanho === undefined ? 'Médio' : daLista(args.tamanho, THREAT_SIZES, 'Tamanho');
+
+    const bal = getBalance(vd, preset);
+    const sheet = normalizeThreatSheet({ name: nome, systemMode: 'threat', vd, categoria, elementos });
+    aplicarEscolhas(sheet, {
+        nome, subtitulo: args.subtitulo === undefined ? '' : textoCurto(args.subtitulo, 'subtitulo', 120), categoria, vd, preset, tipo, tamanho,
+        elementoPrincipal: elementos[0] ?? 'mundana', elementosComplementares: elementos.slice(1), arquetipo: arquetipo ?? 'boss',
+        resistenciasPadrao: true, incluirVulnerabilidade: true, presencaAtiva: categoria === 'paranormal', adicionarEnigma: false, adicionarHabilidadeElementar: false,
+        ataquePadrao: {}, acoesExtras: []
+    });
+    // Sem arquétipo, os números ficam como a tabela (o arquétipo do wizard ajusta PV e Defesa por cima).
+    if (!arquetipo) { sheet.pv = sheet.pvMax = bal.pv; sheet.defesa = bal.defesa; }
+    const acoes = lerAcoes(args.acoes, bal, sheet.atributos);
+    if (acoes) sheet.acoes = acoes;
+    if (args.descricao !== undefined) sheet.notasMestre = textoCurto(args.descricao, 'descricao', 8000);
+    sheet.fonte = 'homebrew'; sheet.isCustom = true;
+    return sheet;
+}
+
+/** Monta a ficha de personagem mínima (o que o clique de nova ficha leva, mais o pedido). */
+export function montarPersonagem(args) {
+    const nome = String(args.nome ?? '').trim();
+    if (!nome) throw new Error('Falta o "nome" da ficha.');
+    const sistema = daLista(args.sistema ?? '', ['ordem2', 'original'], 'Sistema');
+    const raw = { name: nome };
+    if (args.conceito !== undefined) raw.history = textoCurto(args.conceito, 'conceito', 8000);
+    if (sistema === 'ordem2') {
+        if (args.classe !== undefined || args.nex !== undefined) throw new Error('"classe" e "nex" são do sistema "original". Em "ordem2" use só "atributos" (Físico, Mente, Emoção).');
+        if (args.atributos !== undefined) {
+            if (!args.atributos || typeof args.atributos !== 'object') throw new Error('"atributos" deve ser um objeto.');
+            raw.attributes = {};
+            for (const [k, v] of Object.entries(args.atributos)) raw.attributes[daLista(k, Object.keys(ATRIBUTOS_ORDEM2), 'Atributo')] = inteiro(v, k, 0, 20);
+        }
+        return { sistema, raw };
+    }
+    const classe = args.classe === undefined ? 'combatente' : daLista(args.classe, Object.keys(CLASSES), 'Classe');
+    raw.classeId = classe;
+    raw.trilhaId = CLASSES[classe]?.trilhas?.[0]?.id ?? '';
+    raw.nex = args.nex === undefined ? (CLASSES[classe]?.mundano ? 0 : 5) : inteiro(args.nex, 'nex', 0, 99);
+    raw.atributos = { for: 1, agi: 1, vig: 1, int: 1, pre: 1 };
+    if (args.atributos !== undefined) {
+        if (!args.atributos || typeof args.atributos !== 'object') throw new Error('"atributos" deve ser um objeto.');
+        for (const [k, v] of Object.entries(args.atributos)) raw.atributos[daLista(k, ATRIBUTOS_ORIGINAL, 'Atributo')] = inteiro(v, k, 0, 7);
+    }
+    return { sistema, raw };
+}
+
+// ─── As ferramentas ───────────────────────────────────────────────────────────────────────────────────────────────
+export function ferramentasDoDossie(ctx) {
+    const achar = id => {
+        const ficha = ctx.fichas().find(f => f.id === id);
+        if (!ficha) throw new Error(`Ficha "${id}" não existe no Dossiê. Use dossie_fichas_listar para ver os ids.`);
+        return ficha;
+    };
+    const depoisDeCriar = async ficha => {
+        registrarCriado(ctx, ficha.id);
+        ctx.salvar();
+        await ctx.sincronizar();
+    };
+    const campos = CAMPOS;
+    return [
+        {
+            nome: 'dossie_fichas_listar',
+            descricao: 'Lista as fichas do Dossiê (personagens e ameaças): id, ref, nome, tipo, sistema. Filtre por tipo ou por parte do nome.',
+            esquema: { type: 'object', properties: { tipo: { type: 'string', enum: ['personagem', 'ameaca'] }, busca: { type: 'string', description: 'Parte do nome, sem diferenciar maiúsculas e acentos.' } }, required: [], additionalProperties: false },
+            async executar(args) {
+                if (args.tipo !== undefined && !['personagem', 'ameaca'].includes(args.tipo)) throw new Error('"tipo" deve ser "personagem" ou "ameaca".');
+                const busca = semAcento(args.busca);
+                const achadas = ctx.fichas().filter(f => (ehAmeaca(f) || ehPersonagem(f))
+                    && (!args.tipo || (args.tipo === 'ameaca') === ehAmeaca(f)) && (!busca || semAcento(nomeDe(f)).includes(busca)));
+                return [json(achadas.map(lista))];
+            }
+        },
+        {
+            nome: 'dossie_ficha_ler',
+            descricao: 'Lê uma ficha em resumo legível: nome, sistema, atributos, PV/PD e, para ameaça, VD, elementos, defesa, salvaguardas e ações.',
+            esquema: { type: 'object', properties: { id: { type: 'string', description: 'Id da ficha (de dossie_fichas_listar).' } }, required: ['id'], additionalProperties: false },
+            async executar(args) { return [json(resumoDaFicha(achar(String(args.id ?? '')), ctx))]; }
+        },
+        {
+            nome: 'dossie_ameaca_criar',
+            descricao: 'Cria uma ficha de ameaça (monstro) no Dossiê com os números do VD, como o wizard: defesa, PV, salvaguardas, presença e dano vêm da tabela de balanceamento. A ficha abre na tela e entra na campanha como "ameaca". Devolve o id.',
+            esquema: {
+                type: 'object',
+                properties: {
+                    nome: { type: 'string' },
+                    vd: { type: 'integer', minimum: 10, maximum: 400, description: 'Valor de Desafio (20, 40, 60, 80, 100... até 400).' },
+                    elementos: { type: 'array', items: { type: 'string', enum: ELEMENTOS }, description: 'Obrigatório se paranormal; o primeiro é o principal.' },
+                    categoria: { type: 'string', enum: ['paranormal', 'mundana'], description: 'Padrão: paranormal.' },
+                    tipo: { type: 'string', description: `Paranormal: ${CREATURE_TYPES_PARANORMAL.join(', ')}. Mundana: ${CREATURE_TYPES_MUNDANE.join(', ')}.` },
+                    tamanho: { type: 'string', enum: THREAT_SIZES, description: 'Padrão: Médio.' },
+                    preset: { type: 'string', enum: PRESETS, description: 'Dureza dos números: editora (tabela do livro), equilibrada (padrão) ou leve.' },
+                    arquetipo: { type: 'string', enum: ARQUETIPOS.map(a => a.id), description: 'Opcional: ajusta atributos, PV e Defesa como no wizard. Sem ele, PV e Defesa saem exatamente da tabela.' },
+                    subtitulo: { type: 'string' },
+                    descricao: { type: 'string', description: 'Vai para as notas do mestre da ficha.' },
+                    acoes: {
+                        type: 'array', description: 'Substitui a ação padrão ("Agredir"). Com "dano", a ação leva um ataque com o teste da tabela.',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                nome: { type: 'string' }, tipoAcao: { type: 'string', enum: ACTION_TYPES.map(t => t.id), description: 'Padrão: padrao.' },
+                                texto: { type: 'string' }, dano: { type: 'string', description: 'Ex.: "2d8+6".' },
+                                tipoDano: { type: 'string', enum: DAMAGE_TYPES, description: 'Padrão: Impacto.' }, alcance: { type: 'string', enum: THREAT_RANGES.map(r => r.id), description: 'Padrão: corpo.' }
+                            },
+                            required: ['nome'], additionalProperties: false
+                        }
+                    }
+                },
+                required: ['nome', 'vd'], additionalProperties: false
+            },
+            async executar(args) {
+                const raw = montarAmeaca(args);
+                const ficha = ctx.criar({ sistema: 'threat', raw });
+                await depoisDeCriar(ficha);
+                return [json({ id: ficha.id, ref: formatarRef(refDaFicha(ficha.id)), resumo: resumoDaFicha(ficha, ctx) })];
+            }
+        },
+        {
+            nome: 'dossie_ficha_criar',
+            descricao: 'Cria uma ficha de personagem mínima e coerente (os números derivados vêm das regras do sistema) e a abre na tela. Devolve o id. Ameaças usam dossie_ameaca_criar.',
+            esquema: {
+                type: 'object',
+                properties: {
+                    nome: { type: 'string' }, sistema: { type: 'string', enum: ['ordem2', 'original'] },
+                    classe: { type: 'string', enum: Object.keys(CLASSES), description: 'Só "original". Padrão: combatente.' },
+                    nex: { type: 'integer', minimum: 0, maximum: 99, description: 'Só "original". Padrão: 5 (sobrevivente: estágio 1).' },
+                    atributos: { type: 'object', description: 'original: for, agi, vig, int, pre (0 a 7; padrão 1). ordem2: Físico, Mente, Emoção.', additionalProperties: { type: 'integer' } },
+                    conceito: { type: 'string', description: 'Vai para a história da ficha.' }
+                },
+                required: ['nome', 'sistema'], additionalProperties: false
+            },
+            async executar(args) {
+                const dados = montarPersonagem(args);
+                const ficha = ctx.criar(dados);
+                await depoisDeCriar(ficha);
+                return [json({ id: ficha.id, ref: formatarRef(refDaFicha(ficha.id)), resumo: resumoDaFicha(ficha, ctx) })];
+            }
+        },
+        {
+            nome: 'dossie_ficha_editar',
+            descricao: 'Edita campos simples de uma ficha (texto e números; veja a lista em "campos"). Se a ficha não foi criada pelo assistente, o mestre confirma na aba do Dossiê. Não apaga fichas nem mexe em retrato, licença do bestiário ou pastas.',
+            esquema: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string' },
+                    nome: { type: 'string', description: 'Atalho para campos.nome.' },
+                    campos: {
+                        type: 'object',
+                        description: 'Campos por tipo de ficha. Ameaça: ' + Object.keys(campos.ameaca).join(', ') + '. ordem2: ' + Object.keys(campos.ordem2).join(', ') + '. original: ' + Object.keys(campos.original).join(', ') + '.',
+                        properties: Object.fromEntries(todosOsCampos().map(c => [c, { description: [campos.ameaca, campos.ordem2, campos.original].map(m => m[c]?.descricao).find(Boolean) }])),
+                        additionalProperties: true      // campo fora da lista: a ferramenta responde com a lista, em vez de o cliente recusar sem explicar
+                    }
+                },
+                required: ['id'], additionalProperties: false
+            },
+            async executar(args) {
+                const ficha = achar(String(args.id ?? ''));
+                const mapa = campos[sistemaDaFicha(ficha)];
+                const pedido = { ...(args.campos && typeof args.campos === 'object' ? args.campos : {}) };
+                if (args.nome !== undefined) pedido.nome = args.nome;
+                const chaves = Object.keys(pedido);
+                if (!chaves.length) throw new Error(`Nada a editar: informe "nome" ou "campos". Campos desta ficha: ${opcoes(Object.keys(mapa))}.`);
+                const fora = chaves.filter(c => !mapa[c]);
+                if (fora.length) throw new Error(`Campo(s) fora da lista editável nesta ficha (${sistemaDaFicha(ficha)}): ${fora.map(c => `"${c}"`).join(', ')}. Campos permitidos: ${opcoes(Object.keys(mapa))}.`);
+                const novos = Object.fromEntries(chaves.map(c => [mapa[c].chave, mapa[c].ler(pedido[c], c)]));
+                if (!idsCriados(ctx).includes(ficha.id)) {
+                    const ok = await ctx.confirmar(`O assistente quer alterar a ficha "${nomeDe(ficha)}" (que ele não criou): ${chaves.join(', ')}. Permitir?`);
+                    if (!ok) throw new Error(`O mestre recusou alterar a ficha "${nomeDe(ficha)}". Nada foi mudado; pergunte ao mestre o que ele prefere.`);
+                }
+                Object.assign(ficha, novos);
+                ctx.salvar();
+                await ctx.sincronizar();
+                if (ctx.aberta()?.id === ficha.id) ctx.abrir(ficha.id);      // a ficha na tela se redesenha
+                return [json({ id: ficha.id, alterados: chaves, resumo: resumoDaFicha(ficha, ctx) })];
+            }
+        }
+    ];
+}
+
+/** Liga a ponte (navegador, só em desenvolvimento). `ctx` vem do `app.js`; `confirmar` pode ser omitido (usa `window.confirm`). */
+export function iniciarPonte(ctx) {
+    return conectarPonte({ app: 'ficha', titulo: 'Dossiê', ferramentas: ferramentasDoDossie({ confirmar: texto => globalThis.confirm(texto), ...ctx }) });
+}

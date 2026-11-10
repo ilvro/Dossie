@@ -3535,6 +3535,52 @@ function toggleFolderRailVisibility(folderId) {
  render();
 }
 
+/** Cria e abre uma ficha nova (o caminho do clique em "nova ficha"). `raw` (ponte do assistente, só em DEV) completa/sobrepõe os dados e dispensa o tutorial e o wizard. */
+function criarFichaNova(mode,{raw,semAssistente=false}={}){
+      save(false);
+      editMode=false;
+      const currentMode=state.viewMode||'cinematic';
+      const defaultFolderId=targetFolderForNewSheet||(mode==='threat'?'folder-threats':'folder-characters');
+      targetFolderForNewSheet=null;
+      const inicioOriginal=mode==='original'
+        ?{classeId:'sobrevivente',nex:0,trilhaId:'durao',atributos:{for:1,agi:1,vig:1,int:1,pre:1}}
+        :(mode==='threat'?{vd:60,elementos:['sangue'],pv:120,maxPv:120,fonte:'homebrew',isCustom:true}:{});
+      const sheetName=mode==='threat'
+        ?`AMEAÇA ${sheets.filter(isThreatSheet).length+1}`
+        :`AGENTE ${sheets.filter(isCharacterSheet).length+1}`;
+      const sheet=normalizeSheet({name:sheetName,systemMode:mode,folderId:defaultFolderId,viewMode:currentMode,...inicioOriginal,...raw});
+      sheets.push(sheet);
+      state=sheet;
+      activeSheetId=sheet.id;
+      trackRecentSheet(sheet.id);
+      if(semAssistente){
+       fecharTutorial();
+       fecharThreatWizard();
+      }else if(mode==='original'){
+       abrirTutorial(sheet,{soRecursos:!appSettings.tutorialOriginal,onFinish:()=>{if(state===sheet){save(false);render();}}});
+      }else if(mode==='threat'){
+       fecharTutorial();
+       abrirThreatWizard(sheet,{modoInicial:'criar',onFinish:()=>{if(state===sheet){save(false);render();}}});
+      }else{
+       fecharTutorial();
+       fecharThreatWizard();
+      }
+      if(mode==='threat'){
+       presentationMode=false;
+      }else{
+       presentationIndex=Math.max(0,getPresentationSheets().findIndex(s=>s.id===state.id));
+      }
+      if(state.viewMode==='cinematic'&&presentationMode){
+       triggerGlitchTransition(()=>render());
+      }else{
+       render();
+      }
+      setTimeout(()=>{
+       const switcher=document.querySelector('.sheet-switcher');
+       if(switcher) switcher.scrollTop=switcher.scrollHeight;
+      },50);
+  return sheet;
+}
 function switchToSheet(targetId) {
  if (!targetId) return;
  trackRecentSheet(targetId);
@@ -5890,45 +5936,7 @@ function bind(){
       const mode=card.dataset.createSystem||e.currentTarget?.dataset?.createSystem||'ordem2';
       const modal=document.querySelector('#system-select-modal');
       if(modal) modal.style.display='none';
-      save(false);
-      editMode=false;
-      const currentMode=state.viewMode||'cinematic';
-      const defaultFolderId=targetFolderForNewSheet||(mode==='threat'?'folder-threats':'folder-characters');
-      targetFolderForNewSheet=null;
-      const inicioOriginal=mode==='original'
-        ?{classeId:'sobrevivente',nex:0,trilhaId:'durao',atributos:{for:1,agi:1,vig:1,int:1,pre:1}}
-        :(mode==='threat'?{vd:60,elementos:['sangue'],pv:120,maxPv:120,fonte:'homebrew',isCustom:true}:{});
-      const sheetName=mode==='threat'
-        ?`AMEAÇA ${sheets.filter(isThreatSheet).length+1}`
-        :`AGENTE ${sheets.filter(isCharacterSheet).length+1}`;
-      const sheet=normalizeSheet({name:sheetName,systemMode:mode,folderId:defaultFolderId,viewMode:currentMode,...inicioOriginal});
-      sheets.push(sheet);
-      state=sheet;
-      activeSheetId=sheet.id;
-      trackRecentSheet(sheet.id);
-      if(mode==='original'){
-       abrirTutorial(sheet,{soRecursos:!appSettings.tutorialOriginal,onFinish:()=>{if(state===sheet){save(false);render();}}});
-      }else if(mode==='threat'){
-       fecharTutorial();
-       abrirThreatWizard(sheet,{modoInicial:'criar',onFinish:()=>{if(state===sheet){save(false);render();}}});
-      }else{
-       fecharTutorial();
-       fecharThreatWizard();
-      }
-      if(mode==='threat'){
-       presentationMode=false;
-      }else{
-       presentationIndex=Math.max(0,getPresentationSheets().findIndex(s=>s.id===state.id));
-      }
-      if(state.viewMode==='cinematic'&&presentationMode){
-       triggerGlitchTransition(()=>render());
-      }else{
-       render();
-      }
-      setTimeout(()=>{
-       const switcher=document.querySelector('.sheet-switcher');
-       if(switcher) switcher.scrollTop=switcher.scrollHeight;
-      },50);
+      criarFichaNova(mode);
      };
     });
     document.querySelectorAll('[data-save-sheet]').forEach(el=>el.onclick=()=>save(true,'SALVO',true));
@@ -6494,3 +6502,16 @@ iniciarMesa({
   const pedida = new URLSearchParams(location.search).get('ficha');
   if (pedida && sheets.some(sheet => sheet.id === pedida) && pedida !== state.id) switchToSheet(pedida);
 }).catch(() => {});
+
+// Ponte do assistente (só em desenvolvimento): o Vite remove este trecho do build.
+if (import.meta.env.DEV) {
+  import('./ponte.js').then(m => m.iniciarPonte({
+    fichas: () => sheets,
+    aberta: () => state,
+    criar: dados => criarFichaNova(dados.sistema, { raw: dados.raw, semAssistente: true }),
+    salvar: () => save(false),
+    abrir: id => switchToSheet(id),
+    sincronizar: () => mesa?.sincronizar?.(),
+    confirmar: texto => confirm(texto)
+  })).catch(erro => console.warn('Dossiê: ponte do assistente não carregou', erro));
+}
