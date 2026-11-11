@@ -122,3 +122,9 @@ test('listar filtra por tipo e busca sem acento; ler resume a ameaça', async ()
     const lido = await dados('dossie_ficha_ler', { id: novo.id });
     assert.equal(lido.vd, 40); assert.equal(lido.criadaPeloAssistente, true); assert.ok(lido.acoes.length);
 });
+
+test('orçamento: descrições até 400 caracteres e campos até 80', () => {
+    const { f } = cenario();
+    const varrer = o => !o || typeof o !== 'object' ? [] : [...(typeof o.description === 'string' && o.description.length > 80 ? [o.description] : []), ...Object.values(o).flatMap(varrer)];
+    for (const t of Object.values(f)) { assert.ok(t.descricao.length <= 400, t.nome); assert.deepEqual(varrer(t.esquema), [], t.nome); }
+});

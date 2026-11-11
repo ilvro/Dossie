@@ -239,8 +239,8 @@ export function ferramentasDoDossie(ctx) {
     return [
         {
             nome: 'dossie_fichas_listar',
-            descricao: 'Lista as fichas do Dossiê (personagens e ameaças): id, ref, nome, tipo, sistema. Filtre por tipo ou por parte do nome.',
-            esquema: { type: 'object', properties: { tipo: { type: 'string', enum: ['personagem', 'ameaca'] }, busca: { type: 'string', description: 'Parte do nome, sem diferenciar maiúsculas e acentos.' } }, required: [], additionalProperties: false },
+            descricao: 'Lista as fichas do Dossiê (personagens e ameaças) com id, ref, nome, tipo e sistema.',
+            esquema: { type: 'object', properties: { tipo: { type: 'string', enum: ['personagem', 'ameaca'] }, busca: { type: 'string', description: 'Parte do nome.' } }, required: [], additionalProperties: false },
             async executar(args) {
                 if (args.tipo !== undefined && !['personagem', 'ameaca'].includes(args.tipo)) throw new Error('"tipo" deve ser "personagem" ou "ameaca".');
                 const busca = semAcento(args.busca);
@@ -251,28 +251,28 @@ export function ferramentasDoDossie(ctx) {
         },
         {
             nome: 'dossie_ficha_ler',
-            descricao: 'Lê uma ficha em resumo legível: nome, sistema, atributos, PV/PD e, para ameaça, VD, elementos, defesa, salvaguardas e ações.',
-            esquema: { type: 'object', properties: { id: { type: 'string', description: 'Id da ficha (de dossie_fichas_listar).' } }, required: ['id'], additionalProperties: false },
+            descricao: 'Lê o resumo de uma ficha (atributos, PV/PD; ameaça: VD, defesa, ações).',
+            esquema: { type: 'object', properties: { id: { type: 'string', description: 'De dossie_fichas_listar.' } }, required: ['id'], additionalProperties: false },
             async executar(args) { return [json(resumoDaFicha(achar(String(args.id ?? '')), ctx))]; }
         },
         {
             nome: 'dossie_ameaca_criar',
-            descricao: 'Cria uma ficha de ameaça (monstro) no Dossiê com os números do VD, como o wizard: defesa, PV, salvaguardas, presença e dano vêm da tabela de balanceamento. A ficha abre na tela e entra na campanha como "ameaca". Devolve o id.',
+            descricao: 'Cria uma ficha de ameaça com os números do VD, como o wizard. Devolve o id. Detalhes: plataforma_guia ferramentas-dossie.',
             esquema: {
                 type: 'object',
                 properties: {
                     nome: { type: 'string' },
-                    vd: { type: 'integer', minimum: 10, maximum: 400, description: 'Valor de Desafio (20, 40, 60, 80, 100... até 400).' },
-                    elementos: { type: 'array', items: { type: 'string', enum: ELEMENTOS }, description: 'Obrigatório se paranormal; o primeiro é o principal.' },
-                    categoria: { type: 'string', enum: ['paranormal', 'mundana'], description: 'Padrão: paranormal.' },
-                    tipo: { type: 'string', description: `Paranormal: ${CREATURE_TYPES_PARANORMAL.join(', ')}. Mundana: ${CREATURE_TYPES_MUNDANE.join(', ')}.` },
-                    tamanho: { type: 'string', enum: THREAT_SIZES, description: 'Padrão: Médio.' },
-                    preset: { type: 'string', enum: PRESETS, description: 'Dureza dos números: editora (tabela do livro), equilibrada (padrão) ou leve.' },
-                    arquetipo: { type: 'string', enum: ARQUETIPOS.map(a => a.id), description: 'Opcional: ajusta atributos, PV e Defesa como no wizard. Sem ele, PV e Defesa saem exatamente da tabela.' },
+                    vd: { type: 'integer', minimum: 10, maximum: 400, description: 'Valor de Desafio.' },
+                    elementos: { type: 'array', items: { type: 'string', enum: ELEMENTOS }, description: 'Obrigatório se paranormal.' },
+                    categoria: { type: 'string', enum: ['paranormal', 'mundana'], description: 'Padrão paranormal.' },
+                    tipo: { type: 'string', description: 'Tipos por categoria: ver guia.' },
+                    tamanho: { type: 'string', enum: THREAT_SIZES, description: 'Padrão Médio.' },
+                    preset: { type: 'string', enum: PRESETS, description: 'Dureza dos números.' },
+                    arquetipo: { type: 'string', enum: ARQUETIPOS.map(a => a.id), description: 'Opcional, como no wizard.' },
                     subtitulo: { type: 'string' },
-                    descricao: { type: 'string', description: 'Vai para as notas do mestre da ficha.' },
+                    descricao: { type: 'string', description: 'Notas do mestre.' },
                     acoes: {
-                        type: 'array', description: 'Substitui a ação padrão ("Agredir"). Com "dano", a ação leva um ataque com o teste da tabela.',
+                        type: 'array', description: 'Substitui a ação padrão.',
                         items: {
                             type: 'object',
                             properties: {
@@ -295,15 +295,15 @@ export function ferramentasDoDossie(ctx) {
         },
         {
             nome: 'dossie_ficha_criar',
-            descricao: 'Cria uma ficha de personagem mínima e coerente (os números derivados vêm das regras do sistema) e a abre na tela. Devolve o id. Ameaças usam dossie_ameaca_criar.',
+            descricao: 'Cria uma ficha de personagem mínima e a abre na tela. Devolve o id. Ameaças: dossie_ameaca_criar. Detalhes: plataforma_guia ferramentas-dossie.',
             esquema: {
                 type: 'object',
                 properties: {
                     nome: { type: 'string' }, sistema: { type: 'string', enum: ['ordem2', 'original'] },
-                    classe: { type: 'string', enum: Object.keys(CLASSES), description: 'Só "original". Padrão: combatente.' },
-                    nex: { type: 'integer', minimum: 0, maximum: 99, description: 'Só "original". Padrão: 5 (sobrevivente: estágio 1).' },
-                    atributos: { type: 'object', description: 'original: for, agi, vig, int, pre (0 a 7; padrão 1). ordem2: Físico, Mente, Emoção.', additionalProperties: { type: 'integer' } },
-                    conceito: { type: 'string', description: 'Vai para a história da ficha.' }
+                    classe: { type: 'string', enum: Object.keys(CLASSES), description: 'Só "original".' },
+                    nex: { type: 'integer', minimum: 0, maximum: 99, description: 'Só "original".' },
+                    atributos: { type: 'object', description: 'Chaves por sistema: ver guia.', additionalProperties: { type: 'integer' } },
+                    conceito: { type: 'string', description: 'Vai para a história.' }
                 },
                 required: ['nome', 'sistema'], additionalProperties: false
             },
@@ -316,7 +316,7 @@ export function ferramentasDoDossie(ctx) {
         },
         {
             nome: 'dossie_ficha_editar',
-            descricao: 'Edita campos simples de uma ficha (texto e números; veja a lista em "campos"). Se a ficha não foi criada pelo assistente, o mestre confirma na aba do Dossiê. Não apaga fichas nem mexe em retrato, licença do bestiário ou pastas.',
+            descricao: 'Edita campos simples de uma ficha (texto e números). O mestre confirma se a ficha não é do assistente. Detalhes: plataforma_guia ferramentas-dossie.',
             esquema: {
                 type: 'object',
                 properties: {
@@ -324,8 +324,8 @@ export function ferramentasDoDossie(ctx) {
                     nome: { type: 'string', description: 'Atalho para campos.nome.' },
                     campos: {
                         type: 'object',
-                        description: 'Campos por tipo de ficha. Ameaça: ' + Object.keys(campos.ameaca).join(', ') + '. ordem2: ' + Object.keys(campos.ordem2).join(', ') + '. original: ' + Object.keys(campos.original).join(', ') + '.',
-                        properties: Object.fromEntries(todosOsCampos().map(c => [c, { description: [campos.ameaca, campos.ordem2, campos.original].map(m => m[c]?.descricao).find(Boolean) }])),
+                        description: 'Campos por tipo de ficha: ver guia.',
+                        properties: Object.fromEntries(todosOsCampos().map(c => [c, {}])),
                         additionalProperties: true      // campo fora da lista: a ferramenta responde com a lista, em vez de o cliente recusar sem explicar
                     }
                 },
