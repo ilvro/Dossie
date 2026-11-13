@@ -6,7 +6,7 @@ import { normalizeThreatSheet } from '../src/systems/threat/threat-system.js';
 import { normalizeOriginalSheet } from '../src/systems/original/original-system.js';
 
 /** Um Dossiê de mentira: a lista de fichas, o armazenamento e os ganchos que o app daria; `chamadas` registra a ordem. */
-function cenario({ fichas = [], confirma = true } = {}) {
+function cenario({ fichas = [], confirma = true, aoSalvar = null } = {}) {
     const chamadas = [], lista = [...fichas], memoria = new Map();
     let aberta = lista[0] ?? null;
     const ctx = {
@@ -16,7 +16,7 @@ function cenario({ fichas = [], confirma = true } = {}) {
             const ficha = sistema === 'threat' ? normalizeThreatSheet(raw) : sistema === 'original' ? normalizeOriginalSheet({ systemMode: 'original', ...raw }) : { id: `o2-${lista.length}`, systemMode: 'ordem2', pv: 10, maxPv: 12, pd: 16, maxPd: 18, ...raw, attributes: { Físico: 6, Mente: 8, Emoção: 8, ...raw.attributes } };
             lista.push(ficha); aberta = ficha; return ficha;
         },
-        salvar: () => chamadas.push('salvar'), abrir: id => chamadas.push(`abrir:${id}`), sincronizar: async () => { chamadas.push('sincronizar'); },
+        salvar: () => { chamadas.push('salvar'); aoSalvar?.(); }, abrir: id => chamadas.push(`abrir:${id}`), sincronizar: async () => { chamadas.push('sincronizar'); },
         confirmar: async texto => { chamadas.push(`confirmar:${texto}`); return confirma; },
         armazenamento: { getItem: k => memoria.get(k) ?? null, setItem: (k, v) => memoria.set(k, v) }
     };
@@ -100,6 +100,20 @@ test('editar ficha alheia confirmada altera; ficha criada pelo assistente não p
     chamadas.length = 0;
     await dados('dossie_ficha_editar', { id, campos: { defesa: 30 } });
     assert.equal(lista.find(x => x.id === id).defesa, 30); assert.ok(!chamadas.some(c => c.startsWith('confirmar')));
+});
+
+test('ocupação em texto livre fica gravada e a resposta mostra o que foi gravado', async () => {
+    const brenna = { id: 'b1', systemMode: 'ordem2', name: 'Brenna', occupation: 'Cientista', pv: 10, maxPv: 12 };
+    const { dados } = cenario({ fichas: [brenna] });
+    const r = await dados('dossie_ficha_editar', { id: 'b1', campos: { ocupacao: 'Druidisa anciã' } });
+    assert.equal(brenna.occupation, 'Druidisa anciã');
+    assert.deepEqual(r.gravado, { ocupacao: 'Druidisa anciã' }); assert.equal(r.resumo.ocupacao, 'Druidisa anciã');
+});
+
+test('se a tela desfaz a edição ao salvar, a ferramenta responde erro em vez de sucesso', async () => {
+    const brenna = { id: 'b1', systemMode: 'ordem2', name: 'Brenna', occupation: 'Cientista', history: '', pv: 10, maxPv: 12 };
+    const { f } = cenario({ fichas: [brenna], aoSalvar: () => { brenna.occupation = 'Cientista'; } });
+    await assert.rejects(f.dossie_ficha_editar.executar({ id: 'b1', campos: { ocupacao: 'Druidisa anciã', historia: 'x' } }), /Não consegui gravar: "ocupacao".*Os outros campos/);
 });
 
 test('campo fora da lista volta erro com a lista; valor inválido também', async () => {

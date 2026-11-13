@@ -1858,6 +1858,14 @@ function schedulePersist(delay=350){clearTimeout(persistTimer);persistTimer=setT
 window.addEventListener('pagehide',()=>{if(persistTimer)persistSheetsNow(true)});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&persistTimer)persistSheetsNow(true)});
 // commit=true (botão SALVAR) grava também o rascunho de edição da ficha atual.
+// O `save` lê os campos da tela de volta para a ficha (collectActiveInputs); quem altera a ficha aberta por fora (a ponte do assistente) precisa antes copiar o estado para os campos, senão o valor antigo da tela desfaz a edição.
+function empurrarEstadoParaCampos(){
+ document.querySelectorAll('[data-field],[data-original-field]').forEach(el=>{
+  if(el.closest('.cinematic-ghost-exit'))return;
+  const key=el.dataset.field??el.dataset.originalField;
+  if(key&&state[key]!==undefined&&state[key]!==null&&typeof state[key]!=='object'&&el.value!==undefined)el.value=String(state[key]);
+ });
+}
 function save(showToast=true,toastMsg='SALVO',commit=false){
  collectActiveInputs();
  const index=sheets.findIndex(sheet=>sheet.id===state.id);
@@ -6509,7 +6517,7 @@ if (import.meta.env.DEV || import.meta.env.VITE_PONTE === '1') {
     fichas: () => sheets,
     aberta: () => state,
     criar: dados => criarFichaNova(dados.sistema, { raw: dados.raw, semAssistente: true }),
-    salvar: () => save(false),
+    salvar: () => { empurrarEstadoParaCampos(); save(false); },
     abrir: id => switchToSheet(id),
     sincronizar: () => mesa?.sincronizar?.(),
     confirmar: texto => confirm(texto)

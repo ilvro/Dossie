@@ -90,6 +90,8 @@ const CAMPOS = {
         san: numero('san', 'Sanidade atual.', 0, 999)
     }
 };
+const aplicarCampo = (ficha, def, valor) => (def.aplicar ? def.aplicar(ficha, valor) : (ficha[def.chave] = valor));
+const obterCampo = (ficha, def) => (def.obter ? def.obter(ficha) : ficha[def.chave]);
 const sistemaDaFicha = ficha => (ehAmeaca(ficha) ? 'ameaca' : ficha.systemMode === 'original' ? 'original' : 'ordem2');
 const todosOsCampos = () => [...new Set(Object.values(CAMPOS).flatMap(c => Object.keys(c)))];
 
@@ -340,16 +342,21 @@ export function ferramentasDoDossie(ctx) {
                 if (!chaves.length) throw new Error(`Nada a editar: informe "nome" ou "campos". Campos desta ficha: ${opcoes(Object.keys(mapa))}.`);
                 const fora = chaves.filter(c => !mapa[c]);
                 if (fora.length) throw new Error(`Campo(s) fora da lista editável nesta ficha (${sistemaDaFicha(ficha)}): ${fora.map(c => `"${c}"`).join(', ')}. Campos permitidos: ${opcoes(Object.keys(mapa))}.`);
-                const novos = Object.fromEntries(chaves.map(c => [mapa[c].chave, mapa[c].ler(pedido[c], c)]));
+                const novos = chaves.map(c => ({ campo: c, def: mapa[c], valor: mapa[c].ler(pedido[c], c) }));
                 if (!idsCriados(ctx).includes(ficha.id)) {
                     const ok = await ctx.confirmar(`O assistente quer alterar a ficha "${nomeDe(ficha)}" (que ele não criou): ${chaves.join(', ')}. Permitir?`);
                     if (!ok) throw new Error(`O mestre recusou alterar a ficha "${nomeDe(ficha)}". Nada foi mudado; pergunte ao mestre o que ele prefere.`);
                 }
-                Object.assign(ficha, novos);
+                for (const n of novos) aplicarCampo(ficha, n.def, n.valor);
+                const esperado = novos.map(n => JSON.stringify(obterCampo(ficha, n.def)));
                 ctx.salvar();
                 await ctx.sincronizar();
                 if (ctx.aberta()?.id === ficha.id) ctx.abrir(ficha.id);      // a ficha na tela se redesenha
-                return [json({ id: ficha.id, alterados: chaves, resumo: resumoDaFicha(ficha, ctx) })];
+                // Nunca responder sucesso sem o campo ter ficado: relê a ficha depois de salvar e redesenhar (a tela pode desfazer a edição).
+                const perdidos = novos.filter((n, i) => JSON.stringify(obterCampo(ficha, n.def)) !== esperado[i]).map(n => n.campo);
+                if (perdidos.length) throw new Error(`Não consegui gravar: ${perdidos.map(c => `"${c}"`).join(', ')} voltou ao valor anterior depois de salvar. ${novos.length > perdidos.length ? 'Os outros campos pedidos foram gravados. ' : ''}Peça ao mestre para conferir a ficha.`);
+                const gravado = Object.fromEntries(novos.map(n => [n.campo, obterCampo(ficha, n.def)]));
+                return [json({ id: ficha.id, alterados: chaves, gravado, resumo: resumoDaFicha(ficha, ctx) })];
             }
         }
     ];
