@@ -142,3 +142,52 @@ test('orçamento: descrições até 400 caracteres e campos até 80', () => {
     const varrer = o => !o || typeof o !== 'object' ? [] : [...(typeof o.description === 'string' && o.description.length > 80 ? [o.description] : []), ...Object.values(o).flatMap(varrer)];
     for (const t of Object.values(f)) { assert.ok(t.descricao.length <= 400, t.nome); assert.deepEqual(varrer(t.esquema), [], t.nome); }
 });
+
+test('numeros diretos substituem os do VD e o resto continua vindo do VD', async () => {
+    const { dados, lista } = cenario();
+    const bal = getBalance(20, 'equilibrada');
+    const r = await dados('dossie_ameaca_criar', {
+        nome: 'Cria da Floresta', vd: 20, elementos: ['sangue'],
+        numeros: {
+            pv: 10, defesa: 14, fortitude: 4, reflexos: 6, vontade: 2, deslocamento: 9, dtPresenca: 17,
+            atributos: { for: 3, agi: 4 }, pericias: [{ nome: 'Furtividade', dados: 3, bonus: 8 }],
+            resistencias: [{ tipo: 'Corte', valor: 5 }], vulnerabilidades: ['Fogo'], imunidades: ['Veneno']
+        }
+    });
+    const f = lista[0];
+    assert.equal(f.pv, 10); assert.equal(f.pvMax, 10); assert.equal(f.defesa, 14);
+    assert.deepEqual([f.salvaguardas.fortitude.bonus, f.salvaguardas.reflexos.bonus, f.salvaguardas.vontade.bonus], [4, 6, 2]);
+    assert.equal(f.salvaguardas.reflexos.dados, 4);       // dados seguem a Agilidade
+    assert.equal(f.deslocamento.metros, 9); assert.equal(f.presenca.dt, 17);
+    assert.equal(f.atributos.for, 3); assert.equal(f.pericias[0].nome, 'Furtividade'); assert.equal(f.pericias[0].bonus, 8);
+    assert.deepEqual(f.resistencias, [{ tipo: 'Corte', valor: 5 }]); assert.deepEqual(f.vulnerabilidades, ['Fogo']); assert.deepEqual(f.imunidades, ['Veneno']);
+    assert.equal(f.vd, 20); assert.equal(f.presenca.dano, `${bal.presenca.dados}d${bal.presenca.faces}`);   // do VD
+    assert.equal(r.resumo.pv, '10/10'); assert.equal(r.resumo.defesa, 14); assert.equal(r.resumo.salvaguardas.fortitude.startsWith('2d20+4') || /d20\+4$/.test(r.resumo.salvaguardas.fortitude), true);
+    assert.equal(r.resumo.deslocamentoMetros, 9); assert.deepEqual(r.resumo.pericias, ['Furtividade 3d20+8']);
+});
+
+test('numeros inválidos voltam erro claro e nada é criado', async () => {
+    const { f, lista } = cenario();
+    const base = { nome: 'X', vd: 20, elementos: ['sangue'] };
+    await assert.rejects(f.dossie_ameaca_criar.executar({ ...base, numeros: { defesa: -1 } }), /"numeros\.defesa" deve ser um número inteiro de 0 a 200/);
+    await assert.rejects(f.dossie_ameaca_criar.executar({ ...base, numeros: { pv: 1.5 } }), /numeros\.pv/);
+    await assert.rejects(f.dossie_ameaca_criar.executar({ ...base, numeros: { fortitude: 'alta' } }), /numeros\.fortitude/);
+    await assert.rejects(f.dossie_ameaca_criar.executar({ ...base, numeros: { sorte: 3 } }), /desconhecido\(s\) "sorte"\. Permitidos: "pv", "defesa"/);
+    await assert.rejects(f.dossie_ameaca_criar.executar({ ...base, numeros: { atributos: { xyz: 1 } } }), /atributo "xyz" não existe/);
+    await assert.rejects(f.dossie_ameaca_criar.executar({ ...base, numeros: 'muito' }), /"numeros" deve ser um objeto/);
+    await assert.rejects(f.dossie_ameaca_criar.executar({ nome: 'M', vd: 20, categoria: 'mundana', numeros: { dtPresenca: 10 } }), /sem presença|não tem presença/);
+    assert.equal(lista.length, 0);
+});
+
+test('editar ameaça aceita os mesmos números e mostra o que ficou', async () => {
+    const { dados, lista } = cenario();
+    const { id } = await dados('dossie_ameaca_criar', { nome: 'Nova', vd: 20, elementos: ['energia'] });
+    const r = await dados('dossie_ficha_editar', { id, campos: { pvMax: 20, defesa: 15, vontade: 9, atributos: { vig: 5 }, deslocamento: 6, resistencias: [{ tipo: 'Fogo', valor: 10 }] } });
+    const f = lista[0];
+    assert.equal(f.pvMax, 20); assert.ok(f.pv <= 20); assert.equal(f.defesa, 15); assert.equal(f.salvaguardas.vontade.bonus, 9);
+    assert.equal(f.salvaguardas.fortitude.dados, 5); assert.equal(f.deslocamento.metros, 6);
+    assert.deepEqual(r.gravado.resistencias, [{ tipo: 'Fogo', valor: 10 }]); assert.equal(r.gravado.vontade, 9);
+    await assert.rejects(dados('dossie_ficha_editar', { id, campos: { reflexos: 500 } }), /reflexos/);
+    await assert.rejects(dados('dossie_ficha_editar', { id, campos: { imunidades: 'frio' } }), /lista/);
+    assert.equal(f.pvMax, 20);
+});

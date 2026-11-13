@@ -11,7 +11,7 @@ import {
     THREAT_ELEMENTS, THREAT_SIZES, ACTION_TYPES, DAMAGE_TYPES, CREATURE_TYPES_PARANORMAL, CREATURE_TYPES_MUNDANE, THREAT_RANGES
 } from './systems/threat/threat-data.js';
 import { getBalance } from './systems/threat/threat-balance.js';
-import { normalizeThreatSheet } from './systems/threat/threat-system.js';
+import { normalizeThreatSheet, applyDerivedDice } from './systems/threat/threat-system.js';
 import { aplicarEscolhas, ARQUETIPOS } from './systems/threat/threat-wizard.js';
 import { CLASSES } from './data/original-data.js';
 
@@ -60,14 +60,72 @@ function registrarCriado(ctx, id) {
 // campo do assistente → { chave: na ficha, ler(valor) → valor validado, descricao }
 const texto = (chave, descricao, max) => ({ chave, descricao, ler: (v, campo) => textoCurto(v, campo, max) });
 const numero = (chave, descricao, min, max) => ({ chave, descricao, ler: (v, campo) => inteiro(v, campo, min, max) });
+const ATRIBUTOS_AMEACA = ['for', 'agi', 'int', 'pre', 'vig'];
+const listaDe = (valor, campo, max) => {
+    if (!Array.isArray(valor) || valor.length > max) throw new Error(`"${campo}" deve ser uma lista com até ${max} itens.`);
+    return valor;
+};
+const objeto = (valor, campo) => {
+    if (!valor || typeof valor !== 'object' || Array.isArray(valor)) throw new Error(`"${campo}" deve ser um objeto.`);
+    return valor;
+};
+const salvaguarda = (k, nome) => ({
+    chave: `salvaguardas.${k}`, descricao: `Bônus de ${nome} (os dados seguem o atributo).`,
+    ler: (v, campo) => inteiro(v, campo, 0, 200),
+    aplicar: (f, v) => { f.salvaguardas[k].bonus = v; }, obter: f => f.salvaguardas?.[k]?.bonus
+});
+/** Números de uma ficha de ameaça: o que `numeros` (em dossie_ameaca_criar) e `campos` (em dossie_ficha_editar) aceitam com o mesmo nome. */
+const NUMEROS_AMEACA = {
+    defesa: numero('defesa', 'Defesa.', 0, 200),
+    fortitude: salvaguarda('fortitude', 'Fortitude'),
+    reflexos: salvaguarda('reflexos', 'Reflexos'),
+    vontade: salvaguarda('vontade', 'Vontade'),
+    deslocamento: {
+        chave: 'deslocamento', descricao: 'Deslocamento em metros.', ler: (v, campo) => inteiro(v, campo, 0, 300),
+        aplicar: (f, v) => { f.deslocamento = { ...f.deslocamento, metros: v }; }, obter: f => f.deslocamento?.metros
+    },
+    dtPresenca: {
+        chave: 'presenca.dt', descricao: 'DT da presença perturbadora.', ler: (v, campo) => inteiro(v, campo, 0, 100),
+        checar: f => { if (!f.presenca?.ativa) throw new Error('"dtPresenca": esta ameaça não tem presença perturbadora.'); },
+        aplicar: (f, v) => { f.presenca = { ...f.presenca, dt: v }; }, obter: f => f.presenca?.dt
+    },
+    atributos: {
+        chave: 'atributos', descricao: 'Atributos { for, agi, int, pre, vig } (os dados de salvaguardas e sentidos seguem).',
+        ler: (v, campo) => Object.fromEntries(Object.entries(objeto(v, campo)).map(([k, n]) => [daLista(k, ATRIBUTOS_AMEACA, `${campo}: atributo`), inteiro(n, `${campo}.${k}`, 0, 20)])),
+        aplicar: (f, v) => { f.atributos = { ...f.atributos, ...v }; applyDerivedDice(f); }, obter: f => f.atributos
+    },
+    pericias: {
+        chave: 'pericias', descricao: 'Perícias [{ nome, dados, bonus }]; substitui a lista.',
+        ler: (v, campo) => listaDe(v, campo, 30).map((p, i) => {
+            if (!p || typeof p !== 'object' || !String(p.nome ?? '').trim()) throw new Error(`"${campo}" item ${i + 1}: falta o "nome".`);
+            return { id: `pericia-${i + 1}`, nome: textoCurto(String(p.nome).trim(), `${campo}.nome`, 60), dados: inteiro(p.dados ?? 1, `${campo}.dados`, 1, 20), bonus: inteiro(p.bonus ?? 0, `${campo}.bonus`, 0, 200), condicional: null };
+        }),
+        aplicar: (f, v) => { f.pericias = v; }, obter: f => f.pericias?.map(({ nome, dados, bonus }) => ({ nome, dados, bonus }))
+    },
+    resistencias: {
+        chave: 'resistencias', descricao: 'Resistências a dano [{ tipo, valor }]; substitui a lista.',
+        ler: (v, campo) => listaDe(v, campo, 30).map((r, i) => {
+            if (!r || typeof r !== 'object' || !String(r.tipo ?? '').trim()) throw new Error(`"${campo}" item ${i + 1}: falta o "tipo".`);
+            return { tipo: textoCurto(String(r.tipo).trim(), `${campo}.tipo`, 60), valor: inteiro(r.valor, `${campo}.valor`, 0, 999) };
+        })
+    },
+    vulnerabilidades: {
+        chave: 'vulnerabilidades', descricao: 'Vulnerabilidades (lista de textos); substitui a lista.',
+        ler: (v, campo) => listaDe(v, campo, 30).map(x => textoCurto(String(x).trim(), campo, 80)).filter(Boolean)
+    },
+    imunidades: {
+        chave: 'imunidades', descricao: 'Imunidades (lista de textos); substitui a lista.',
+        ler: (v, campo) => listaDe(v, campo, 30).map(x => textoCurto(String(x).trim(), campo, 80)).filter(Boolean)
+    }
+};
 const CAMPOS = {
     ameaca: {
         nome: texto('name', 'Nome da ameaça.', 120),
         subtitulo: texto('subtitulo', 'Subtítulo (ex.: "SANGUE").', 120),
         vd: numero('vd', 'Valor de Desafio (só o rótulo; não recalcula os números).', 0, 400),
         pv: numero('pv', 'PV atuais.', 0, 99999),
-        pvMax: numero('pvMax', 'PV máximos.', 0, 99999),
-        defesa: numero('defesa', 'Defesa.', 0, 200),
+        pvMax: { ...numero('pvMax', 'PV máximos.', 1, 99999), aplicar: (f, v) => { f.pvMax = v; f.pv = Math.min(f.pv, v); } },
+        ...NUMEROS_AMEACA,
         tipo: { chave: 'tipo', descricao: 'Tipo da criatura (Criatura, Relíquia, Humano, Animal, Veículo).', ler: (v, campo) => daLista(v, [...CREATURE_TYPES_PARANORMAL, ...CREATURE_TYPES_MUNDANE], campo) },
         tamanho: { chave: 'tamanho', descricao: `Tamanho: ${THREAT_SIZES.join(', ')}.`, ler: (v, campo) => daLista(v, THREAT_SIZES, campo) },
         notas: texto('notasMestre', 'Notas do mestre (texto livre).', 8000)
@@ -117,6 +175,7 @@ function resumoDaFicha(ficha, ctx) {
             resistencias: ficha.resistencias, vulnerabilidades: ficha.vulnerabilidades, imunidades: ficha.imunidades,
             presenca: ficha.presenca?.ativa ? `DT ${ficha.presenca.dt}, ${ficha.presenca.dano} ${ficha.presenca.tipoDano}, imune a partir de NEX ${ficha.presenca.imuneNex}%` : 'sem presença perturbadora',
             deslocamentoMetros: ficha.deslocamento?.metros,
+            pericias: (ficha.pericias ?? []).map(p => `${p.nome} ${poolTexto(p)}`),
             acoes: (ficha.acoes ?? []).map(a => ({
                 nome: a.nome, tipoAcao: a.tipoAcao, texto: a.texto || undefined,
                 ataques: (a.ataques ?? []).map(t => ({ nome: t.nome, alcance: t.alcance, teste: poolTexto(t.teste), dano: `${t.dano} ${t.tipoDano}`, critico: t.critico }))
@@ -163,6 +222,22 @@ function lerAcoes(acoes, bal, atributos) {
     });
 }
 
+const NUMEROS_CRIAR = {
+    pv: { ...numero('pv', 'PV (atuais e máximos).', 1, 99999), aplicar: (f, v) => { f.pv = f.pvMax = v; } },
+    ...NUMEROS_AMEACA
+};
+/** Aplica o objeto `numeros` por cima do que veio do VD; valida tudo antes de mexer na ficha. */
+function aplicarNumeros(sheet, numeros) {
+    if (numeros === undefined) return;
+    objeto(numeros, 'numeros');
+    const fora = Object.keys(numeros).filter(k => !NUMEROS_CRIAR[k]);
+    if (fora.length) throw new Error(`"numeros": campo(s) desconhecido(s) ${fora.map(c => `"${c}"`).join(', ')}. Permitidos: ${opcoes(Object.keys(NUMEROS_CRIAR))}.`);
+    const lidos = Object.keys(numeros).map(k => ({ k, def: NUMEROS_CRIAR[k], valor: NUMEROS_CRIAR[k].ler(numeros[k], `numeros.${k}`) }));
+    lidos.forEach(n => n.def.checar?.(sheet));
+    // atributos primeiro: os dados das salvaguardas seguem o atributo; o resto não depende da ordem
+    lidos.sort((a, b) => (b.k === 'atributos') - (a.k === 'atributos')).forEach(n => aplicarCampo(sheet, n.def, n.valor));
+}
+
 /** Monta a ficha de ameaça como o wizard a monta (`aplicarEscolhas`), validando contra as listas do `threat-data.js`. */
 export function montarAmeaca(args) {
     const nome = String(args.nome ?? '').trim();
@@ -190,6 +265,7 @@ export function montarAmeaca(args) {
     });
     // Sem arquétipo, os números ficam como a tabela (o arquétipo do wizard ajusta PV e Defesa por cima).
     if (!arquetipo) { sheet.pv = sheet.pvMax = bal.pv; sheet.defesa = bal.defesa; }
+    aplicarNumeros(sheet, args.numeros);
     const acoes = lerAcoes(args.acoes, bal, sheet.atributos);
     if (acoes) sheet.acoes = acoes;
     if (args.descricao !== undefined) sheet.notasMestre = textoCurto(args.descricao, 'descricao', 8000);
@@ -259,7 +335,7 @@ export function ferramentasDoDossie(ctx) {
         },
         {
             nome: 'dossie_ameaca_criar',
-            descricao: 'Cria uma ficha de ameaça com os números do VD, como o wizard. Devolve o id. Detalhes: plataforma_guia ferramentas-dossie.',
+            descricao: 'Cria ameaça com os números do VD; "numeros" substitui PV, defesa, salvaguardas etc. (outros sistemas). Devolve o id. Detalhes: plataforma_guia ferramentas-dossie.',
             esquema: {
                 type: 'object',
                 properties: {
@@ -273,6 +349,19 @@ export function ferramentasDoDossie(ctx) {
                     arquetipo: { type: 'string', enum: ARQUETIPOS.map(a => a.id), description: 'Opcional, como no wizard.' },
                     subtitulo: { type: 'string' },
                     descricao: { type: 'string', description: 'Notas do mestre.' },
+                    numeros: {
+                        type: 'object', description: 'Números diretos; substituem os do VD (ex.: OP2). Omitidos seguem o VD.',
+                        properties: {
+                            pv: { type: 'integer', minimum: 1, maximum: 99999 }, defesa: { type: 'integer', minimum: 0, maximum: 200 },
+                            fortitude: { type: 'integer', minimum: 0, maximum: 200, description: 'Bônus.' }, reflexos: { type: 'integer', minimum: 0, maximum: 200, description: 'Bônus.' }, vontade: { type: 'integer', minimum: 0, maximum: 200, description: 'Bônus.' },
+                            deslocamento: { type: 'integer', minimum: 0, maximum: 300, description: 'Metros.' }, dtPresenca: { type: 'integer', minimum: 0, maximum: 100 },
+                            atributos: { type: 'object', description: 'for, agi, int, pre, vig (0 a 20).', additionalProperties: { type: 'integer', minimum: 0, maximum: 20 } },
+                            pericias: { type: 'array', items: { type: 'object', properties: { nome: { type: 'string' }, dados: { type: 'integer', minimum: 1, maximum: 20 }, bonus: { type: 'integer', minimum: 0, maximum: 200 } }, required: ['nome'], additionalProperties: false } },
+                            resistencias: { type: 'array', items: { type: 'object', properties: { tipo: { type: 'string' }, valor: { type: 'integer', minimum: 0, maximum: 999 } }, required: ['tipo', 'valor'], additionalProperties: false } },
+                            vulnerabilidades: { type: 'array', items: { type: 'string' } }, imunidades: { type: 'array', items: { type: 'string' } }
+                        },
+                        additionalProperties: false
+                    },
                     acoes: {
                         type: 'array', description: 'Substitui a ação padrão.',
                         items: {
@@ -343,6 +432,7 @@ export function ferramentasDoDossie(ctx) {
                 const fora = chaves.filter(c => !mapa[c]);
                 if (fora.length) throw new Error(`Campo(s) fora da lista editável nesta ficha (${sistemaDaFicha(ficha)}): ${fora.map(c => `"${c}"`).join(', ')}. Campos permitidos: ${opcoes(Object.keys(mapa))}.`);
                 const novos = chaves.map(c => ({ campo: c, def: mapa[c], valor: mapa[c].ler(pedido[c], c) }));
+                for (const n of novos) n.def.checar?.(ficha);
                 if (!idsCriados(ctx).includes(ficha.id)) {
                     const ok = await ctx.confirmar(`O assistente quer alterar a ficha "${nomeDe(ficha)}" (que ele não criou): ${chaves.join(', ')}. Permitir?`);
                     if (!ok) throw new Error(`O mestre recusou alterar a ficha "${nomeDe(ficha)}". Nada foi mudado; pergunte ao mestre o que ele prefere.`);
