@@ -6519,7 +6519,6 @@ if (import.meta.env.DEV || import.meta.env.VITE_PONTE === '1') {
     criar: dados => criarFichaNova(dados.sistema, { raw: dados.raw, semAssistente: true }),
     salvar: () => { empurrarEstadoParaCampos(); save(false); },
     abrir: id => switchToSheet(id),
-    sincronizar: () => mesa?.sincronizar?.(),
-    confirmar: texto => confirm(texto)
+    sincronizar: () => mesa?.sincronizar?.()
   })).catch(erro => console.warn('Dossiê: ponte do assistente não carregou', erro));
 }

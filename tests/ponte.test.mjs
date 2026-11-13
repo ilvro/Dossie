@@ -1,13 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ferramentasDoDossie, CHAVE_CRIADOS, idsCriados } from '../src/ponte.js';
+import { ferramentasDoDossie } from '../src/ponte.js';
 import { getBalance } from '../src/systems/threat/threat-balance.js';
 import { normalizeThreatSheet } from '../src/systems/threat/threat-system.js';
 import { normalizeOriginalSheet } from '../src/systems/original/original-system.js';
 
-/** Um Dossiê de mentira: a lista de fichas, o armazenamento e os ganchos que o app daria; `chamadas` registra a ordem. */
-function cenario({ fichas = [], confirma = true, aoSalvar = null } = {}) {
-    const chamadas = [], lista = [...fichas], memoria = new Map();
+/** Um Dossiê de mentira: a lista de fichas, os ganchos que o app daria; `chamadas` registra a ordem. */
+function cenario({ fichas = [], aoSalvar = null } = {}) {
+    const chamadas = [], lista = [...fichas];
     let aberta = lista[0] ?? null;
     const ctx = {
         fichas: () => lista, aberta: () => aberta,
@@ -16,13 +16,11 @@ function cenario({ fichas = [], confirma = true, aoSalvar = null } = {}) {
             const ficha = sistema === 'threat' ? normalizeThreatSheet(raw) : sistema === 'original' ? normalizeOriginalSheet({ systemMode: 'original', ...raw }) : { id: `o2-${lista.length}`, systemMode: 'ordem2', pv: 10, maxPv: 12, pd: 16, maxPd: 18, ...raw, attributes: { Físico: 6, Mente: 8, Emoção: 8, ...raw.attributes } };
             lista.push(ficha); aberta = ficha; return ficha;
         },
-        salvar: () => { chamadas.push('salvar'); aoSalvar?.(); }, abrir: id => chamadas.push(`abrir:${id}`), sincronizar: async () => { chamadas.push('sincronizar'); },
-        confirmar: async texto => { chamadas.push(`confirmar:${texto}`); return confirma; },
-        armazenamento: { getItem: k => memoria.get(k) ?? null, setItem: (k, v) => memoria.set(k, v) }
+        salvar: () => { chamadas.push('salvar'); aoSalvar?.(); }, abrir: id => chamadas.push(`abrir:${id}`), sincronizar: async () => { chamadas.push('sincronizar'); }
     };
     const f = Object.fromEntries(ferramentasDoDossie(ctx).map(t => [t.nome, t]));
     const dados = async (nome, args) => JSON.parse((await f[nome].executar(args))[0].texto);
-    return { ctx, f, chamadas, lista, memoria, dados };
+    return { ctx, f, chamadas, lista, dados };
 }
 
 test('expõe as cinco ferramentas, todas com prefixo dossie_ e esquema', () => {
@@ -61,12 +59,10 @@ test('valores fora das listas voltam como erro com as opções', async () => {
     await assert.rejects(f.dossie_ameaca_criar.executar({ nome: 'X', vd: 60 }), /elemento/);
 });
 
-test('criar salva, sincroniza e registra o id como criado pelo assistente', async () => {
-    const { dados, chamadas, memoria, ctx } = cenario();
-    const r = await dados('dossie_ameaca_criar', { nome: 'Carniçal', vd: 40, elementos: ['sangue'] });
+test('criar salva e sincroniza', async () => {
+    const { dados, chamadas } = cenario();
+    await dados('dossie_ameaca_criar', { nome: 'Carniçal', vd: 40, elementos: ['sangue'] });
     assert.deepEqual(chamadas, ['criar:threat', 'salvar', 'sincronizar']);
-    assert.deepEqual(JSON.parse(memoria.get(CHAVE_CRIADOS)), [r.id]);
-    assert.deepEqual(idsCriados(ctx), [r.id]);
 });
 
 test('ficha original: classe, nex e atributos viram PV/PE coerentes; ordem2 recusa classe', async () => {
@@ -81,25 +77,12 @@ test('ficha original: classe, nex e atributos viram PV/PE coerentes; ordem2 recu
     assert.equal(lista[1].attributes.Físico, 7); assert.equal(lista[1].attributes.Mente, 8);
 });
 
-test('editar ficha alheia sem confirmação volta "o mestre recusou" e não muda nada', async () => {
-    const alheia = { id: 'a1', systemMode: 'threat', name: 'Antiga', pv: 10, pvMax: 10 };
-    const { f, chamadas } = cenario({ fichas: [alheia], confirma: false });
-    await assert.rejects(f.dossie_ficha_editar.executar({ id: 'a1', campos: { pv: 3 } }), /O mestre recusou/);
-    assert.equal(alheia.pv, 10); assert.ok(!chamadas.includes('salvar'));
-    assert.ok(chamadas[0].startsWith('confirmar:'));
-});
-
-test('editar ficha alheia confirmada altera; ficha criada pelo assistente não pergunta', async () => {
+test('editar qualquer ficha altera direto, sem pedir confirmação', async () => {
     const alheia = { id: 'a1', systemMode: 'ordem2', name: 'Alan', pv: 10, maxPv: 12 };
-    const { f, dados, chamadas, lista } = cenario({ fichas: [alheia] });
+    const { dados, chamadas } = cenario({ fichas: [alheia] });
     await dados('dossie_ficha_editar', { id: 'a1', nome: 'Alan II', campos: { pv: 5, pvMax: 14 } });
     assert.equal(alheia.name, 'Alan II'); assert.equal(alheia.pv, 5); assert.equal(alheia.maxPv, 14);
-    assert.deepEqual(chamadas.map(c => c.split(':')[0]), ['confirmar', 'salvar', 'sincronizar', 'abrir']);
-    chamadas.length = 0;
-    const { id } = await dados('dossie_ameaca_criar', { nome: 'Nova', vd: 20, elementos: ['energia'] });
-    chamadas.length = 0;
-    await dados('dossie_ficha_editar', { id, campos: { defesa: 30 } });
-    assert.equal(lista.find(x => x.id === id).defesa, 30); assert.ok(!chamadas.some(c => c.startsWith('confirmar')));
+    assert.deepEqual(chamadas.map(c => c.split(':')[0]), ['salvar', 'sincronizar', 'abrir']);
 });
 
 test('ocupação em texto livre fica gravada e a resposta mostra o que foi gravado', async () => {
@@ -118,8 +101,7 @@ test('se a tela desfaz a edição ao salvar, a ferramenta responde erro em vez d
 
 test('campo fora da lista volta erro com a lista; valor inválido também', async () => {
     const mina = { id: 'm', systemMode: 'threat', name: 'M', pv: 1, pvMax: 1 };
-    const { f, memoria } = cenario({ fichas: [mina] });
-    memoria.set(CHAVE_CRIADOS, JSON.stringify(['m']));
+    const { f } = cenario({ fichas: [mina] });
     await assert.rejects(f.dossie_ficha_editar.executar({ id: 'm', campos: { tokenImage: 'x' } }), /"tokenImage".*Campos permitidos: "nome", "subtitulo", "vd"/);
     await assert.rejects(f.dossie_ficha_editar.executar({ id: 'm', campos: { pv: 'muito' } }), /inteiro/);
     await assert.rejects(f.dossie_ficha_editar.executar({ id: 'm', campos: { tamanho: 'Gigante' } }), /Opções/);
@@ -134,7 +116,7 @@ test('listar filtra por tipo e busca sem acento; ler resume a ameaça', async ()
     assert.equal((await dados('dossie_fichas_listar', { tipo: 'ameaca' }))[0].ref, 'mesa:ficha/ficha/t');
     const novo = await dados('dossie_ameaca_criar', { nome: 'Carniçal', vd: 40, elementos: ['sangue'] });
     const lido = await dados('dossie_ficha_ler', { id: novo.id });
-    assert.equal(lido.vd, 40); assert.equal(lido.criadaPeloAssistente, true); assert.ok(lido.acoes.length);
+    assert.equal(lido.vd, 40); assert.ok(lido.acoes.length);
 });
 
 test('orçamento: descrições até 400 caracteres e campos até 80', () => {

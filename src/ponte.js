@@ -2,7 +2,7 @@
 // Ferramentas do Dossiê para o assistente (Claude via ponte do mesa-dev): listar, ler, criar e ajustar fichas e ameaças.
 // Cada ferramenta é criada por `ferramentasDoDossie(ctx)`; o contexto é injetável para testar sem navegador (ver tests/ponte.test.mjs).
 //
-// ctx = { fichas(), aberta(), criar({ sistema, raw }) → ficha, salvar(), abrir(id), sincronizar(), confirmar(texto) → boolean | Promise<boolean>, armazenamento? }
+// ctx = { fichas(), aberta(), criar({ sistema, raw }) → ficha, salvar(), abrir(id), sincronizar() }
 // O app é quem sabe criar (o mesmo caminho do clique em "nova ficha", sem tutorial nem wizard); aqui só se monta o que a ficha nova leva.
 import { conectarPonte, json } from '../vendor/mesa-core/ponte.js';
 import { formatarRef } from '../vendor/mesa-core/refs.js';
@@ -15,7 +15,6 @@ import { normalizeThreatSheet, applyDerivedDice } from './systems/threat/threat-
 import { aplicarEscolhas, ARQUETIPOS } from './systems/threat/threat-wizard.js';
 import { CLASSES } from './data/original-data.js';
 
-export const CHAVE_CRIADOS = 'ficha:ponte-criados';
 const PRESETS = ['equilibrada', 'editora', 'leve'];
 const ATRIBUTOS_ORIGINAL = ['for', 'agi', 'vig', 'int', 'pre'];
 const ATRIBUTOS_ORDEM2 = { Físico: 'Físico', Mente: 'Mente', Emoção: 'Emoção' };
@@ -39,21 +38,6 @@ function inteiro(valor, campo, min, max) {
 function textoCurto(valor, campo, max = 4000) {
     if (typeof valor !== 'string') throw new Error(`"${campo}" deve ser texto.`);
     return valor.slice(0, max);
-}
-
-// ─── Quem criou: lista de ids no localStorage (só em desenvolvimento) ────────────────────────────────────────────
-function armazem(ctx) { return ctx.armazenamento ?? globalThis.localStorage; }
-export function idsCriados(ctx) {
-    try {
-        const lista = JSON.parse(armazem(ctx)?.getItem(CHAVE_CRIADOS) ?? '[]');
-        return Array.isArray(lista) ? lista.filter(x => typeof x === 'string') : [];
-    } catch { return []; }
-}
-function registrarCriado(ctx, id) {
-    try {
-        const lista = idsCriados(ctx);
-        if (!lista.includes(id)) armazem(ctx)?.setItem(CHAVE_CRIADOS, JSON.stringify([...lista, id]));
-    } catch { /* sem armazenamento: o assistente passa a pedir confirmação para essa ficha, o que é o lado seguro */ }
 }
 
 // ─── Campos simples editáveis, por tipo de ficha ──────────────────────────────────────────────────────────────────
@@ -166,7 +150,7 @@ const lista = ficha => {
 const poolTexto = p => (p ? `${p.dados}d20${p.bonus ? (p.bonus > 0 ? '+' : '') + p.bonus : ''}` : '');
 
 function resumoDaFicha(ficha, ctx) {
-    const base = { ...lista(ficha), criadaPeloAssistente: idsCriados(ctx).includes(ficha.id) };
+    const base = lista(ficha);
     if (ehAmeaca(ficha)) {
         return {
             ...base, categoria: ficha.categoria, subtitulo: ficha.subtitulo, criatura: ficha.tipo, tamanho: ficha.tamanho,
@@ -309,7 +293,6 @@ export function ferramentasDoDossie(ctx) {
         return ficha;
     };
     const depoisDeCriar = async ficha => {
-        registrarCriado(ctx, ficha.id);
         ctx.salvar();
         await ctx.sincronizar();
     };
@@ -407,7 +390,7 @@ export function ferramentasDoDossie(ctx) {
         },
         {
             nome: 'dossie_ficha_editar',
-            descricao: 'Edita campos simples de uma ficha (texto e números). O mestre confirma se a ficha não é do assistente. Detalhes: plataforma_guia ferramentas-dossie.',
+            descricao: 'Edita campos simples de uma ficha (texto e números). Detalhes: plataforma_guia ferramentas-dossie.',
             esquema: {
                 type: 'object',
                 properties: {
@@ -433,10 +416,6 @@ export function ferramentasDoDossie(ctx) {
                 if (fora.length) throw new Error(`Campo(s) fora da lista editável nesta ficha (${sistemaDaFicha(ficha)}): ${fora.map(c => `"${c}"`).join(', ')}. Campos permitidos: ${opcoes(Object.keys(mapa))}.`);
                 const novos = chaves.map(c => ({ campo: c, def: mapa[c], valor: mapa[c].ler(pedido[c], c) }));
                 for (const n of novos) n.def.checar?.(ficha);
-                if (!idsCriados(ctx).includes(ficha.id)) {
-                    const ok = await ctx.confirmar(`O assistente quer alterar a ficha "${nomeDe(ficha)}" (que ele não criou): ${chaves.join(', ')}. Permitir?`);
-                    if (!ok) throw new Error(`O mestre recusou alterar a ficha "${nomeDe(ficha)}". Nada foi mudado; pergunte ao mestre o que ele prefere.`);
-                }
                 for (const n of novos) aplicarCampo(ficha, n.def, n.valor);
                 const esperado = novos.map(n => JSON.stringify(obterCampo(ficha, n.def)));
                 ctx.salvar();
@@ -452,7 +431,7 @@ export function ferramentasDoDossie(ctx) {
     ];
 }
 
-/** Liga a ponte (navegador, só em desenvolvimento). `ctx` vem do `app.js`; `confirmar` pode ser omitido (usa `window.confirm`). */
+/** Liga a ponte (navegador, só em desenvolvimento). `ctx` vem do `app.js`. */
 export function iniciarPonte(ctx) {
-    return conectarPonte({ app: 'ficha', titulo: 'Dossiê', ferramentas: ferramentasDoDossie({ confirmar: texto => globalThis.confirm(texto), ...ctx }) });
+    return conectarPonte({ app: 'ficha', titulo: 'Dossiê', ferramentas: ferramentasDoDossie(ctx) });
 }
