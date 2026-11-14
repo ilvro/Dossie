@@ -28,7 +28,7 @@ test('sem plataforma, iniciarMesa devolve ganchos inofensivos', async () => {
 async function cenario(sheets, ganchos = {}) {
   const idb = new IDBFactory(), emissor = await abrirRepositorioCampanha({ app: 'mesa', idb });
   const campanha = await emissor.criarCampanha({ nome: 'A Ilha' });
-  const guardado = new Map([['mesa:campanha-ativa', campanha.id]]);
+  const guardado = new Map([['mesa:campanha-ativa', campanha.id], ...(ganchos.semHistorico ? [] : [['mesa:ficha-conhecidas', '[]']])]);
   globalThis.localStorage = { getItem: k => guardado.get(k) ?? null, setItem: (k, v) => { guardado.set(k, String(v)); }, removeItem: k => { guardado.delete(k); } };
   const canais = new Set();
   const criarCanal = () => {
@@ -51,7 +51,8 @@ async function cenario(sheets, ganchos = {}) {
     eventos.push(m);
     postOriginal(m);
   };
-  const mesa = await iniciarMesa({ fichas: () => sheets, aberta: () => sheets[0] ?? null, abrir() {}, ...ganchos }, { BroadcastChannel: class {}, criarCanal: () => canalFicha, indexedDB: idb });
+  const { semHistorico: _s, ...resto } = ganchos;
+  const mesa = await iniciarMesa({ fichas: () => sheets, aberta: () => sheets[0] ?? null, abrir() {}, ...resto }, { BroadcastChannel: class {}, criarCanal: () => canalFicha, indexedDB: idb });
   const entidades = async () => (await emissor.listarEntidades(campanha.id)).map(e => ({ nome: e.nome, tipo: e.tipo, criadaPor: e.criadaPor, ficha: e.refs.find(r => r.app === 'ficha')?.id }));
   return { mesa, emissor, campanha, eventos, guardado, entidades, criarCanal };
 }
@@ -220,4 +221,59 @@ test('ficha.ajustar-recursos: ameaça tem apenas PV ajustado (PD permanece zero 
     mesa.parar();
     cliente.fechar();
   }
+});
+
+test('campanha: personagens antigos não entram sozinhos; ameaças entram todas com etiqueta; levar e tirar; a limpeza única tira só personagens sem uso', async () => {
+  const sheets = [{ id: 'p1', name: 'Alan', systemMode: 'ordem2' }, { id: 't1', name: 'Zumbi', systemMode: 'threat', pv: 5, pvMax: 5 }];
+  const { mesa, campanha, guardado, emissor } = await cenario(sheets, { semHistorico: true });
+  const ver = async () => (await emissor.listarEntidades(campanha.id)).map(e => `${e.nome}:${e.tags.join(',')}`).sort();
+  try {
+    // Primeira vez: o personagem antigo não entra; a ameaça entra como bestiário.
+    await mesa.sincronizar();
+    assert.deepEqual(await ver(), ['Zumbi:bestiário']);
+    assert.deepEqual(JSON.parse(guardado.get('mesa:ficha-conhecidas')).sort(), ['p1', 't1']);
+
+    // Criadas com a campanha ativa: o personagem entra; a ameaça nova é desta campanha.
+    sheets.push({ id: 'p2', name: 'Brenna', systemMode: 'ordem2' }, { id: 't2', name: 'Cria', systemMode: 'threat', pv: 10, pvMax: 10 });
+    await mesa.sincronizar();
+    assert.deepEqual(await ver(), ['Brenna:', 'Cria:da-campanha', 'Zumbi:bestiário']);
+    assert.equal(mesa.naCampanha('p2'), true); assert.equal(mesa.naCampanha('p1'), false);
+    assert.equal(mesa.naCampanha('t2'), true); assert.equal(mesa.naCampanha('t1'), false);
+    await mesa.sincronizar();
+    assert.deepEqual(await ver(), ['Brenna:', 'Cria:da-campanha', 'Zumbi:bestiário'], 'a etiqueta de nova não some na sincronização seguinte');
+
+    // Levar e tirar: personagem entra e sai; ameaça só troca de etiqueta.
+    await mesa.levarParaCampanha('p1'); await mesa.levarParaCampanha('t1');
+    assert.deepEqual(await ver(), ['Alan:', 'Brenna:', 'Cria:da-campanha', 'Zumbi:da-campanha']);
+    await mesa.tirarDaCampanha('p1'); await mesa.tirarDaCampanha('t1');
+    assert.deepEqual(await ver(), ['Brenna:', 'Cria:da-campanha', 'Zumbi:bestiário']);
+
+    // Criada sem campanha ativa: o personagem não entra depois.
+    guardado.delete('mesa:campanha-ativa');
+    sheets.push({ id: 'p3', name: 'Solta', systemMode: 'ordem2' });
+    await mesa.sincronizar();
+    guardado.set('mesa:campanha-ativa', campanha.id);
+    await mesa.sincronizar();
+    assert.ok(!(await ver()).some(x => x.startsWith('Solta')));
+  } finally { mesa.parar(); }
+
+  // Limpeza: numa campanha poluída pela regra antiga, o personagem sem uso sai; ameaça usada vira da campanha; as outras, bestiário.
+  const sheets2 = [{ id: 'a', name: 'No elenco', systemMode: 'ordem2' }, { id: 'e', name: 'Sobra', systemMode: 'ordem2' }, { id: 'b', name: 'Em cena', systemMode: 'threat', pv: 1, pvMax: 1 }, { id: 'c', name: 'No roteiro', systemMode: 'threat', pv: 1, pvMax: 1 }, { id: 'd', name: 'Solta', systemMode: 'threat', pv: 1, pvMax: 1 }];
+  const { emissor: e2, campanha: c2, mesa: m2, guardado: g2 } = await cenario(sheets2, { semHistorico: true });
+  const ver2 = async () => (await e2.listarEntidades(c2.id)).filter(x => x.criadaPor === 'ficha').map(x => `${x.nome}:${x.tags.join(',')}`).sort();
+  try {
+    // Simula a publicação em massa antiga: tudo entra (conhecidas vazio = tudo novo), e depois a Ficha esquece que eram novas.
+    g2.set('mesa:ficha-conhecidas', '[]'); g2.set(`mesa:ficha-limpeza-v1:${c2.id}`, '1');
+    await m2.sincronizar();
+    g2.delete(`mesa:ficha-levadas:${c2.id}`);
+    const todas = await e2.listarEntidades(c2.id), por = n => todas.find(x => x.nome === n);
+    const cena = await e2.criarEntidade({ campanhaId: c2.id, tipo: 'cena', nome: 'Cena' });
+    await e2.ligar({ campanhaId: c2.id, de: { app: 'ficha', tipo: 'ficha', id: 'b' }, para: { app: 'mesa', tipo: 'entidade', id: cena.id }, tipo: 'aparece-em' });
+    await e2.salvarSessao({ id: 's1', campanhaId: c2.id, nome: 'S', data: 1, roteiro: [{ app: 'ficha', tipo: 'ficha', id: 'c' }], registro: '', criadaEm: 1, atualizadaEm: 1 });
+    const camp = await e2.obterCampanha(c2.id); await e2.salvarCampanha({ ...camp, elenco: [por('No elenco').id] });
+    g2.delete(`mesa:ficha-limpeza-v1:${c2.id}`);
+    await m2.sincronizar();
+    assert.deepEqual(await ver2(), ['Em cena:da-campanha', 'No elenco:', 'No roteiro:da-campanha', 'Solta:bestiário']);
+    assert.ok(g2.get(`mesa:ficha-limpeza-v1:${c2.id}`), 'a limpeza roda uma vez só');
+  } finally { m2.parar(); }
 });

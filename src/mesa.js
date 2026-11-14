@@ -1,10 +1,27 @@
 // A ligação da Ficha com a mesa (contrato v1, ver Atlas/docs/PLATAFORMA.md): publica as personagens na campanha ativa (com o retrato),
 // avisa as rolagens e os recursos (PV/PD) de quem está aberta, e abre uma ficha quando outro aplicativo pede.
 // Sem BroadcastChannel ou IndexedDB, ou sem campanha ativa, nada muda. As fichas de ameaça (`systemMode: 'threat'`, os monstros) entram na campanha
-// como entidades `ameaca`, separadas dos `personagem`; tudo vem de `ficha.fichas()`, ou seja, das fichas que existem agora (as que você cria também).
+// como entidades `ameaca`, separadas dos `personagem`.
+// Personagens: entra numa campanha a ficha criada com ela ativa e a que o mestre leva pelo menu ("Levar para a campanha"); as que já
+// estão lá seguem atualizadas (nome, retrato) e saem quando a ficha é apagada. As outras não entram sozinhas.
+// Ameaças: todas entram em toda campanha (o bestiário fica à mão), com a etiqueta `da-campanha` se a ameaça é desta campanha (criada
+// com ela ativa, levada pelo menu ou usada: ligada a algo ou num roteiro) e `bestiário` se não é. O filtro de etiquetas da Mesa separa as duas.
+// Na primeira vez que a Ficha vê uma campanha com esta regra, tira dela os personagens que a própria Ficha publicou em massa e que ninguém
+// usa (fora do elenco, sem ligação e fora de todo roteiro).
 import { abrirRepositorioCampanha, criarBarramento, criarRef } from '../vendor/mesa-core/index.js';
 
 const CHAVE_CAMPANHA_ATIVA = 'mesa:campanha-ativa';
+/** Ids de todas as fichas que esta Ficha já viu. Uma ficha fora daqui é nova: entra na campanha ativa. */
+const CHAVE_CONHECIDAS = 'mesa:ficha-conhecidas';
+/** Fichas que o mestre levou para a campanha pelo menu. */
+const chaveDasLevadas = campanhaId => `mesa:ficha-levadas:${campanhaId}`;
+/** Marca de que a limpeza única da publicação em massa já rodou nesta campanha. */
+const chaveDaLimpeza = campanhaId => `mesa:ficha-limpeza-v1:${campanhaId}`;
+const chaveDaRef = r => `${r.app}/${r.tipo}/${r.id}`;
+/** Etiquetas das ameaças: desta campanha ou só do bestiário. */
+export const TAG_DA_CAMPANHA = 'da-campanha';
+export const TAG_BESTIARIO = 'bestiário';
+const ehTagNossa = t => t === TAG_DA_CAMPANHA || t === TAG_BESTIARIO;
 const LIMITE_RETRATO = 512 * 1024;
 const LADO_RETRATO = 256;
 
@@ -58,7 +75,7 @@ export async function retratoDaFicha(sheet) {
  * Devolve `{ publicarRolagem, publicarRecursos, sincronizar, parar }` — todos seguros de chamar mesmo sem plataforma.
  */
 export async function iniciarMesa(ficha, ambiente = {}) {
-    const semMesa = { publicarRolagem() {}, publicarRecursos() {}, async sincronizar() {}, parar() {} };
+    const semMesa = { publicarRolagem() {}, publicarRecursos() {}, async sincronizar() {}, agendar() {}, async levarParaCampanha() { return { ok: false, motivo: 'Sem a plataforma da mesa.' }; }, async tirarDaCampanha() { return { ok: false, motivo: 'Sem a plataforma da mesa.' }; }, naCampanha: () => false, temCampanha: () => false, parar() {} };
     const BC = ambiente.BroadcastChannel ?? globalThis.BroadcastChannel, idb = ambiente.indexedDB ?? globalThis.indexedDB;
     if (typeof BC === 'undefined' || typeof idb === 'undefined') return semMesa;
     let repositorio, barramento;
@@ -83,29 +100,84 @@ export async function iniciarMesa(ficha, ambiente = {}) {
         try { armazenamento?.setItem(chaveDasAssinaturas(campanhaId), JSON.stringify(Object.fromEntries(assinaturas))); } catch { /* ignora */ }
     }
     const respirar = () => new Promise(resolve => setTimeout(resolve, 0));
+    function lerConjunto(chave) {
+        try { const v = armazenamento?.getItem(chave); if (v == null) return null; const lista = JSON.parse(v); return Array.isArray(lista) ? new Set(lista.map(String)) : null; } catch { return null; }
+    }
+    function gravarConjunto(chave, conjunto) {
+        try { armazenamento?.setItem(chave, JSON.stringify([...conjunto])); } catch { /* ignora */ }
+    }
+    /** Fichas com entidade na campanha ativa (o menu da ficha lê isto sem esperar o banco). */
+    let presentes = new Set(), campanhaDasPresentes = null;
+
+    /** O que a campanha usa: ids no elenco e refs em ligações e roteiros. `usada(e)` diz se a entidade aparece em algum desses. */
+    async function lerUso(campanhaId) {
+        const campanha = await repositorio.obterCampanha(campanhaId);
+        const porId = new Set(campanha?.elenco ?? []), porRef = new Set();
+        for (const l of await repositorio.listarLigacoes(campanhaId)) { porRef.add(chaveDaRef(l.de)); porRef.add(chaveDaRef(l.para)); }
+        for (const s of await repositorio.listarSessoes(campanhaId)) for (const r of s.roteiro ?? []) porRef.add(chaveDaRef(r));
+        return e => porId.has(e.id) || porRef.has(`mesa/entidade/${e.id}`) || e.refs.some(x => porRef.has(chaveDaRef(x)));
+    }
+
+    /** Tira da campanha os personagens que a Ficha publicou e que nada usa. Ameaças ficam (viram bestiário). */
+    async function limparNaoUsadas(campanhaId) {
+        const usada = await lerUso(campanhaId);
+        const levadas = lerConjunto(chaveDasLevadas(campanhaId)) ?? new Set();
+        let removidas = 0;
+        for (const e of await repositorio.listarEntidades(campanhaId)) {
+            if (e.criadaPor !== 'ficha' || e.tipo === 'ameaca') continue;
+            const r = e.refs.find(x => x.app === 'ficha' && x.tipo === 'ficha');
+            if (!usada(e) && !(r && levadas.has(r.id))) { await repositorio.removerEntidade(e.id); removidas++; }
+        }
+        return removidas;
+    }
 
     async function sincronizar() {
-        const campanhaId = campanhaAtiva();
-        if (!campanhaId) return;
         if (sincronizando) { denovo = true; return; }
         sincronizando = true;
+        const todas = ficha.fichas(), publicaveis = todas.filter(ehPublicavel);
+        // Lista vazia pode ser a Ficha ainda carregando: não conta como "já vi tudo".
+        let conhecidas = lerConjunto(CHAVE_CONHECIDAS);
+        if (!conhecidas && todas.length) { conhecidas = new Set(todas.map(x => String(x.id))); gravarConjunto(CHAVE_CONHECIDAS, conhecidas); }
+        const novas = new Set(conhecidas ? publicaveis.filter(x => !conhecidas.has(String(x.id))).map(x => String(x.id)) : []);
+        const marcarConhecidas = () => { if (!todas.length) return; const c = conhecidas ?? new Set(); for (const x of todas) c.add(String(x.id)); gravarConjunto(CHAVE_CONHECIDAS, c); };
+        const campanhaId = campanhaAtiva();
         try {
-            if (!(await repositorio.obterCampanha(campanhaId))) return;
+            if (!campanhaId || !(await repositorio.obterCampanha(campanhaId))) { presentes = new Set(); campanhaDasPresentes = null; marcarConhecidas(); return; }
             barramento.campanhaId = campanhaId;
+            if (todas.length && !armazenamento?.getItem(chaveDaLimpeza(campanhaId))) {
+                await limparNaoUsadas(campanhaId);
+                try { armazenamento?.setItem(chaveDaLimpeza(campanhaId), String(Date.now())); } catch { /* ignora */ }
+            }
             lerAssinaturas(campanhaId);
-            const todas = ficha.fichas(), publicaveis = todas.filter(ehPublicavel);
+            const levadas = lerConjunto(chaveDasLevadas(campanhaId)) ?? new Set();
+            // Nova com a campanha ativa: fica desta campanha de vez.
+            let mudouLevadas = false;
+            for (const id of novas) if (!levadas.has(id)) { levadas.add(id); mudouLevadas = true; }
+            if (mudouLevadas) gravarConjunto(chaveDasLevadas(campanhaId), levadas);
+            const usada = await lerUso(campanhaId);
             let lidas = 0;
             for (const sheet of publicaveis) {
                 const ref = refDaFicha(sheet.id), nome = String(sheet.name || 'Sem nome').trim() || 'Sem nome', tipo = tipoDaEntidade(sheet);
                 const existente = await repositorio.entidadeDaRef(campanhaId, ref);
-                const assinatura = `${nome}|${sheet.tokenImage ?? ''}`;
-                if (existente && existente.criadaPor === 'ficha' && assinaturas.get(sheet.id) === assinatura) continue;
+                const ameaca = tipo === 'ameaca';
+                if (!existente && !ameaca && !levadas.has(String(sheet.id))) continue;
                 if (existente && existente.criadaPor !== 'ficha') continue;
+                const daCampanha = levadas.has(String(sheet.id)) || (existente ? usada(existente) : false);
+                const tags = ameaca
+                    ? [...(existente?.tags ?? []).filter(t => !ehTagNossa(t)), daCampanha ? TAG_DA_CAMPANHA : TAG_BESTIARIO]
+                    : (existente?.tags ?? []);
+                const mesmasTags = !!existente && existente.tags.length === tags.length && existente.tags.every((t, i) => t === tags[i]);
+                const assinatura = `${nome}|${sheet.tokenImage ?? ''}`;
+                if (existente && mesmasTags && assinaturas.get(sheet.id) === assinatura) continue;
+                if (existente && mesmasTags === false && assinaturas.get(sheet.id) === assinatura && existente.nome === nome) {
+                    await repositorio.salvarEntidade({ ...existente, tags });
+                    continue;
+                }
                 const retrato = await retratoDaFicha(sheet);
-                if (!existente) await repositorio.criarEntidade({ campanhaId, tipo, nome, refs: [ref], ...(retrato ? { retrato } : {}) });
-                else if (existente.nome !== nome || assinaturas.get(sheet.id) !== assinatura) {
+                if (!existente) await repositorio.criarEntidade({ campanhaId, tipo, nome, refs: [ref], tags, ...(retrato ? { retrato } : {}) });
+                else {
                     const { retrato: _antigo, ...resto } = existente;
-                    await repositorio.salvarEntidade({ ...resto, nome, ...(retrato ? { retrato } : (_antigo && !sheet.tokenImage ? {} : _antigo ? { retrato: _antigo } : {})) });
+                    await repositorio.salvarEntidade({ ...resto, nome, tags, ...(retrato ? { retrato } : (_antigo && !sheet.tokenImage ? {} : _antigo ? { retrato: _antigo } : {})) });
                 }
                 assinaturas.set(sheet.id, assinatura);
                 if (++lidas % 6 === 0) await respirar();      // dezenas de fichas com retrato: não prende a tela
@@ -119,7 +191,15 @@ export async function iniciarMesa(ficha, ambiente = {}) {
                 }
             }
             gravarAssinaturas(campanhaId);
-            for (const sheet of publicaveis) publicarRecursos(sheet);
+            marcarConhecidas();
+            // No menu, "na campanha" é: personagem com entidade aqui; ameaça com a etiqueta desta campanha.
+            const agora = new Set();
+            for (const e of await repositorio.listarEntidades(campanhaId)) {
+                if (e.tipo === 'ameaca' && !e.tags.includes(TAG_DA_CAMPANHA)) continue;
+                for (const r of e.refs) if (r.app === 'ficha' && r.tipo === 'ficha') agora.add(r.id);
+            }
+            presentes = agora; campanhaDasPresentes = campanhaId;
+            for (const sheet of publicaveis) if (presentes.has(sheet.id)) publicarRecursos(sheet);
         } catch (erro) {
             console.warn('Ficha: não consegui publicar as fichas na campanha', erro);
         } finally {
@@ -128,6 +208,32 @@ export async function iniciarMesa(ficha, ambiente = {}) {
         }
     }
     function agendar() { clearTimeout(temporizador); temporizador = setTimeout(() => { void sincronizar(); }, 400); }
+
+    /** Leva uma ficha que já existia para a campanha ativa (o menu da ficha). */
+    async function levarParaCampanha(id) {
+        const campanhaId = campanhaAtiva(), sheet = ficha.fichas().find(x => String(x.id) === String(id));
+        if (!campanhaId) return { ok: false, motivo: 'Nenhuma campanha ativa na Mesa.' };
+        if (!sheet || !ehPublicavel(sheet)) return { ok: false, motivo: 'Esta ficha não existe aqui.' };
+        const levadas = lerConjunto(chaveDasLevadas(campanhaId)) ?? new Set();
+        levadas.add(String(sheet.id)); gravarConjunto(chaveDasLevadas(campanhaId), levadas);
+        await sincronizar();
+        return { ok: true };
+    }
+    /** Tira a ficha da campanha ativa: o personagem sai; a ameaça volta a ser só do bestiário (se nada a usa). A ficha continua aqui. */
+    async function tirarDaCampanha(id) {
+        const campanhaId = campanhaAtiva();
+        if (!campanhaId) return { ok: false, motivo: 'Nenhuma campanha ativa na Mesa.' };
+        const levadas = lerConjunto(chaveDasLevadas(campanhaId)) ?? new Set();
+        levadas.delete(String(id)); gravarConjunto(chaveDasLevadas(campanhaId), levadas);
+        const existente = await repositorio.entidadeDaRef(campanhaId, refDaFicha(id));
+        if (existente && existente.criadaPor !== 'ficha') return { ok: false, motivo: 'Outro aplicativo pôs esta ficha na campanha; tire por lá.' };
+        if (existente && existente.tipo !== 'ameaca') await repositorio.removerEntidade(existente.id);
+        presentes.delete(String(id));
+        await sincronizar();
+        return { ok: true };
+    }
+    const naCampanha = id => campanhaDasPresentes !== null && campanhaDasPresentes === campanhaAtiva() && presentes.has(String(id));
+    const temCampanha = () => !!campanhaAtiva();
 
     const ultimosRecursos = new Map();
     function publicarRecursos(sheet = ficha.aberta()) {
@@ -199,7 +305,7 @@ export async function iniciarMesa(ficha, ambiente = {}) {
     globalThis.addEventListener?.('storage', aoMudarCampanha);
     agendar();
     return {
-        publicarRolagem, publicarRecursos, sincronizar, agendar,
+        publicarRolagem, publicarRecursos, sincronizar, agendar, levarParaCampanha, tirarDaCampanha, naCampanha, temCampanha,
         parar() { clearTimeout(temporizador); globalThis.removeEventListener?.('storage', aoMudarCampanha); barramento.fechar(); },
     };
 }

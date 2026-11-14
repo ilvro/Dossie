@@ -830,7 +830,7 @@ let sheets=[];
 let state=normalizeSheet();
 let activeSheetId=state.id;
 // A ligação com a mesa (src/mesa.js): começa vazia e vira a real quando a plataforma responde.
-let mesa={publicarRolagem(){},publicarRecursos(){},agendar(){}};
+let mesa={publicarRolagem(){},publicarRecursos(){},agendar(){},naCampanha:()=>false,temCampanha:()=>false,async levarParaCampanha(){return{ok:false};},async tirarDaCampanha(){return{ok:false};}};
 
 async function loadInitialSheets(){
  try{
@@ -3331,6 +3331,9 @@ function showSheetContextMenu(e, sheetId) {
    ${canMoveDown ? `<button type="button" data-action="move-down-sheet">↓ <span>Mover para baixo</span></button>` : ''}
    ${(canMoveUp || canMoveDown) ? `<div class="custom-context-menu-separator"></div>` : ''}
    <button type="button" data-action="clone-sheet">${icon('copy', 13)} <span>Clonar ficha</span></button>
+   ${mesa.temCampanha() ? (mesa.naCampanha(sheetId)
+     ? `<button type="button" data-action="tirar-da-campanha">− <span>Tirar da campanha</span></button>`
+     : `<button type="button" data-action="levar-para-campanha">+ <span>Levar para a campanha</span></button>`) : ''}
    <div class="custom-context-menu-separator"></div>
    <button type="button" data-action="delete-sheet" class="menu-danger">${icon('trash', 13)} <span>Deletar ficha</span></button>
   `;
@@ -3371,6 +3374,19 @@ function showSheetContextMenu(e, sheetId) {
    ev.stopPropagation();
    closeSheetContextMenu();
    cloneSheet(sheetId);
+  };
+
+  const btnLevar = menu.querySelector('[data-action="levar-para-campanha"]');
+  if (btnLevar) btnLevar.onclick = (ev) => {
+   ev.stopPropagation();
+   closeSheetContextMenu();
+   void mesa.levarParaCampanha(sheetId).then(r => { if (r && !r.ok && r.motivo) console.warn('Ficha:', r.motivo); });
+  };
+  const btnTirar = menu.querySelector('[data-action="tirar-da-campanha"]');
+  if (btnTirar) btnTirar.onclick = (ev) => {
+   ev.stopPropagation();
+   closeSheetContextMenu();
+   void mesa.tirarDaCampanha(sheetId).then(r => { if (r && !r.ok && r.motivo) console.warn('Ficha:', r.motivo); });
   };
 
   menu.querySelector('[data-action="delete-sheet"]').onclick = (ev) => {
