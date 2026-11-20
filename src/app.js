@@ -4164,6 +4164,19 @@ function bindVigiliaEvents() {
 
  bindVigiliaEditEvents();
 
+ // ── Fade out rápido das scrollbars de perícias e habilidades ──
+ document.querySelectorAll('.vigilia-skills-table, .vigilia-abilities-list').forEach(el => {
+  const showScrollbar = () => {
+   el.classList.add('is-scrolling');
+   clearTimeout(el._scrollFadeTimer);
+   el._scrollFadeTimer = setTimeout(() => {
+    el.classList.remove('is-scrolling');
+   }, 450);
+  };
+  el.addEventListener('scroll', showScrollbar, { passive: true });
+  el.addEventListener('wheel', showScrollbar, { passive: true });
+ });
+
  // ── Gesto de deslizar (swipe) em mobile e tablets para alternar Frente/Verso ──
  const vigiliaPage = document.querySelector('.vigilia-page');
  if (vigiliaPage) {

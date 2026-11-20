@@ -5582,22 +5582,32 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
   touch-action: pan-y;
   padding-right: 6px;
   scrollbar-width: thin;
-  scrollbar-color: #52665a rgba(20, 32, 26, 0.4);
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.25s ease;
+}
+
+.vigilia-skills-table.is-scrolling {
+  scrollbar-color: rgba(82, 102, 90, 0.7) transparent;
 }
 
 .vigilia-skills-table::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 .vigilia-skills-table::-webkit-scrollbar-track {
-  background: rgba(20, 32, 26, 0.4);
+  background: transparent;
   border-radius: 4px;
 }
 
 .vigilia-skills-table::-webkit-scrollbar-thumb {
-  background: #52665a;
+  background: transparent;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid transparent;
+}
+
+.vigilia-skills-table.is-scrolling::-webkit-scrollbar-thumb {
+  background: rgba(82, 102, 90, 0.7);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .vigilia-skills-table::-webkit-scrollbar-thumb:hover {
@@ -5687,7 +5697,12 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
   padding-right: 8px;
   padding-bottom: 32px;
   scrollbar-width: thin;
-  scrollbar-color: #52665a rgba(20, 32, 26, 0.4);
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.25s ease;
+}
+
+.vigilia-abilities-list.is-scrolling {
+  scrollbar-color: rgba(82, 102, 90, 0.7) transparent;
 }
 
 .vigilia-abilities-list > * {
@@ -5695,18 +5710,23 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
 }
 
 .vigilia-abilities-list::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 .vigilia-abilities-list::-webkit-scrollbar-track {
-  background: rgba(20, 32, 26, 0.4);
+  background: transparent;
   border-radius: 4px;
 }
 
 .vigilia-abilities-list::-webkit-scrollbar-thumb {
-  background: #52665a;
+  background: transparent;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid transparent;
+}
+
+.vigilia-abilities-list.is-scrolling::-webkit-scrollbar-thumb {
+  background: rgba(82, 102, 90, 0.7);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .vigilia-abilities-list::-webkit-scrollbar-thumb:hover {
