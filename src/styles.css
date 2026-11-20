@@ -6293,6 +6293,25 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
   animation: ghost-fade-out 240ms ease-out forwards, glitch-shake 380ms cubic-bezier(.22, .68, 0, 1.2) both;
 }
 
+.vigilia-content-viewport.glitch-enter .vigilia-skills-table,
+.vigilia-content-viewport.glitch-enter .vigilia-abilities-list,
+.vigilia-content-viewport.cinematic-ghost-exit .vigilia-skills-table,
+.vigilia-content-viewport.cinematic-ghost-exit .vigilia-abilities-list,
+.vigilia-page.mode-enter .vigilia-skills-table,
+.vigilia-page.mode-enter .vigilia-abilities-list {
+  scrollbar-color: transparent transparent !important;
+}
+
+.vigilia-content-viewport.glitch-enter .vigilia-skills-table::-webkit-scrollbar-thumb,
+.vigilia-content-viewport.glitch-enter .vigilia-abilities-list::-webkit-scrollbar-thumb,
+.vigilia-content-viewport.cinematic-ghost-exit .vigilia-skills-table::-webkit-scrollbar-thumb,
+.vigilia-content-viewport.cinematic-ghost-exit .vigilia-abilities-list::-webkit-scrollbar-thumb,
+.vigilia-page.mode-enter .vigilia-skills-table::-webkit-scrollbar-thumb,
+.vigilia-page.mode-enter .vigilia-abilities-list::-webkit-scrollbar-thumb {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
 /* ─── Dock Flutuante de Ordem II (Pavor, Lesões, Traumas - Fixo no canto inferior) ── */
 .vigilia-floating-dock {
   position: fixed;
