@@ -18,6 +18,7 @@ if (typeof Uint8Array !== 'undefined') {
 }
 
 import { DEFAULT_SHEETS } from './default-sheets.js';
+import { armazenamentoLocal } from './armazenamento.js';
 import { iniciarMesa } from './mesa.js';
 import {
   DEFAULT_ORIGINAL_SHEET,
@@ -791,40 +792,8 @@ function normalizeSheet(raw={}){
  sheet.cinematicCollapsed={...defaults.cinematicCollapsed,...sheet.cinematicCollapsed,abilities:false};
  return sheet;
 }
-const DB_NAME='ordem-ii-db',DB_STORE='sheets-store';
-function openDb(){
- return new Promise(resolve=>{
-  if(!window.indexedDB)return resolve(null);
-  const req=indexedDB.open(DB_NAME,1);
-  req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(DB_STORE))db.createObjectStore(DB_STORE)};
-  req.onsuccess=()=>resolve(req.result);
-  req.onerror=()=>resolve(null);
- });
-}
-async function idbGet(key){
- try{
-  const db=await openDb();
-  if(!db)return null;
-  return new Promise(resolve=>{
-   const tx=db.transaction(DB_STORE,'readonly'),store=tx.objectStore(DB_STORE),req=store.get(key);
-   req.onsuccess=()=>resolve(req.result??null);
-   req.onerror=()=>resolve(null);
-  });
- }catch{return null}
-}
-async function idbSet(key,value){
- try{
-  const db=await openDb();
-  if(!db)return false;
-  return new Promise(resolve=>{
-   const tx=db.transaction(DB_STORE,'readwrite'),store=tx.objectStore(DB_STORE);
-   store.put(value,key);
-   tx.oncomplete=()=>resolve(true);
-   tx.onerror=()=>resolve(false);
-  });
- }catch{return false}
-}
-const SHEETS_KEY='ordem-ii-sheets-v1';
+const armazenamento=armazenamentoLocal();
+const {idbGet,idbSet}=armazenamento;
 let folders=normalizeFolders(DEFAULT_FOLDERS);
 let sheets=[];
 let state=normalizeSheet();
@@ -840,29 +809,8 @@ async function loadInitialSheets(){
  }catch{
   folders=normalizeFolders(DEFAULT_FOLDERS);
  }
- let loaded=null;
- // Tenta carregar do servidor local (só funciona no dev / self-hosted)
- try{
-  const res=await fetch('./api/sheets',{cache:'no-store'});
-  if(res.ok){
-   const data=await res.json();
-   if(Array.isArray(data)&&data.length>0)loaded=data.map(normalizeSheet);
-  }
- }catch{}
- // Fallback: IndexedDB (dados salvos localmente no navegador)
- if(!loaded||!loaded.length){
-  try{
-   const idbSheets=await idbGet('sheets');
-   if(Array.isArray(idbSheets)&&idbSheets.length>0)loaded=idbSheets.map(normalizeSheet);
-  }catch{}
- }
- // Fallback: localStorage
- if(!loaded||!loaded.length){
-  try{
-   const local=JSON.parse(localStorage.getItem(SHEETS_KEY)||'[]');
-   if(Array.isArray(local)&&local.length>0)loaded=local.map(normalizeSheet);
-  }catch{}
- }
+ const {fichas:salvas,ativaId:storedActiveId}=await armazenamento.carregar();
+ let loaded=salvas.length?salvas.map(normalizeSheet):null;
  // Fallback: fichas padrão embutidas no bundle (primeira visita ao site estático)
  if(!loaded||!loaded.length){
   loaded=DEFAULT_SHEETS.map(normalizeSheet);
@@ -876,8 +824,6 @@ async function loadInitialSheets(){
   }
  }
  sheets=migrateSheetsFolders(loaded.map(normalizeSheet));
- let storedActiveId=null;
- try{storedActiveId=await idbGet('activeSheetId')||localStorage.getItem('ordem-ii-active-sheet')}catch{}
  state=sheets.find(sheet=>sheet.id===storedActiveId)||sheets[0];
  if(state?.cinematicCollapsed)state.cinematicCollapsed.abilities=false;
  activeSheetId=state.id;
@@ -1824,39 +1770,11 @@ function persistSheetsNow(forceSync=false){
  }
  clearTimeout(persistTimer);persistTimer=0;
  const out=sheets.map(persistedSheet);
- let fullJson='';
- try{
-  fullJson=JSON.stringify(out);
-  fetch('/api/sheets',{
-   method:'POST',
-   headers:{'Content-Type':'application/json'},
-   body:fullJson
-  }).catch(()=>{});
- }catch{}
-
+ armazenamento.salvar(out,{forcar:forceSync});
  try{
   persistFoldersToStorage(folders, { idbSet });
  }catch{}
-
- try{
-  idbSet('sheets',out);
-  idbSet('activeSheetId',state.id);
- }catch{}
-
- try{
-  localStorage.setItem('ordem-ii-active-sheet',state.id);
-  if(fullJson&&fullJson.length<4500000){
-   localStorage.setItem(SHEETS_KEY,fullJson);
-  }else{
-   const light=out.map(s=>({
-    ...s,
-    tokenImage:(s.tokenImage&&s.tokenImage.length>20000)?'':s.tokenImage,
-    backgroundImage:(s.backgroundImage&&s.backgroundImage.length>20000)?'':s.backgroundImage
-   }));
-   const lightJson=JSON.stringify(light);
-   if(lightJson.length<4500000)localStorage.setItem(SHEETS_KEY,lightJson);
-  }
- }catch{}
+ armazenamento.salvarAtiva(state.id);
 }
 function schedulePersist(delay=350){clearTimeout(persistTimer);persistTimer=setTimeout(()=>persistSheetsNow(false),delay)}
 window.addEventListener('pagehide',()=>{if(persistTimer)persistSheetsNow(true)});
@@ -3628,10 +3546,7 @@ function switchToSheet(targetId) {
  const doSwitch = () => {
   state = sheets.find(sheet => sheet.id === targetId) || state;
   activeSheetId = state.id;
-  try {
-   localStorage.setItem('ordem-ii-active-sheet', state.id);
-   idbSet('activeSheetId', state.id);
-  } catch {}
+  armazenamento.salvarAtiva(state.id);
   if (presentationMode) {
    if (state.systemMode === 'threat') {
     presentationMode = false;
