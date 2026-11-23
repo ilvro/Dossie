@@ -99,6 +99,21 @@ test('uma ficha nova (que a sala não tem) é gravada; forcar grava sem esperar'
   assert.equal(c.rel.pendentes(), 0);
 });
 
+test('uma ficha nova vai à sala na hora (sem debounce); as edições seguintes esperam', async () => {
+  const c = cenario({ fichas: [] });
+  await c.arm.carregar();
+  c.arm.salvar([{ id: 'n', name: 'NOVA' }]);
+  await esperar();
+  assert.equal(c.salvas.length, 1, 'gravou sem avançar o relógio');
+  assert.equal(c.rel.pendentes(), 0);
+  c.arm.salvar([{ id: 'n', name: 'NOVA', pv: 2 }]);
+  await esperar();
+  assert.equal(c.salvas.length, 1, 'a edição seguinte espera o debounce');
+  c.rel.avancar(800); await esperar();
+  assert.equal(c.salvas.length, 2);
+  assert.equal(c.salvas[1].rev, 1, 'usa o rev devolvido pela primeira gravação');
+});
+
 test('o rev da resposta vale para a próxima gravação da mesma ficha', async () => {
   const c = cenario({ fichas: [{ id: 'a', v: 1 }], revs: { a: 1 } });
   await c.arm.carregar();

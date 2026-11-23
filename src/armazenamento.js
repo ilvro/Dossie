@@ -201,6 +201,8 @@ export function armazenamentoSala({ barramento, salaId = null, localStorage: ls 
         const p = pendentes.get(ficha.id);
         if (p) { cancelar(p.timer); pendentes.delete(ficha.id); }
         else if (enviadas.get(ficha.id) === json) continue;
+        // Ficha que a sala ainda não tem (sem versão enviada nem `rev` conhecido): grava na hora, para a primeira rolagem não ser recusada.
+        if (!p && !enviadas.has(ficha.id) && !revs.has(ficha.id)) { enviar(ficha); continue; }
         pendentes.set(ficha.id, { ficha, timer: agendar(() => descarregar(ficha.id), espera) });
       }
       if (forcar) for (const id of [...pendentes.keys()]) descarregar(id);
