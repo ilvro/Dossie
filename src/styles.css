@@ -7883,3 +7883,19 @@ body[data-compacto="1"] #dice-stage-result {
   padding: 8px 12px !important;
   gap: 8px !important;
 }
+
+/* Modo jogador (?sala=<id>): sem pastas, ameaças, bestiário nem campanha (o app.js também não os desenha). */
+body[data-modo-jogador="1"] [data-create-system="threat"],
+body[data-modo-jogador="1"] [data-toggle-navigator],
+body[data-modo-jogador="1"] .workspace-navigator,
+body[data-modo-jogador="1"] [data-open-bestiary-unlock],
+body[data-modo-jogador="1"] [data-open-bestiary-license-modal] {
+  display: none !important;
+}
+body[data-modo-jogador="1"] .sheet-drawer-list .sheet-drawer-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 6px; padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,.1); border-radius: 10px; background: #131524; color: #e8eaf2;
+  font: 700 13px/1.2 inherit; letter-spacing: .06em; text-align: left; cursor: pointer;
+}
+body[data-modo-jogador="1"] .sheet-drawer-list .sheet-drawer-item.active { border-color: var(--red, #e91d25); background: rgba(233,29,37,.14); }
+body[data-modo-jogador="1"] .sheet-drawer-list .sheet-drawer-item img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }

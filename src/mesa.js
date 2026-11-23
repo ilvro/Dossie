@@ -25,6 +25,16 @@ const ehTagNossa = t => t === TAG_DA_CAMPANHA || t === TAG_BESTIARIO;
 const LIMITE_RETRATO = 512 * 1024;
 const LADO_RETRATO = 256;
 
+/** Online (modo jogador): o canal local da sala, com o prefixo dela, e nunca o `mesa:eventos` do mestre. */
+export const canalDaSala = salaId => `sala:${salaId}:mesa:eventos`;
+export const salaIdValido = id => typeof id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(id);
+/** O barramento do modo jogador. A casca da Mesa escuta o mesmo canal. */
+export function criarBarramentoDaSala(salaId, ambiente = {}) {
+    if (!salaIdValido(salaId)) throw new Error(`Sala inválida: ${salaId}`);
+    const BC = ambiente.BroadcastChannel ?? globalThis.BroadcastChannel;
+    return criarBarramento({ app: 'ficha', campanhaId: null, criarCanal: ambiente.criarCanal ?? (() => new BC(canalDaSala(salaId))), ...(ambiente.aviso ? { aviso: ambiente.aviso } : {}) });
+}
+
 export const refDaFicha = id => criarRef('ficha', 'ficha', String(id));
 
 /** Ficha de personagem (de jogador). */
@@ -75,6 +85,24 @@ export async function retratoDaFicha(sheet) {
  * Devolve `{ publicarRolagem, publicarRecursos, sincronizar, parar }` — todos seguros de chamar mesmo sem plataforma.
  */
 export async function iniciarMesa(ficha, ambiente = {}) {
+    // Modo jogador (`?sala=<id>`): só o barramento da sala. Não abre o banco da campanha, não publica nada nela e só emite as rolagens e os recursos
+    // da ficha; a casca leva à sala. Sem BroadcastChannel não há casca para falar.
+    if (ambiente.barramento || ambiente.sala) {
+        const barramento = ambiente.barramento ?? criarBarramentoDaSala(ambiente.sala, ambiente);
+        const nada = async () => ({ ok: false, motivo: 'No modo jogador, a campanha é do mestre.' });
+        const ultimos = new Map();
+        const publicarRecursos = (sheet = ficha.aberta()) => {
+            const r = recursosDaFicha(sheet); if (!r) return;
+            const chave = JSON.stringify(r); if (ultimos.get(sheet.id) === chave) return; ultimos.set(sheet.id, chave);
+            try { barramento.emitir('ficha.recursos', { ficha: refDaFicha(sheet.id), ...r }); } catch (erro) { console.warn('Ficha: recursos não enviados', erro); }
+        };
+        const publicarRolagem = (sheet, { titulo, total, modificador }) => {
+            if (!ehPublicavel(sheet) || !Number.isFinite(Number(total))) return;
+            try { barramento.emitir('ficha.rolagem', { ficha: refDaFicha(sheet.id), titulo: String(titulo || 'Rolagem'), total: Number(total), ...(Number.isFinite(Number(modificador)) ? { modificador: Number(modificador) } : {}) }); }
+            catch (erro) { console.warn('Ficha: rolagem não enviada', erro); }
+        };
+        return { publicarRolagem, publicarRecursos, async sincronizar() {}, agendar() {}, levarParaCampanha: nada, tirarDaCampanha: nada, naCampanha: () => false, temCampanha: () => false, barramento, parar() { barramento.fechar(); } };
+    }
     const semMesa = { publicarRolagem() {}, publicarRecursos() {}, async sincronizar() {}, agendar() {}, async levarParaCampanha() { return { ok: false, motivo: 'Sem a plataforma da mesa.' }; }, async tirarDaCampanha() { return { ok: false, motivo: 'Sem a plataforma da mesa.' }; }, naCampanha: () => false, temCampanha: () => false, parar() {} };
     const BC = ambiente.BroadcastChannel ?? globalThis.BroadcastChannel, idb = ambiente.indexedDB ?? globalThis.indexedDB;
     if (typeof BC === 'undefined' || typeof idb === 'undefined') return semMesa;

@@ -83,7 +83,8 @@ export function renderRailSwitcher(sheets = [], folders = [], activeSheetId = ''
     threatVdMax = '',
     threatCategory = 'all',
     threatSort = 'vd-desc',
-    safeUrl = s => s
+    safeUrl = s => s,
+    semPastas = false
   } = options;
 
   const isThreatScope = scope === 'threats';
@@ -210,7 +211,8 @@ export function renderRailSwitcher(sheets = [], folders = [], activeSheetId = ''
     `;
   }
 
-  tree.forEach(rootNode => {
+  if (semPastas) folderSectionsHtml = sheets.map(renderSheetAvatar).join('');   // modo jogador: lista plana, sem pastas
+  else tree.forEach(rootNode => {
     folderSectionsHtml += renderRailNode(rootNode, 0);
   });
 
@@ -992,7 +994,7 @@ export function renderQuickSwitcherModal(sheets = [], folders = [], query = '', 
  * Renderiza o Drawer Mobile atualizado com Árvore de Pastas
  */
 export function renderMobileSheetDrawer(sheets = [], folders = [], activeSheetId = '', options = {}) {
-  const { open = false, searchQuery = '', rollLogCount = 0, viewMode = 'traditional', safeUrl = s => s } = options;
+  const { open = false, searchQuery = '', rollLogCount = 0, viewMode = 'traditional', safeUrl = s => s, semPastas = false } = options;
   if (!open) return '';
 
   const isSearching = Boolean(searchQuery && searchQuery.trim());
@@ -1004,7 +1006,7 @@ export function renderMobileSheetDrawer(sheets = [], folders = [], activeSheetId
       <div class="sheet-drawer-header">
         <span style="display:flex;align-items:center;gap:6px;">
           ${icon('folder', 16)}
-          <b>FICHAS & PASTAS</b>
+          <b>${semPastas ? 'FICHAS' : 'FICHAS & PASTAS'}</b>
         </span>
         <button data-close-drawer>${icon('close', 16)}</button>
       </div>
@@ -1030,7 +1032,7 @@ export function renderMobileSheetDrawer(sheets = [], folders = [], activeSheetId
         </div>
       </div>
 
-      <div class="nav-search-wrap" style="background:#131524;">
+      <div class="nav-search-wrap" style="background:#131524;${semPastas ? 'display:none;' : ''}">
         <div class="nav-search-box">
           ${icon('search', 14)}
           <input type="text" placeholder="Buscar fichas..." value="${safe(searchQuery)}" data-mobile-search-input>
@@ -1039,9 +1041,11 @@ export function renderMobileSheetDrawer(sheets = [], folders = [], activeSheetId
       </div>
 
       <div class="sheet-drawer-list" style="padding:10px;">
-        ${isSearching 
-          ? renderSearchResults(sheets, folders, searchQuery, activeSheetId, safeUrl)
-          : renderTreeNodes(tree, activeSheetId, [], 'all', safeUrl)
+        ${semPastas
+          ? sheets.map(sheet => `<button type="button" class="sheet-drawer-item ${sheet.id === activeSheetId ? 'active' : ''}" data-sheet-id="${safe(sheet.id)}">${sheet.tokenImage ? `<img src="${safeUrl(sheet.tokenImage)}" alt="">` : ''}<span>${safe(sheet.name || 'AGENTE')}</span></button>`).join('')
+          : isSearching
+            ? renderSearchResults(sheets, folders, searchQuery, activeSheetId, safeUrl)
+            : renderTreeNodes(tree, activeSheetId, [], 'all', safeUrl)
         }
       </div>
 

@@ -133,3 +133,99 @@ export function armazenamentoLocal(deps = {}) {
     }
   };
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Armazenamento da sala (mesa online, modo jogador). As fichas moram na sala; a casca da Mesa faz a ponte, atendendo os
+// pedidos `sala.fichas` e `sala.salvar-ficha` no canal local `sala:<id>:mesa:eventos` e emitindo `sala.ficha-atualizada`
+// (com o `autor` que a sala carimbou) quando uma ficha muda. Ver Atlas/docs/plano/mesa-online.md (R11).
+// ---------------------------------------------------------------------------------------------------------------------
+
+export const ESPERA_SALVAR_MS = 800;
+/** A casca pode demorar até a sala entregar o `bem-vindo`; o pedido de carga espera mais que o padrão do barramento. */
+export const PRAZO_CARGA_MS = 20000;
+export const chaveDaAtivaNaSala = salaId => `dossie:sala:${salaId}:ficha-ativa`;
+
+/**
+ * `barramento` já está no canal da sala. `salaId` só serve para guardar a ficha ativa no localStorage (chave própria da sala).
+ * `aoMudarFora(f)` chama `f({ ficha, rev, conflito, autor, propria })`; `propria` é verdade quando o `autor` é o próprio jogador
+ * (o eco da gravação dele), e então o app não precisa redesenhar nada.
+ */
+export function armazenamentoSala({ barramento, salaId = null, localStorage: ls = null, agendar = (f, ms) => setTimeout(f, ms), cancelar = t => clearTimeout(t), prazoCargaMs = PRAZO_CARGA_MS, espera = ESPERA_SALVAR_MS } = {}) {
+  const storage = () => { try { return ls || globalThis.localStorage || null; } catch { return null; } };
+  const enviadas = new Map();   // id → JSON da última versão que a sala já tem (carregada, gravada ou recebida)
+  const revs = new Map();       // id → rev mais recente que conhecemos
+  const pendentes = new Map();  // id → { ficha, timer }
+  let eu = null;
+
+  function enviar(ficha) {
+    const json = JSON.stringify(ficha);
+    enviadas.set(ficha.id, json);
+    const rev = revs.get(ficha.id) ?? 0;
+    const tentar = (restantes) => {
+      barramento.pedir('sala.salvar-ficha', { ficha, rev }).then(r => {
+        if (r.ok) { if (Number.isFinite(r.resposta?.rev)) revs.set(ficha.id, r.resposta.rev); return; }
+        // Sem resposta da casca (ou recusa): esquece que foi enviada, para a próxima gravação tentar de novo.
+        if (restantes > 0 && enviadas.get(ficha.id) === json) { agendar(() => tentar(restantes - 1), 2000); return; }
+        if (enviadas.get(ficha.id) === json) enviadas.delete(ficha.id);
+      }, () => { if (enviadas.get(ficha.id) === json) enviadas.delete(ficha.id); });
+    };
+    tentar(1);
+  }
+  function descarregar(id) {
+    const p = pendentes.get(id);
+    if (!p) return;
+    cancelar(p.timer);
+    pendentes.delete(id);
+    enviar(p.ficha);
+  }
+
+  return {
+    async carregar() {
+      const r = await barramento.pedir('sala.fichas', {}, { prazoMs: prazoCargaMs });
+      if (!r.ok) { console.warn('Dossiê: a sala não respondeu ao pedido de fichas', r.motivo); return { fichas: [], ativaId: null }; }
+      const d = r.resposta ?? {};
+      const fichas = Array.isArray(d.fichas) ? d.fichas.filter(f => f && typeof f === 'object' && typeof f.id === 'string') : [];
+      for (const f of fichas) enviadas.set(f.id, JSON.stringify(f));
+      for (const [id, rev] of Object.entries(d.revs ?? {})) if (Number.isFinite(rev)) revs.set(id, rev);
+      if (d.eu && typeof d.eu.discordId === 'string') eu = d.eu;
+      let ativaId = typeof d.ativaId === 'string' ? d.ativaId : null;
+      if (!ativaId && salaId) { try { ativaId = storage()?.getItem(chaveDaAtivaNaSala(salaId)) || null; } catch {} }
+      return { fichas, ativaId };
+    },
+
+    // Só as fichas que mudaram desde a última versão que a sala tem; cada uma com o seu debounce. `forcar` (a página vai fechar) grava já.
+    salvar(fichas, { forcar = false } = {}) {
+      for (const ficha of fichas) {
+        if (!ficha || typeof ficha.id !== 'string') continue;
+        const json = JSON.stringify(ficha);
+        const p = pendentes.get(ficha.id);
+        if (p) { cancelar(p.timer); pendentes.delete(ficha.id); }
+        else if (enviadas.get(ficha.id) === json) continue;
+        pendentes.set(ficha.id, { ficha, timer: agendar(() => descarregar(ficha.id), espera) });
+      }
+      if (forcar) for (const id of [...pendentes.keys()]) descarregar(id);
+    },
+
+    salvarAtiva(id) {
+      if (!salaId) return;
+      try { storage()?.setItem(chaveDaAtivaNaSala(salaId), String(id)); } catch {}
+    },
+
+    aoMudarFora(f) {
+      return barramento.ouvir('sala.ficha-atualizada', evento => {
+        const { ficha, rev, conflito } = evento.dados ?? {};
+        if (!ficha || typeof ficha.id !== 'string') return;
+        if (Number.isFinite(rev)) revs.set(ficha.id, rev);
+        const autor = evento.autor ?? null;
+        const propria = !!autor && !!eu && autor.discordId === eu.discordId;
+        if (!propria) enviadas.set(ficha.id, JSON.stringify(ficha));
+        f({ ficha, rev, conflito: conflito === true, autor, propria });
+      });
+    },
+
+    /** Para o app saber de quem é o aviso. */
+    eu: () => eu,
+    /** Grava o que estiver esperando o debounce (ao sair da página). */
+    descarregarTudo() { for (const id of [...pendentes.keys()]) descarregar(id); }
+  };
+}

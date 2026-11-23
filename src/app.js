@@ -18,8 +18,8 @@ if (typeof Uint8Array !== 'undefined') {
 }
 
 import { DEFAULT_SHEETS } from './default-sheets.js';
-import { armazenamentoLocal } from './armazenamento.js';
-import { iniciarMesa } from './mesa.js';
+import { armazenamentoLocal, armazenamentoSala } from './armazenamento.js';
+import { iniciarMesa, criarBarramentoDaSala, salaIdValido } from './mesa.js';
 import {
   DEFAULT_ORIGINAL_SHEET,
   normalizeOriginalSheet,
@@ -792,8 +792,17 @@ function normalizeSheet(raw={}){
  sheet.cinematicCollapsed={...defaults.cinematicCollapsed,...sheet.cinematicCollapsed,abilities:false};
  return sheet;
 }
-const armazenamento=armazenamentoLocal();
-const {idbGet,idbSet}=armazenamento;
+// Modo jogador (`?sala=<id>`, dentro da casca da Mesa online): as fichas moram na sala, a barra de pastas, as ameaças e a campanha somem.
+const _paramsUrl=new URLSearchParams(location.search);
+const salaId=salaIdValido(_paramsUrl.get('sala'))?_paramsUrl.get('sala'):null;
+const modoJogador=!!salaId;
+let barramentoDaSala=null;
+if(modoJogador){
+ document.body.dataset.modoJogador='1';
+ try{barramentoDaSala=criarBarramentoDaSala(salaId)}catch(erro){console.warn('Dossiê: sem o canal da sala',erro)}
+}
+const armazenamento=modoJogador&&barramentoDaSala?armazenamentoSala({barramento:barramentoDaSala,salaId}):armazenamentoLocal();
+const {idbGet=()=>null,idbSet=()=>false}=armazenamento;
 let folders=normalizeFolders(DEFAULT_FOLDERS);
 let sheets=[];
 let state=normalizeSheet();
@@ -805,12 +814,16 @@ let mesa={publicarRolagem(){},publicarRecursos(){},agendar(){},naCampanha:()=>fa
 
 async function loadInitialSheets(){
  try{
-  folders=await loadFoldersFromStorage({ idbGet });
+  folders=modoJogador?normalizeFolders(DEFAULT_FOLDERS):await loadFoldersFromStorage({ idbGet });
  }catch{
   folders=normalizeFolders(DEFAULT_FOLDERS);
  }
  const {fichas:salvas,ativaId:storedActiveId}=await armazenamento.carregar();
  let loaded=salvas.length?salvas.map(normalizeSheet):null;
+ // Na sala só existem as fichas do jogador: nada de fichas padrão. Sem nenhuma, nasce uma em branco (só vai à sala quando ele a editar).
+ if(modoJogador){
+  if(!loaded||!loaded.length)loaded=[normalizeSheet({name:'AGENTE 1',systemMode:'ordem2',folderId:'folder-characters',viewMode:'cinematic'})];
+ }else
  // Fallback: fichas padrão embutidas no bundle (primeira visita ao site estático)
  if(!loaded||!loaded.length){
   loaded=DEFAULT_SHEETS.map(normalizeSheet);
@@ -1582,9 +1595,9 @@ function render(){
  lastRenderedSheetId = state.id;
  syncDraftBaseline();syncUnsavedBar();document.querySelectorAll('.cinematic-ghost-exit').forEach(el=>el.remove());document.body.classList.toggle('navigator-pinned',Boolean(sidebarNavigatorPinned&&sidebarNavigatorOpen));const isCinematic=(presentationMode||state.viewMode==='cinematic')&&state.systemMode!=='threat';const previousScroll={sheet:sheetChanged?0:(app.querySelector('.sheet-main')?.scrollTop||0),right:sheetChanged?0:(app.querySelector('.right-panel')?.scrollTop||0),traditionalPage:sheetChanged?0:(app.querySelector('.traditional-dossier-page')?.scrollTop||0),threatPage:sheetChanged?0:(app.querySelector('.threat-book-page')?.scrollTop||0),cinematicRight:sheetChanged?0:(app.querySelector('.cinematic-scroll')?.scrollTop||0),cinematicSkills:sheetChanged?0:(app.querySelector('.cinematic-skills>div')?.scrollTop||0),sheetSwitcher:app.querySelector('.sheet-switcher')?.scrollTop||0,vigiliaSkills:sheetChanged?0:(app.querySelector('.vigilia-skills-table')?.scrollTop||0),vigiliaAbilities:sheetChanged?0:(app.querySelector('.vigilia-abilities-list')?.scrollTop||0)};applyTheme();const bgIsVideo=!!(state.backgroundImage&&state.backgroundImage.startsWith('data:video/'));const trainingOptions=TRAINING.map(([label,value])=>({value:label,label,html:`${die(value,'menu-die',value>4)}<span>d${value} — ${label}</span>`})),aptidaoOptions=APTIDAO_FIELDS.map(value=>({value,label:value})),aptidaoCount=Array.isArray(state.skills)?state.skills.filter(s=>s.name.startsWith('APTIDÃO')).length:0;app.innerHTML=`
 
-	  <aside class="nav-rail compact-rail"><button class="nav-btn active main-sheet-icon" title="Ficha principal">${state.tokenImage?`<img src="${safeUrl(state.tokenImage)}" alt="" draggable="false">`:icon('sheet')}</button><button type="button" class="nav-btn ${sidebarNavigatorOpen?'active':''}" data-toggle-navigator title="Navegador de pastas e fichas">${icon('folder',18)}</button><button class="nav-btn" ${state.systemMode==='original'?'data-open-compendium title="Compêndio"':'data-compendium title="Compêndio (em breve)"'}>${icon('book')}</button><button type="button" class="nav-btn" data-open-presentation title="Modo de Apresentação / Seleção de Agentes (Dossiês)">${icon('presentation',18)}</button><button type="button" class="nav-btn btn-nav-roll-log" data-open-roll-log title="Histórico de rolagens (H)">${icon('history',18)}<span class="roll-log-badge ${rollLog.length?'visible':''}" id="nav-roll-badge">${rollLog.length||''}</span></button><div class="nav-separator"></div>${renderRailScopePills(sidebarScope,sheets)}${renderRailSwitcher(sheets,folders,state.id,{scope:sidebarScope,visibleFolderIds:appSettings.sidebarVisibleFolderIds,threatElement:threatFilterElement,threatVdRange:threatFilterVdRange,threatVdMin:threatFilterVdMin,threatVdMax:threatFilterVdMax,threatCategory:threatFilterCategory,threatSort:threatSort,safeUrl})}<span class="nav-spacer"></span><button class="nav-btn" data-export-cinematic-image title="Exportar imagem da ficha cinematográfica (PNG HD)">${icon('camera')}</button><button class="nav-btn" data-export-json title="Exportar ficha em JSON">${icon('download')}</button><button class="nav-btn" data-import-json title="Importar ficha em JSON">${icon('upload')}</button><input type="file" id="json-file-input" accept=".json,application/json" style="display:none"><button class="nav-btn" data-save-sheet title="Salvar ficha (disco e navegador)">${icon('save')}</button><button class="nav-btn" data-critical-settings title="Configurar efeitos críticos">${icon('settings')}</button></aside>
+	  <aside class="nav-rail compact-rail"><button class="nav-btn active main-sheet-icon" title="Ficha principal">${state.tokenImage?`<img src="${safeUrl(state.tokenImage)}" alt="" draggable="false">`:icon('sheet')}</button>${modoJogador?'':`<button type="button" class="nav-btn ${sidebarNavigatorOpen?'active':''}" data-toggle-navigator title="Navegador de pastas e fichas">${icon('folder',18)}</button><button class="nav-btn" ${state.systemMode==='original'?'data-open-compendium title="Compêndio"':'data-compendium title="Compêndio (em breve)"'}>${icon('book')}</button>`}<button type="button" class="nav-btn" data-open-presentation title="Modo de Apresentação / Seleção de Agentes (Dossiês)">${icon('presentation',18)}</button><button type="button" class="nav-btn btn-nav-roll-log" data-open-roll-log title="Histórico de rolagens (H)">${icon('history',18)}<span class="roll-log-badge ${rollLog.length?'visible':''}" id="nav-roll-badge">${rollLog.length||''}</span></button><div class="nav-separator"></div>${modoJogador?'':renderRailScopePills(sidebarScope,sheets)}${renderRailSwitcher(sheets,folders,state.id,{scope:sidebarScope,visibleFolderIds:appSettings.sidebarVisibleFolderIds,threatElement:threatFilterElement,threatVdRange:threatFilterVdRange,threatVdMin:threatFilterVdMin,threatVdMax:threatFilterVdMax,threatCategory:threatFilterCategory,threatSort:threatSort,safeUrl,semPastas:modoJogador})}<span class="nav-spacer"></span><button class="nav-btn" data-export-cinematic-image title="Exportar imagem da ficha cinematográfica (PNG HD)">${icon('camera')}</button><button class="nav-btn" data-export-json title="Exportar ficha em JSON">${icon('download')}</button><button class="nav-btn" data-import-json title="Importar ficha em JSON">${icon('upload')}</button><input type="file" id="json-file-input" accept=".json,application/json" style="display:none"><button class="nav-btn" data-save-sheet title="Salvar ficha (disco e navegador)">${icon('save')}</button><button class="nav-btn" data-critical-settings title="Configurar efeitos críticos">${icon('settings')}</button></aside>
 
-   ${renderWorkspaceNavigator(folders,sheets,state.id,{open:sidebarNavigatorOpen,pinned:sidebarNavigatorPinned,searchQuery:sidebarSearchQuery,scope:sidebarScope,visibleFolderIds:appSettings.sidebarVisibleFolderIds,recentSheetIds:appSettings.recentSheetIds,threatElement:threatFilterElement,threatVdRange:threatFilterVdRange,threatVdMin:threatFilterVdMin,threatVdMax:threatFilterVdMax,threatCategory:threatFilterCategory,threatSort:threatSort,threatGroupBy:threatGroupBy,threatFiltersOpen:threatFiltersOpen,virtualGroupsCollapsed:virtualGroupsCollapsed,safeUrl})}
+   ${modoJogador?'':renderWorkspaceNavigator(folders,sheets,state.id,{open:sidebarNavigatorOpen,pinned:sidebarNavigatorPinned,searchQuery:sidebarSearchQuery,scope:sidebarScope,visibleFolderIds:appSettings.sidebarVisibleFolderIds,recentSheetIds:appSettings.recentSheetIds,threatElement:threatFilterElement,threatVdRange:threatFilterVdRange,threatVdMin:threatFilterVdMin,threatVdMax:threatFilterVdMax,threatCategory:threatFilterCategory,threatSort:threatSort,threatGroupBy:threatGroupBy,threatFiltersOpen:threatFiltersOpen,virtualGroupsCollapsed:virtualGroupsCollapsed,safeUrl})}
    ${quickSwitcherOpen?renderQuickSwitcherModal(sheets,folders,quickSwitcherQuery,quickSwitcherIndex,safeUrl):''}
 
   ${state.systemMode==='threat'
@@ -1611,12 +1624,12 @@ function render(){
    <section class="span-2 builder-section"><header><div><b>MODIFICADORES / BUFFS & NERFS</b><small>Bônus ou penalidades em perícias/testes (ex: –1 em Percepção, +2 em Ataque). Passivas ou ativáveis.</small></div><button type="button" data-add-modifier>+ ADICIONAR</button></header><div id="modifier-builder"></div></section></div><footer><button type="button" class="delete-card">EXCLUIR</button><span></span><button type="button" class="editor-close secondary">CANCELAR</button><button type="submit">SALVAR CARD</button></footer></form></div>
   <div class="modal system-select-modal" id="system-select-modal" style="display:none;"><div class="backdrop" data-close-system-modal></div><section><button type="button" class="skill-info-close" data-close-system-modal>${icon('close')}</button><small style="color:var(--red);font-weight:800;letter-spacing:.15em;">NOVA FICHA</small><h2>ESCOLHA O TIPO DE FICHA</h2><p>Selecione a base mecânica para esta nova ficha. Todas as fichas coexistem na sua base de dados organizada por pastas.</p><div class="system-options-grid"><div class="system-option-card card-v2" data-create-system="ordem2"><span class="badge-system-sigil">SISTEMA II</span><h3>ORDEM PARANORMAL II</h3><p>Playtest Alpha de "A Maldição do Ídolo de Pedra". Atributos em dados (Físico, Mente, Emoção), Pontos de Determinação, Perfis táticos e cards interativos.</p></div><div class="system-option-card card-original" data-create-system="original"><span class="badge-system-sigil">SISTEMA ORIGINAL</span><h3>ORDEM PARANORMAL RPG</h3><p>Sistema clássico de regras d20. 5 Atributos (AGI, FOR, INT, PRE, VIG), Classes, Trilhas, NEX% (0-99%), Sanidade, Esforço, 28 Perícias d20, Rituais e Inventário.</p></div><div class="system-option-card card-threat" data-create-system="threat"><span class="badge-system-sigil">AMEAÇA DA REALIDADE</span><h3>AMEAÇA / CRIATURA</h3><p>Ficha de criatura paranormal ou inimigo com VD (Valor de Desafio), Elementos do Outro Lado, Ações padrão/livre, Ataques e Habilidades de combate.</p></div></div></section></div>
   ${renderBottomNav()}
-  ${renderMobileSheetDrawer(sheets,folders,state.id,{open:sheetDrawerOpen,searchQuery:mobileSearchQuery,rollLogCount:rollLog.length,viewMode:state.viewMode,safeUrl})}
+  ${renderMobileSheetDrawer(sheets,folders,state.id,{open:sheetDrawerOpen,searchQuery:mobileSearchQuery,rollLogCount:rollLog.length,viewMode:state.viewMode,safeUrl,semPastas:modoJogador})}
   <button type="button" class="mobile-landscape-trigger" data-sheet-drawer title="Fichas & Modelos" aria-label="Abrir Fichas e Modelos">${state.tokenImage?`<img src="${safeUrl(state.tokenImage)}" alt="" class="mobile-avatar-thumb">`:icon('sheet',18)}</button>
   ${renderRollLogDrawer()}
   ${isCinematic?renderMobileOrientationPrompt():''}
-  ${renderBestiaryUnlockModalHtml()}
-  ${renderBestiaryManageModalHtml(getBestiaryLicense())}
+  ${modoJogador?'':renderBestiaryUnlockModalHtml()}
+  ${modoJogador?'':renderBestiaryManageModalHtml(getBestiaryLicense())}
 	 `;bind();syncMobilePresentationViewport();syncCriticalAtmosphere();const bgVideoEl=app.querySelector('.bg-video');if(bgVideoEl&&state.backgroundImage){if(!bgVideoEl.src)bgVideoEl.src=state.backgroundImage;bgVideoEl.play().catch(()=>{})}const sheetMain=app.querySelector('.sheet-main'),rightPanel=app.querySelector('.right-panel'),traditionalPage=app.querySelector('.traditional-dossier-page'),threatPage=app.querySelector('.threat-book-page'),cinematicRight=app.querySelector('.cinematic-scroll'),cinematicSkills=app.querySelector('.cinematic-skills>div'),sheetSwitcher=app.querySelector('.sheet-switcher'),vigiliaSkills=app.querySelector('.vigilia-skills-table'),vigiliaAbilities=app.querySelector('.vigilia-abilities-list');_suppressVigiliaScrollFx=true;if(sheetMain)sheetMain.scrollTop=previousScroll.sheet;if(rightPanel)rightPanel.scrollTop=previousScroll.right;if(traditionalPage)traditionalPage.scrollTop=previousScroll.traditionalPage;if(threatPage)threatPage.scrollTop=previousScroll.threatPage;if(cinematicRight)cinematicRight.scrollTop=previousScroll.cinematicRight;if(cinematicSkills)cinematicSkills.scrollTop=previousScroll.cinematicSkills;if(sheetSwitcher)sheetSwitcher.scrollTop=previousScroll.sheetSwitcher;if(vigiliaSkills)vigiliaSkills.scrollTop=previousScroll.vigiliaSkills;if(vigiliaAbilities)vigiliaAbilities.scrollTop=previousScroll.vigiliaAbilities;requestAnimationFrame(()=>{_suppressVigiliaScrollFx=false});modeJustChanged=false;editTransitionMode=null}
 
 
@@ -1771,7 +1784,7 @@ function persistSheetsNow(forceSync=false){
  clearTimeout(persistTimer);persistTimer=0;
  const out=sheets.map(persistedSheet);
  armazenamento.salvar(out,{forcar:forceSync});
- try{
+ if(!modoJogador)try{
   persistFoldersToStorage(folders, { idbSet });
  }catch{}
  armazenamento.salvarAtiva(state.id);
@@ -3204,12 +3217,13 @@ function importJsonSheet(file){
    if(Array.isArray(parsed)){
     if(!parsed.length)throw new Error('Arquivo vazio');
     const imported=parsed.map(prepareImport);
+    if(modoJogador)imported.forEach(s=>{s.id=makeId('sheet')});
     sheets.push(...imported);
     state=imported[imported.length-1];
     activeSheetId=state.id;
    }else if(parsed&&typeof parsed==='object'){
     const imported=prepareImport(parsed);
-    if(sheets.some(s=>s.id===imported.id))imported.id=makeId('sheet');
+    if(modoJogador||sheets.some(s=>s.id===imported.id))imported.id=makeId('sheet');
     sheets.push(imported);
     state=imported;
     activeSheetId=state.id;
@@ -3248,12 +3262,12 @@ function showSheetContextMenu(e, sheetId) {
   menu.innerHTML = `
    <div class="custom-context-menu-header">${safe(name)}</div>
    <button type="button" data-action="toggle-fav-sheet">${icon(target?.favorite ? 'star-filled' : 'star', 13)} <span>${target?.favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}</span></button>
-   <button type="button" data-action="open-move-folder-menu">${icon('folder', 13)} <span>Mover para pasta...</span></button>
+   ${modoJogador ? '' : `<button type="button" data-action="open-move-folder-menu">${icon('folder', 13)} <span>Mover para pasta...</span></button>`}
    ${canMoveUp ? `<button type="button" data-action="move-up-sheet">↑ <span>Mover para cima</span></button>` : ''}
    ${canMoveDown ? `<button type="button" data-action="move-down-sheet">↓ <span>Mover para baixo</span></button>` : ''}
    ${(canMoveUp || canMoveDown) ? `<div class="custom-context-menu-separator"></div>` : ''}
    <button type="button" data-action="clone-sheet">${icon('copy', 13)} <span>Clonar ficha</span></button>
-   ${mesa.temCampanha() ? (mesa.naCampanha(sheetId)
+   ${!modoJogador && mesa.temCampanha() ? (mesa.naCampanha(sheetId)
      ? `<button type="button" data-action="tirar-da-campanha">− <span>Tirar da campanha</span></button>`
      : `<button type="button" data-action="levar-para-campanha">+ <span>Levar para a campanha</span></button>`) : ''}
    <div class="custom-context-menu-separator"></div>
@@ -3270,7 +3284,8 @@ function showSheetContextMenu(e, sheetId) {
    }
   };
 
-  menu.querySelector('[data-action="open-move-folder-menu"]').onclick = (ev) => {
+  const btnPasta = menu.querySelector('[data-action="open-move-folder-menu"]');
+  if (btnPasta) btnPasta.onclick = (ev) => {
    ev.stopPropagation();
    renderMoveFolderMenu();
   };
@@ -6445,6 +6460,39 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   });
 }
 
+if (modoJogador) {
+  // Vistas do modo jogador: `card` é o modo compacto de sempre (sem a barra lateral); `completa`, a ficha inteira.
+  // A casca troca a vista por postMessage, sem recarregar; só vale o que vem do pai, na mesma origem.
+  const aplicarVista = vista => {
+    if (vista === 'card') document.body.dataset.compacto = '1';
+    else if (vista === 'completa') delete document.body.dataset.compacto;
+    else return;
+    document.body.dataset.vista = vista;
+  };
+  aplicarVista(_paramsUrl.get('vista') === 'card' ? 'card' : 'completa');
+  window.addEventListener('message', ev => {
+    if (window.parent !== window && ev.source === window.parent && ev.origin === location.origin && ev.data?.tipo === 'dossie.vista') aplicarVista(ev.data.vista);
+  });
+  // Mudança vinda de fora (o mestre gravou a ficha): redesenha e avisa. O eco da gravação do próprio jogador não faz nada.
+  const avisoDaSala = texto => {
+    const toast = document.querySelector('#save-toast');
+    if (!toast) return;
+    toast.textContent = texto; toast.classList.add('show');
+    setTimeout(() => { toast.classList.remove('show'); toast.textContent = 'SALVO'; }, 2600);
+  };
+  armazenamento.aoMudarFora(({ ficha, propria, autor }) => {
+    if (propria) return;
+    const quem = autor?.papel === 'mestre' ? 'PELO MESTRE' : (autor?.nome ? `POR ${String(autor.nome).toUpperCase()}` : 'DE FORA');
+    const nova = normalizeSheet(clone(ficha));
+    const i = sheets.findIndex(sheet => sheet.id === nova.id);
+    if (i >= 0 && dirtySheets.has(nova.id)) { avisoDaSala(`ATUALIZADA ${quem}; SALVE OU DESCARTE`); return; }
+    if (i >= 0) sheets[i] = nova; else sheets.push(nova);
+    if (state?.id === nova.id) state = nova;
+    render();
+    avisoDaSala(`FICHA ATUALIZADA ${quem}`);
+  });
+}
+
 render();
 iniciarMesa({
   fichas: () => sheets,
@@ -6454,7 +6502,7 @@ iniciarMesa({
     save(false);
     if (state?.id === sheet.id) render();
   }
-}).then(m => {
+}, modoJogador && barramentoDaSala ? { barramento: barramentoDaSala } : {}).then(m => {
   mesa = m;
   mesa.publicarRecursos(state);
   const pedida = new URLSearchParams(location.search).get('ficha');
