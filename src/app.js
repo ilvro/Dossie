@@ -19,6 +19,7 @@ if (typeof Uint8Array !== 'undefined') {
 
 import { DEFAULT_SHEETS } from './default-sheets.js';
 import { armazenamentoLocal, armazenamentoSala } from './armazenamento.js';
+import { renderCartaoJogador } from './cartao-jogador.js';
 import { iniciarMesa, criarBarramentoDaSala, salaIdValido } from './mesa.js';
 import {
   DEFAULT_ORIGINAL_SHEET,
@@ -796,6 +797,8 @@ function normalizeSheet(raw={}){
 const _paramsUrl=new URLSearchParams(location.search);
 const salaId=salaIdValido(_paramsUrl.get('sala'))?_paramsUrl.get('sala'):null;
 const modoJogador=!!salaId;
+// Vista do modo jogador: `card` (o card da mesa online, cartao-jogador.js) ou `completa` (a ficha inteira).
+let vistaJogador=modoJogador&&_paramsUrl.get('vista')==='card'?'card':'completa';
 let barramentoDaSala=null;
 if(modoJogador){
  document.body.dataset.modoJogador='1';
@@ -1600,7 +1603,9 @@ function render(){
    ${modoJogador?'':renderWorkspaceNavigator(folders,sheets,state.id,{open:sidebarNavigatorOpen,pinned:sidebarNavigatorPinned,searchQuery:sidebarSearchQuery,scope:sidebarScope,visibleFolderIds:appSettings.sidebarVisibleFolderIds,recentSheetIds:appSettings.recentSheetIds,threatElement:threatFilterElement,threatVdRange:threatFilterVdRange,threatVdMin:threatFilterVdMin,threatVdMax:threatFilterVdMax,threatCategory:threatFilterCategory,threatSort:threatSort,threatGroupBy:threatGroupBy,threatFiltersOpen:threatFiltersOpen,virtualGroupsCollapsed:virtualGroupsCollapsed,safeUrl})}
    ${quickSwitcherOpen?renderQuickSwitcherModal(sheets,folders,quickSwitcherQuery,quickSwitcherIndex,safeUrl):''}
 
-  ${state.systemMode==='threat'
+  ${modoJogador&&vistaJogador==='card'&&state.systemMode!=='threat'
+    ? renderCartaoJogador(state,{safe,safeUrl,die,visibleCards,accent:getSheetAccent(state),fichas:sheets,rollLogCount:rollLog.length,ORIGINAL_ATRIBUTOS,ORIGINAL_PERICIAS,calc:{pv:originalCalcPvMax,pe:originalCalcPeMax,san:originalCalcSanMax},classeNome:state.systemMode==='original'?classeAtual(state)?.nome:null,nivelOriginal:state.systemMode==='original'?rotuloNivel(state):null})
+    : state.systemMode==='threat'
     ? renderThreatBook(state, editMode, { safeUrl, renderBackgroundLayer })
     : (state.systemMode==='original'
         ? (isCinematic?renderCinematicOriginal(state,editMode,{safeUrl,renderBackgroundLayer,presentationMode,renderPresentationDock,die,accent:getSheetAccent(state),resourceShift:currentResourceShift,pageClass:`cinematic-tab-${cinematicMobileTab} ${presentationMode?'presentation-active':''} ${presentationLockingIn?'presentation-locking-in':''} ${presentationEntering?'presentation-entering':''} ${editTransitionMode?`edit-trans-${editTransitionMode}`:''} ${modeJustChanged?'mode-enter':''}`}):renderTraditionalOriginal(state,editMode,{accent:getSheetAccent(state),currentRight:currentOriginalTab,filterQuery:originalSkillsFilter,safeUrl,renderBackgroundLayer}))
@@ -6468,7 +6473,28 @@ if (modoJogador) {
     else if (vista === 'completa') delete document.body.dataset.compacto;
     else return;
     document.body.dataset.vista = vista;
+    if (vistaJogador !== vista) { vistaJogador = vista; render(); }
   };
+  // Card: recursos com limite no máximo, troca de ficha e o pedido de ficha completa (a casca decide; sozinho, troca aqui).
+  const maxDoRecurso = chave => state.systemMode === 'original'
+    ? ({ pv: originalCalcPvMax, pe: originalCalcPeMax, san: originalCalcSanMax }[chave]?.(state) ?? 0)
+    : Number(state[`max${chave[0].toUpperCase()}${chave.slice(1)}`]) || 0;
+  document.addEventListener('click', ev => {
+    const passo = ev.target.closest?.('[data-cartao-recurso]');
+    if (passo) {
+      const [chave, delta] = passo.dataset.cartaoRecurso.split(':');
+      const antes = Number(state[chave]) || 0, depois = Math.max(0, Math.min(maxDoRecurso(chave), antes + Number(delta)));
+      if (depois === antes) return;
+      state[chave] = depois; playResourceSound(depois > antes); save(false); render();
+      return;
+    }
+    const outra = ev.target.closest?.('[data-cartao-ficha]');
+    if (outra) { switchToSheet(outra.dataset.cartaoFicha); return; }
+    if (ev.target.closest?.('[data-cartao-completa]')) {
+      if (window.parent !== window) window.parent.postMessage({ tipo: 'dossie.pedir-vista', vista: 'completa' }, location.origin);
+      else aplicarVista('completa');
+    }
+  });
   aplicarVista(_paramsUrl.get('vista') === 'card' ? 'card' : 'completa');
   window.addEventListener('message', ev => {
     if (window.parent !== window && ev.source === window.parent && ev.origin === location.origin && ev.data?.tipo === 'dossie.vista') aplicarVista(ev.data.vista);
