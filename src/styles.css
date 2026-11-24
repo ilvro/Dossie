@@ -7835,6 +7835,30 @@ body[data-compacto="1"] .threat-book-page .sheet-background-layer {
   width: 100% !important;
 }
 
+.btn-expandir-ficha-online {
+  position: fixed;
+  top: 10px;
+  right: 12px;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(12, 11, 18, 0.88);
+  color: var(--ink, #e8e6f0);
+  font: 700 11px/1 var(--font, sans-serif);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+.btn-expandir-ficha-online:hover {
+  border-color: var(--red, #e91d25);
+  background: rgba(24, 20, 32, 0.96);
+}
+
 body[data-compacto="1"] .threat-dossier-card {
   max-width: 100% !important;
   padding: 0 !important;
