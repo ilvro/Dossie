@@ -858,7 +858,7 @@ body.orientation-prompt-active .mobile-orientation-prompt{
 }
 
 /* ── Landscape Drawer Support ─────────────────────────────────────────────── */
-@media (orientation: landscape) and (max-height: 620px), (orientation: landscape) and (hover: none) and (pointer: coarse) {
+@media (orientation: landscape) and (hover: none) and (pointer: coarse) {
  .sheet-drawer {
   top: 0;
   bottom: 0;
@@ -891,7 +891,7 @@ body.orientation-prompt-active .mobile-orientation-prompt{
  display: none;
 }
 
-@media (orientation: landscape) and (max-height: 620px), (orientation: landscape) and (hover: none) and (pointer: coarse) {
+@media (orientation: landscape) and (hover: none) and (pointer: coarse) {
  .mobile-landscape-trigger {
   display: flex;
   position: fixed;
@@ -1412,7 +1412,7 @@ body.orientation-prompt-active .mobile-orientation-prompt{
 /* ═══════════════════════════════════════════════════════════════════════════
    A VIGÍLIA — RESPONSIVIDADE MOBILE LANDSCAPE (WIDESCREEN 3 COLUNAS AUTÊNTICO)
    ═══════════════════════════════════════════════════════════════════════════ */
-@media (orientation: landscape) and (max-height: 620px), (orientation: landscape) and (hover: none) and (pointer: coarse) {
+@media (orientation: landscape) and (hover: none) and (pointer: coarse) {
   .vigilia-page {
     width: 100vw !important;
     max-width: 100vw !important;
@@ -6337,7 +6337,7 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
   }
 }
 
-@media (orientation: landscape) and (max-height: 620px), (orientation: landscape) and (hover: none) and (pointer: coarse) {
+@media (orientation: landscape) and (hover: none) and (pointer: coarse) {
   .vigilia-floating-dock {
     bottom: max(8px, env(safe-area-inset-bottom));
     right: max(10px, env(safe-area-inset-right));
@@ -7857,6 +7857,13 @@ body[data-compacto="1"] .threat-book-page .sheet-background-layer {
 .btn-expandir-ficha-online:hover {
   border-color: var(--red, #e91d25);
   background: rgba(24, 20, 32, 0.96);
+}
+
+body[data-vista="completa"] .vigilia-page {
+  margin-left: 80px;
+  width: calc(100% - 80px);
+  max-width: calc(100% - 80px);
+  padding-top: 44px;
 }
 
 body[data-compacto="1"] .threat-dossier-card {

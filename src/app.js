@@ -20,7 +20,6 @@ if (typeof Uint8Array !== 'undefined') {
 import { DEFAULT_SHEETS } from './default-sheets.js';
 import { armazenamentoLocal, armazenamentoSala, armazenamentoCombinado, PASTA_SALA } from './armazenamento.js';
 import { jogadoresParaEntregar, rotuloDoDono, nomeDoDono, decidirChegada, textoDoConflito, BOTAO_VER_DELE, BOTAO_MANTER_MINHA } from './fichas-da-sala.js';
-import { renderCartaoJogador } from './cartao-jogador.js';
 import { iniciarMesa, criarBarramentoDaSala, criarBarramentoDoMestre, salaIdValido } from './mesa.js';
 import {
   DEFAULT_ORIGINAL_SHEET,
