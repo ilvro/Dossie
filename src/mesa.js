@@ -23,6 +23,7 @@ const chaveDaRef = r => `${r.app}/${r.tipo}/${r.id}`;
 /** Etiquetas das ameaças: desta campanha ou só do bestiário. */
 export const TAG_DA_CAMPANHA = 'da-campanha';
 export const TAG_BESTIARIO = 'bestiário';
+const TAG_DONO = 'dono:';
 const ehTagNossa = t => t === TAG_DA_CAMPANHA || t === TAG_BESTIARIO;
 const LIMITE_RETRATO = 512 * 1024;
 const LADO_RETRATO = 256;
@@ -207,9 +208,10 @@ export async function iniciarMesa(ficha, ambiente = {}) {
                 if (!existente && !ameaca && !levadas.has(String(sheet.id)) && !idsDaSala.has(String(sheet.id))) continue;
                 if (existente && existente.criadaPor !== 'ficha') continue;
                 const daCampanha = levadas.has(String(sheet.id)) || (existente ? usada(existente) : false);
+                const dono = !ameaca ? ficha.donoDaSala?.(sheet.id) : null;
                 const tags = ameaca
                     ? [...(existente?.tags ?? []).filter(t => !ehTagNossa(t)), daCampanha ? TAG_DA_CAMPANHA : TAG_BESTIARIO]
-                    : (existente?.tags ?? []);
+                    : [...(existente?.tags ?? []).filter(t => !t.startsWith(TAG_DONO)), ...(dono ? [`${TAG_DONO}${dono}`] : [])];
                 const mesmasTags = !!existente && existente.tags.length === tags.length && existente.tags.every((t, i) => t === tags[i]);
                 const assinatura = `${nome}|${sheet.tokenImage ?? ''}`;
                 if (existente && mesmasTags && assinaturas.get(sheet.id) === assinatura) continue;
