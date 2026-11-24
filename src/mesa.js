@@ -15,6 +15,8 @@ const CHAVE_CAMPANHA_ATIVA = 'mesa:campanha-ativa';
 const CHAVE_CONHECIDAS = 'mesa:ficha-conhecidas';
 /** Fichas que o mestre levou para a campanha pelo menu. */
 const chaveDasLevadas = campanhaId => `mesa:ficha-levadas:${campanhaId}`;
+/** Ids das fichas que já vieram da sala (mesa online) para este Dossiê do mestre: a entidade delas não sai da campanha quando a sala não está conectada. */
+const CHAVE_DA_SALA = 'mesa:ficha-da-sala';
 /** Marca de que a limpeza única da publicação em massa já rodou nesta campanha. */
 const chaveDaLimpeza = campanhaId => `mesa:ficha-limpeza-v1:${campanhaId}`;
 const chaveDaRef = r => `${r.app}/${r.tipo}/${r.id}`;
@@ -28,6 +30,11 @@ const LADO_RETRATO = 256;
 /** Online (modo jogador): o canal local da sala, com o prefixo dela, e nunca o `mesa:eventos` do mestre. */
 export const canalDaSala = salaId => `sala:${salaId}:mesa:eventos`;
 export const salaIdValido = id => typeof id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(id);
+/** O barramento do mestre com a Mesa online: o `mesa:eventos` de sempre, para pedir as fichas da sala e ouvir `sala.*`. */
+export function criarBarramentoDoMestre(ambiente = {}) {
+    const BC = ambiente.BroadcastChannel ?? globalThis.BroadcastChannel;
+    return criarBarramento({ app: 'ficha', campanhaId: null, ...(ambiente.criarCanal ? { criarCanal: ambiente.criarCanal } : BC ? { criarCanal: () => new BC('mesa:eventos') } : {}), ...(ambiente.aviso ? { aviso: ambiente.aviso } : {}) });
+}
 /** O barramento do modo jogador. A casca da Mesa escuta o mesmo canal. */
 export function criarBarramentoDaSala(salaId, ambiente = {}) {
     if (!salaIdValido(salaId)) throw new Error(`Sala inválida: ${salaId}`);
@@ -82,6 +89,8 @@ export async function retratoDaFicha(sheet) {
 
 /**
  * Liga a Ficha à mesa. `ficha` entrega o que o aplicativo sabe: `fichas()` (todas), `aberta()` (a ficha na tela) e `abrir(id)`.
+ * Opcional: `daSala()` (R13) lista os ids das fichas que moram na sala (mesa online): entram na campanha como personagem, sem "levar", e a entidade
+ * delas não sai quando a sala não está conectada.
  * Devolve `{ publicarRolagem, publicarRecursos, sincronizar, parar }` — todos seguros de chamar mesmo sem plataforma.
  */
 export async function iniciarMesa(ficha, ambiente = {}) {
@@ -150,11 +159,12 @@ export async function iniciarMesa(ficha, ambiente = {}) {
     async function limparNaoUsadas(campanhaId) {
         const usada = await lerUso(campanhaId);
         const levadas = lerConjunto(chaveDasLevadas(campanhaId)) ?? new Set();
+        const daSala = lerConjunto(CHAVE_DA_SALA) ?? new Set();
         let removidas = 0;
         for (const e of await repositorio.listarEntidades(campanhaId)) {
             if (e.criadaPor !== 'ficha' || e.tipo === 'ameaca') continue;
             const r = e.refs.find(x => x.app === 'ficha' && x.tipo === 'ficha');
-            if (!usada(e) && !(r && levadas.has(r.id))) { await repositorio.removerEntidade(e.id); removidas++; }
+            if (!usada(e) && !(r && (levadas.has(r.id) || daSala.has(r.id)))) { await repositorio.removerEntidade(e.id); removidas++; }
         }
         return removidas;
     }
@@ -169,6 +179,12 @@ export async function iniciarMesa(ficha, ambiente = {}) {
         const novas = new Set(conhecidas ? publicaveis.filter(x => !conhecidas.has(String(x.id))).map(x => String(x.id)) : []);
         const marcarConhecidas = () => { if (!todas.length) return; const c = conhecidas ?? new Set(); for (const x of todas) c.add(String(x.id)); gravarConjunto(CHAVE_CONHECIDAS, c); };
         const campanhaId = campanhaAtiva();
+        // As fichas da sala (R13): lembradas entre sessões, porque a Ficha do mestre só as vê com a Mesa online conectada.
+        const idsDaSala = new Set((ficha.daSala?.() ?? []).map(String));
+        const daSala = lerConjunto(CHAVE_DA_SALA) ?? new Set();
+        const antesDaSala = daSala.size;
+        for (const id of idsDaSala) daSala.add(id);
+        if (daSala.size !== antesDaSala) gravarConjunto(CHAVE_DA_SALA, daSala);
         try {
             if (!campanhaId || !(await repositorio.obterCampanha(campanhaId))) { presentes = new Set(); campanhaDasPresentes = null; marcarConhecidas(); return; }
             barramento.campanhaId = campanhaId;
@@ -188,7 +204,7 @@ export async function iniciarMesa(ficha, ambiente = {}) {
                 const ref = refDaFicha(sheet.id), nome = String(sheet.name || 'Sem nome').trim() || 'Sem nome', tipo = tipoDaEntidade(sheet);
                 const existente = await repositorio.entidadeDaRef(campanhaId, ref);
                 const ameaca = tipo === 'ameaca';
-                if (!existente && !ameaca && !levadas.has(String(sheet.id))) continue;
+                if (!existente && !ameaca && !levadas.has(String(sheet.id)) && !idsDaSala.has(String(sheet.id))) continue;
                 if (existente && existente.criadaPor !== 'ficha') continue;
                 const daCampanha = levadas.has(String(sheet.id)) || (existente ? usada(existente) : false);
                 const tags = ameaca
@@ -215,7 +231,7 @@ export async function iniciarMesa(ficha, ambiente = {}) {
                 const vivas = new Set(todas.map(x => x.id));
                 for (const e of await repositorio.listarEntidades(campanhaId)) {
                     const r = e.refs.find(x => x.app === 'ficha' && x.tipo === 'ficha');
-                    if (e.criadaPor === 'ficha' && r && !vivas.has(r.id)) { await repositorio.removerEntidade(e.id); assinaturas.delete(r.id); ultimosRecursos.delete(r.id); }
+                    if (e.criadaPor === 'ficha' && r && !vivas.has(r.id) && !daSala.has(r.id)) { await repositorio.removerEntidade(e.id); assinaturas.delete(r.id); ultimosRecursos.delete(r.id); }
                 }
             }
             gravarAssinaturas(campanhaId);

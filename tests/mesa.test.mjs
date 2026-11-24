@@ -277,3 +277,27 @@ test('campanha: personagens antigos não entram sozinhos; ameaças entram todas 
     assert.ok(g2.get(`mesa:ficha-limpeza-v1:${c2.id}`), 'a limpeza roda uma vez só');
   } finally { m2.parar(); }
 });
+
+test('fichas da sala (R13): entram na campanha como personagem sem "levar"; a entidade fica quando a sala cai', async () => {
+  // "velha" já era conhecida e local; a mesma ficha, depois de entregue, passa a ser da sala e entra. "nova" veio da sala (um jogador a criou).
+  const velha = { id: 'velha', name: 'Muirenn', systemMode: 'ordem2', tokenImage: '' };
+  const nova = { id: 'nova', name: 'Do Jogador', systemMode: 'ordem2' };
+  const sheets = [velha];
+  let ids = [];
+  const { mesa, campanha, emissor, guardado } = await cenario(sheets, { daSala: () => ids });
+  const ver = async () => (await emissor.listarEntidades(campanha.id)).map(e => `${e.nome}:${e.tipo}:${e.refs.find(r => r.app === 'ficha')?.id}`).sort();
+  try {
+    guardado.set('mesa:ficha-conhecidas', '["velha","local"]');
+    await mesa.sincronizar();
+    assert.deepEqual(await ver(), [], 'uma ficha local antiga não entra sozinha');
+    // a entrega: a ficha local vira da sala, e uma ficha de jogador chega
+    sheets.push(nova); ids = ['velha', 'nova'];
+    await mesa.sincronizar();
+    assert.deepEqual(await ver(), ['Do Jogador:personagem:nova', 'Muirenn:personagem:velha'], 'a ref é a da ficha, para o Atlas achar');
+    assert.deepEqual(JSON.parse(guardado.get('mesa:ficha-da-sala')).sort(), ['nova', 'velha']);
+    // a sala caiu: o Dossiê já não vê essas fichas, mas as entidades (e as peças ligadas a elas) ficam
+    sheets.length = 0; sheets.push({ id: 'local', name: 'Outra', systemMode: 'ordem2' }); ids = [];
+    await mesa.sincronizar();
+    assert.deepEqual(await ver(), ['Do Jogador:personagem:nova', 'Muirenn:personagem:velha']);
+  } finally { mesa.parar(); }
+});

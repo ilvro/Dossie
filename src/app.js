@@ -18,9 +18,10 @@ if (typeof Uint8Array !== 'undefined') {
 }
 
 import { DEFAULT_SHEETS } from './default-sheets.js';
-import { armazenamentoLocal, armazenamentoSala } from './armazenamento.js';
+import { armazenamentoLocal, armazenamentoSala, armazenamentoCombinado, PASTA_SALA } from './armazenamento.js';
+import { jogadoresParaEntregar, rotuloDoDono, nomeDoDono, decidirChegada, textoDoConflito, BOTAO_VER_DELE, BOTAO_MANTER_MINHA } from './fichas-da-sala.js';
 import { renderCartaoJogador } from './cartao-jogador.js';
-import { iniciarMesa, criarBarramentoDaSala, salaIdValido } from './mesa.js';
+import { iniciarMesa, criarBarramentoDaSala, criarBarramentoDoMestre, salaIdValido } from './mesa.js';
 import {
   DEFAULT_ORIGINAL_SHEET,
   normalizeOriginalSheet,
@@ -181,7 +182,8 @@ import {
   renderNavigatorTreeContent,
   renderQuickSwitcherModal,
   renderQuickSwitcherResults,
-  renderMobileSheetDrawer
+  renderMobileSheetDrawer,
+  definirRotulosDasFichas
 } from './workspace/workspace-sidebar.js';
 import { setFxEnabledGetter, setRollSceneGetter, setManualThrowGetter, rollSceneEnabled, runPostRenderFx, queuePostRenderFx, rectOf, flyParticles } from './fx/ui-fx.js';
 import { trackResources } from './fx/resource-fx.js';
@@ -804,7 +806,15 @@ if(modoJogador){
  document.body.dataset.modoJogador='1';
  try{barramentoDaSala=criarBarramentoDaSala(salaId)}catch(erro){console.warn('Dossiê: sem o canal da sala',erro)}
 }
-const armazenamento=modoJogador&&barramentoDaSala?armazenamentoSala({barramento:barramentoDaSala,salaId}):armazenamentoLocal();
+// No Dossiê do mestre, o armazenamento soma as fichas da sala (quando a Mesa online está conectada) às locais (R13).
+let barramentoDoMestre=null;
+let armazenamento;
+if(modoJogador&&barramentoDaSala)armazenamento=armazenamentoSala({barramento:barramentoDaSala,salaId});
+else{
+ armazenamento=armazenamentoLocal();
+ try{barramentoDoMestre=criarBarramentoDoMestre();armazenamento=armazenamentoCombinado({local:armazenamento,barramento:barramentoDoMestre})}catch(erro){barramentoDoMestre=null;console.warn('Dossiê: sem o canal da Mesa',erro)}
+}
+const salvarPastas=(lista,opcoes)=>persistFoldersToStorage(lista.filter(f=>f.id!==PASTA_SALA),opcoes);
 const {idbGet=()=>null,idbSet=()=>false}=armazenamento;
 let folders=normalizeFolders(DEFAULT_FOLDERS);
 let sheets=[];
@@ -1790,7 +1800,7 @@ function persistSheetsNow(forceSync=false){
  const out=sheets.map(persistedSheet);
  armazenamento.salvar(out,{forcar:forceSync});
  if(!modoJogador)try{
-  persistFoldersToStorage(folders, { idbSet });
+  salvarPastas(folders, { idbSet });
  }catch{}
  armazenamento.salvarAtiva(state.id);
 }
@@ -3267,7 +3277,7 @@ function showSheetContextMenu(e, sheetId) {
   menu.innerHTML = `
    <div class="custom-context-menu-header">${safe(name)}</div>
    <button type="button" data-action="toggle-fav-sheet">${icon(target?.favorite ? 'star-filled' : 'star', 13)} <span>${target?.favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}</span></button>
-   ${modoJogador ? '' : `<button type="button" data-action="open-move-folder-menu">${icon('folder', 13)} <span>Mover para pasta...</span></button>`}
+   ${modoJogador || ehDaSala(sheetId) ? '' : `<button type="button" data-action="open-move-folder-menu">${icon('folder', 13)} <span>Mover para pasta...</span></button>`}
    ${canMoveUp ? `<button type="button" data-action="move-up-sheet">↑ <span>Mover para cima</span></button>` : ''}
    ${canMoveDown ? `<button type="button" data-action="move-down-sheet">↓ <span>Mover para baixo</span></button>` : ''}
    ${(canMoveUp || canMoveDown) ? `<div class="custom-context-menu-separator"></div>` : ''}
@@ -3275,8 +3285,9 @@ function showSheetContextMenu(e, sheetId) {
    ${!modoJogador && mesa.temCampanha() ? (mesa.naCampanha(sheetId)
      ? `<button type="button" data-action="tirar-da-campanha">− <span>Tirar da campanha</span></button>`
      : `<button type="button" data-action="levar-para-campanha">+ <span>Levar para a campanha</span></button>`) : ''}
+   ${!modoJogador && salaMestre && target && target.systemMode !== 'threat' ? `<button type="button" data-action="entregar-ficha">${icon('upload', 13)} <span>${ehDaSala(sheetId) ? 'Entregar a outro jogador…' : 'Entregar a um jogador…'}</span></button>` : ''}
    <div class="custom-context-menu-separator"></div>
-   <button type="button" data-action="delete-sheet" class="menu-danger">${icon('trash', 13)} <span>Deletar ficha</span></button>
+   ${ehDaSala(sheetId) ? '' : `<button type="button" data-action="delete-sheet" class="menu-danger">${icon('trash', 13)} <span>Deletar ficha</span></button>`}
   `;
 
   menu.querySelector('[data-action="toggle-fav-sheet"]').onclick = (ev) => {
@@ -3331,10 +3342,45 @@ function showSheetContextMenu(e, sheetId) {
    void mesa.tirarDaCampanha(sheetId).then(r => { if (r && !r.ok && r.motivo) console.warn('Ficha:', r.motivo); });
   };
 
-  menu.querySelector('[data-action="delete-sheet"]').onclick = (ev) => {
+  const btnDeletar = menu.querySelector('[data-action="delete-sheet"]');
+  if (btnDeletar) btnDeletar.onclick = (ev) => {
    ev.stopPropagation();
    closeSheetContextMenu();
    deleteSheet(sheetId);
+  };
+
+  const btnEntregar = menu.querySelector('[data-action="entregar-ficha"]');
+  if (btnEntregar) btnEntregar.onclick = (ev) => {
+   ev.stopPropagation();
+   void renderEntregaMenu();
+  };
+ }
+
+ // "Entregar a um jogador…": lista quem a Mesa conhece na sala (os presentes e os donos de fichas que já existem nela).
+ async function renderEntregaMenu() {
+  menu.innerHTML = `<div class="custom-context-menu-header">ENTREGAR A…</div><div class="custom-context-menu-folder-list"><button type="button" disabled><span>Procurando jogadores…</span></button></div>`;
+  await armazenamento.atualizarMembros?.();
+  if (!salaMestre) { closeSheetContextMenu(); return; }
+  const lida = armazenamento.info?.();
+  const jogadores = jogadoresParaEntregar({ ...salaMestre, membros: lida?.membros ?? salaMestre.membros, nomes: { ...lida?.nomes, ...salaMestre.nomes }, donos: { ...lida?.donos, ...salaMestre.donos } });
+  menu.innerHTML = `
+   <div class="custom-context-menu-header">ENTREGAR A…</div>
+   <div class="custom-context-menu-folder-list" style="max-height:190px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;">
+    ${jogadores.length ? jogadores.map(j => `<button type="button" data-entregar-a="${safe(j.discordId)}">${icon('user', 13)} <span>${safe(j.nome)}${j.presente ? '' : ' (ausente)'}</span></button>`).join('') : `<button type="button" disabled><span>Nenhum jogador na sala ainda</span></button>`}
+   </div>
+   <div class="custom-context-menu-separator"></div>
+   <button type="button" data-action="back-default-menu">← <span>Voltar</span></button>
+  `;
+  menu.querySelectorAll('[data-entregar-a]').forEach(btn => {
+   btn.onclick = (ev) => {
+    ev.stopPropagation();
+    closeSheetContextMenu();
+    void entregarFicha(sheetId, btn.dataset.entregarA, jogadores.find(j => j.discordId === btn.dataset.entregarA)?.nome);
+   };
+  });
+  menu.querySelector('[data-action="back-default-menu"]').onclick = (ev) => {
+   ev.stopPropagation();
+   renderDefaultMenu();
   };
  }
 
@@ -3342,7 +3388,7 @@ function showSheetContextMenu(e, sheetId) {
   menu.innerHTML = `
    <div class="custom-context-menu-header">MOVER PARA PASTA</div>
    <div class="custom-context-menu-folder-list" style="max-height:190px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;">
-    ${folders.map(f => `
+    ${folders.filter(f => f.id !== PASTA_SALA).map(f => `
       <button type="button" data-move-to-fld="${f.id}" style="${target?.folderId === f.id ? 'color:#60a5fa;font-weight:800;' : ''}">
         ${icon(f.icon || 'folder', 13)} <span>${safe(f.name)}${target?.folderId === f.id ? ' (Atual)' : ''}</span>
       </button>
@@ -3403,6 +3449,7 @@ let activeContextMenuFolderId = null;
 function showFolderContextMenu(e, folderId) {
  e.preventDefault();
  e.stopPropagation();
+ if (folderId === PASTA_SALA) return;   // a pasta virtual da sala não tem opções
  closeSheetContextMenu();
  activeContextMenuFolderId = folderId;
  let menu = document.querySelector('#folder-context-menu');
@@ -3454,7 +3501,7 @@ function showFolderContextMenu(e, folderId) {
    const newName = prompt('Novo nome para a pasta:', folder.name);
    if (newName && newName.trim() && newName.trim() !== folder.name) {
     folders = updateFolder(folders, folderId, { name: newName.trim() });
-    persistFoldersToStorage(folders, { idbSet });
+    salvarPastas(folders, { idbSet });
     render();
    }
   };
@@ -3469,7 +3516,7 @@ function showFolderContextMenu(e, folderId) {
     const res = deleteFolder(folders, sheets, folderId);
     folders = res.folders;
     sheets = res.sheets;
-    persistFoldersToStorage(folders, { idbSet });
+    salvarPastas(folders, { idbSet });
     save(false);
     render();
    }
@@ -3738,7 +3785,7 @@ function bindNavigatorTreeEvents(container = document) {
    const f = folders.find(item => item.id === folderId);
    if (f) {
     f.collapsed = !f.collapsed;
-    persistFoldersToStorage(folders, { idbSet });
+    salvarPastas(folders, { idbSet });
     render();
    }
   };
@@ -3839,7 +3886,7 @@ function bindNavigatorTreeEvents(container = document) {
    const sheetId = e.dataTransfer.getData('text/sheet-id') || draggedSheetId;
    if (sheetId && targetFolderId) {
     const sheet = sheets.find(s => s.id === sheetId);
-    if (sheet && sheet.folderId !== targetFolderId) {
+    if (sheet && sheet.folderId !== targetFolderId && sheet.folderId !== PASTA_SALA && targetFolderId !== PASTA_SALA) {
      sheet.folderId = targetFolderId;
      save(true, 'FICHA MOVIDA PARA PASTA');
      render();
@@ -4922,7 +4969,7 @@ function bindWorkspaceSidebarEvents() {
    if (name && name.trim()) {
     const res = createFolder(folders, { name: name.trim() });
     folders = res.folders;
-    persistFoldersToStorage(folders, { idbSet });
+    salvarPastas(folders, { idbSet });
     render();
    }
   };
@@ -4931,7 +4978,7 @@ function bindWorkspaceSidebarEvents() {
  document.querySelectorAll('[data-nav-collapse-all]').forEach(btn => {
   btn.onclick = () => {
    folders.forEach(f => f.collapsed = true);
-   persistFoldersToStorage(folders, { idbSet });
+   salvarPastas(folders, { idbSet });
    updateNavigatorTreeOnly();
   };
  });
@@ -4939,7 +4986,7 @@ function bindWorkspaceSidebarEvents() {
  document.querySelectorAll('[data-nav-expand-all]').forEach(btn => {
   btn.onclick = () => {
    folders.forEach(f => f.collapsed = false);
-   persistFoldersToStorage(folders, { idbSet });
+   salvarPastas(folders, { idbSet });
    updateNavigatorTreeOnly();
   };
  });
@@ -5089,12 +5136,30 @@ function bindWorkspaceSidebarEvents() {
  bindQuickSwitcherEvents();
 }
 
+/** Entrega a ficha a um jogador da sala: ela vai para a sala com o mesmo id e o `dono` dele, e passa a ser a da sala. */
+async function entregarFicha(sheetId, discordId, nomeDoJogador) {
+ const alvo = sheets.find(sheet => sheet.id === sheetId);
+ if (!alvo || !salaMestre) return;
+ if (state?.id === sheetId) collectActiveInputs();
+ const r = await armazenamento.entregar(alvo, discordId);
+ if (!r.ok) { avisoRapido(`NÃO ENTREGUEI: ${String(r.motivo || 'A SALA NÃO RESPONDEU').toUpperCase()}`); return; }
+ alvo.folderId = PASTA_SALA;
+ salaMestre.donos[sheetId] = discordId;
+ if (nomeDoJogador) salaMestre.nomes[discordId] = nomeDoJogador;
+ atualizarRotulosDaSala();
+ persistSheetsNow(true);   // tira a ficha do local (ela agora só grava na sala)
+ mesa.agendar();
+ render();
+ avisoRapido(`FICHA ENTREGUE A ${String(nomeDoJogador || 'UM JOGADOR').toUpperCase()}`);
+}
+
 function cloneSheet(sheetId) {
  const target = sheets.find(s => s.id === sheetId);
  if (!target) return;
  save(false);
  const cloned = clone(target);
  cloned.id = makeId('sheet');
+ if (cloned.folderId === PASTA_SALA) cloned.folderId = cloned.systemMode === 'threat' ? 'folder-threats' : 'folder-characters';   // a cópia é local
  cloned.name = `${target.name || 'AGENTE'} (Cópia)`;
 
  if (Array.isArray(cloned.cards)) {
@@ -5144,6 +5209,7 @@ function cloneSheet(sheetId) {
 }
 
 function deleteSheet(sheetId) {
+ if (ehDaSala(sheetId)) { avisoRapido('FICHA DA SALA: NÃO É APAGADA POR AQUI'); return; }
  if (sheets.length <= 1) {
   const toast = document.querySelector('#save-toast');
   if (toast) {
@@ -6512,16 +6578,138 @@ if (modoJogador) {
     const nova = normalizeSheet(clone(ficha));
     const i = sheets.findIndex(sheet => sheet.id === nova.id);
     if (i >= 0 && dirtySheets.has(nova.id)) { avisoDaSala(`ATUALIZADA ${quem}; SALVE OU DESCARTE`); return; }
+    armazenamento.marcarEnviada?.(nova);   // a versão normalizada é a que a sala tem: sem isto a próxima gravação a reenviaria, sem mudança nenhuma
     if (i >= 0) sheets[i] = nova; else sheets.push(nova);
     if (state?.id === nova.id) state = nova;
     render();
     avisoDaSala(`FICHA ATUALIZADA ${quem}`);
   });
+  // O mestre entregou uma ficha deste jogador a outro (R13): ela sai da lista aqui, e não é mais regravada.
+  armazenamento.aoRemovida?.(id => {
+    const nome = sheets.find(sheet => sheet.id === id)?.name;
+    sheets = sheets.filter(sheet => sheet.id !== id);
+    dirtySheets.delete(id); draftBaseline.delete(id);
+    if (!sheets.length) sheets = [normalizeSheet({ name: 'AGENTE 1', systemMode: 'ordem2', folderId: 'folder-characters', viewMode: 'cinematic' })];
+    if (state?.id === id) { state = sheets[0]; activeSheetId = state.id; armazenamento.salvarAtiva(state.id); }
+    render();
+    avisoDaSala(`${nome ? String(nome).toUpperCase() : 'UMA FICHA'} FOI ENTREGUE A OUTRO JOGADOR`);
+  });
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Fichas da sala no Dossiê do mestre (R13). Com a Mesa online conectada, a pasta virtual "Sala: <nome>" mostra as fichas da sala (com o dono
+// sob o nome). Editar uma delas grava na sala, não no local; uma ficha local pode ser entregue a um jogador pelo menu.
+// ---------------------------------------------------------------------------------------------------------------------
+let salaMestre=null; // { nome, eu, donos, membros, nomes } enquanto a sala está conectada
+const ehDaSala=id=>!!armazenamento.ehDaSala?.(id);
+const avisoRapido=texto=>{
+ const toast=document.querySelector('#save-toast');
+ if(!toast)return;
+ toast.textContent=texto;toast.classList.add('show');
+ setTimeout(()=>{toast.classList.remove('show');toast.textContent='SALVO'},2600);
+};
+function atualizarRotulosDaSala(){
+ const rotulos={};
+ if(salaMestre)for(const sheet of sheets)if(ehDaSala(sheet.id))rotulos[sheet.id]=rotuloDoDono(salaMestre,sheet.id);
+ definirRotulosDasFichas(rotulos);
+}
+/** A ficha da sala já normalizada, na pasta virtual, e registrada no armazenamento como a versão que a sala tem. */
+function fichaDaSalaParaOApp(bruta){
+ const nova=normalizeSheet(clone(bruta));
+ nova.folderId=PASTA_SALA;
+ armazenamento.registrar(nova);
+ return nova;
+}
+function aplicarFichaDaSala(nova){
+ const i=sheets.findIndex(sheet=>sheet.id===nova.id);
+ if(i>=0)sheets[i]=nova;else sheets.push(nova);
+ if(state?.id===nova.id){
+  state=nova;
+  if(editMode)draftBaseline.set(nova.id,clone(nova));
+ }
+ dirtySheets.delete(nova.id);
+ if(!editMode||state?.id!==nova.id)draftBaseline.delete(nova.id);
+}
+function entrarNaSalaDoMestre(info){
+ salaMestre={nome:info.nome,eu:info.eu,donos:{...info.donos},membros:info.membros,nomes:{...info.nomes}};
+ const pasta={id:PASTA_SALA,name:`Sala: ${info.nome}`,kind:'characters',parentId:null,color:'#34d399',icon:'globe',collapsed:false,order:-1,system:true};
+ const i=folders.findIndex(f=>f.id===PASTA_SALA);
+ if(i>=0)folders[i]={...folders[i],name:pasta.name};else folders.unshift(pasta);
+ for(const bruta of info.fichas)aplicarFichaDaSala(fichaDaSalaParaOApp(bruta));
+ atualizarRotulosDaSala();
+ mesa.agendar();
+ render();
+}
+function sairDaSalaDoMestre(){
+ const tinha=salaMestre||sheets.some(sheet=>sheet.folderId===PASTA_SALA);
+ salaMestre=null;
+ armazenamento.desconectar?.();
+ if(!tinha)return;
+ sheets=sheets.filter(sheet=>sheet.folderId!==PASTA_SALA);
+ folders=folders.filter(f=>f.id!==PASTA_SALA);
+ for(const id of [...dirtySheets])if(!sheets.some(sheet=>sheet.id===id)){dirtySheets.delete(id);draftBaseline.delete(id)}
+ if(!sheets.length)sheets=[normalizeSheet({name:'AGENTE 1',systemMode:'ordem2',folderId:'folder-characters',viewMode:'cinematic'})];
+ if(!sheets.some(sheet=>sheet.id===state?.id)){state=sheets[0];activeSheetId=state.id;}
+ conflitoDaSala=null;desenharConflitoDaSala();
+ definirRotulosDasFichas({});
+ render();
+}
+async function conectarSalaDoMestre(){
+ if(!armazenamento.conectar)return;
+ const info=await armazenamento.conectar();
+ if(info)entrarNaSalaDoMestre(info);else sairDaSalaDoMestre();
+}
+
+// Conflito: a sala mandou uma ficha que o mestre está editando. Sem fusão campo a campo: ele escolhe uma das duas versões.
+let conflitoDaSala=null; // { ficha, nome }
+function desenharConflitoDaSala(){
+ let barra=document.querySelector('#conflito-sala');
+ if(!conflitoDaSala){barra?.remove();return}
+ if(!barra){
+  barra=document.createElement('div');
+  barra.id='conflito-sala';
+  barra.className='unsaved-bar conflito-sala show';
+  document.body.appendChild(barra);
+ }
+ barra.innerHTML=`<span>${safe(textoDoConflito(conflitoDaSala.nome))}</span><button type="button" data-conflito-ver>${BOTAO_VER_DELE}</button><button type="button" class="primary" data-conflito-manter>${BOTAO_MANTER_MINHA}</button>`;
+ barra.querySelector('[data-conflito-ver]').onclick=()=>{
+  const {ficha}=conflitoDaSala;
+  conflitoDaSala=null;desenharConflitoDaSala();
+  aplicarFichaDaSala(ficha);
+  render();
+ };
+ barra.querySelector('[data-conflito-manter]').onclick=()=>{conflitoDaSala=null;desenharConflitoDaSala()};
+}
+function aoChegarFichaDaSala({ficha,autor,propria,dono}){
+ const existe=sheets.some(sheet=>sheet.id===ficha.id);
+ const editando=dirtySheets.has(ficha.id)||(editMode&&state?.id===ficha.id);
+ const acao=decidirChegada({propria,conectada:!!salaMestre,existe,editando});
+ if(acao==='ignorar')return;
+ if(dono)salaMestre.donos[ficha.id]=dono;
+ if(autor?.nome)salaMestre.nomes[autor.discordId]=autor.nome;
+ const nova=fichaDaSalaParaOApp(ficha);
+ if(acao==='conflito'){
+  // se ele só abriu a edição, sem mexer em nada, não há o que perder: troca sem perguntar
+  if(!dirtySheets.has(ficha.id)){aplicarFichaDaSala(nova);atualizarRotulosDaSala();render();return}
+  conflitoDaSala={ficha:nova,nome:autor?.nome||nomeDoDono(salaMestre,dono)};
+  desenharConflitoDaSala();
+  return;
+ }
+ aplicarFichaDaSala(nova);
+ atualizarRotulosDaSala();
+ mesa.agendar();
+ render();
+ avisoRapido(`FICHA ATUALIZADA ${autor?.nome?`POR ${String(autor.nome).toUpperCase()}`:'PELA SALA'}`);
+}
+if(!modoJogador&&barramentoDoMestre&&armazenamento.conectar){
+ armazenamento.aoMudarFora(aoChegarFichaDaSala);
+ armazenamento.aoConexao(({conectada})=>{void (conectada?conectarSalaDoMestre():Promise.resolve(sairDaSalaDoMestre()))});
 }
 
 render();
 iniciarMesa({
   fichas: () => sheets,
+  daSala: () => (barramentoDoMestre ? sheets.filter(sheet => sheet.folderId === PASTA_SALA).map(sheet => sheet.id) : []),
   aberta: () => state,
   abrir: id => switchToSheet(id),
   atualizar: sheet => {
@@ -6534,6 +6722,9 @@ iniciarMesa({
   const pedida = new URLSearchParams(location.search).get('ficha');
   if (pedida && sheets.some(sheet => sheet.id === pedida) && pedida !== state.id) switchToSheet(pedida);
 }).catch(() => {});
+
+// Com a Mesa online do mestre já conectada, as fichas da sala entram agora; se a Mesa conectar depois, `sala.conexao` avisa.
+if (!modoJogador && barramentoDoMestre) void conectarSalaDoMestre().catch(erro => console.warn('Dossiê: a sala não respondeu', erro));
 
 // Ponte do assistente (em desenvolvimento e no app de desktop): o Vite remove este trecho do build do Pages.
 if (import.meta.env.DEV || import.meta.env.VITE_PONTE === '1') {

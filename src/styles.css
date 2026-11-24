@@ -8043,3 +8043,7 @@ body[data-modo-jogador="1"] .sheet-drawer-list .sheet-drawer-item img { width: 2
 body[data-vista="card"] .mobile-bottom-nav { display: none !important; }
 body[data-vista="card"] .vigilia-floating-dock { bottom: 10px !important; }
 body[data-vista="card"]:has(.vigilia-floating-dock) .cartao-jogador { padding-bottom: 76px; }
+/* Aviso de conflito de uma ficha da sala (R13): a mesma barra de "alterações não salvas", logo abaixo dela. */
+.unsaved-bar.conflito-sala{top:54px}
+.unsaved-bar.conflito-sala span,.unsaved-bar.conflito-sala button{text-transform:uppercase}
+@media (max-width:640px){.unsaved-bar.conflito-sala{top:auto;bottom:118px}}

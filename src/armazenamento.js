@@ -150,12 +150,13 @@ export const chaveDaAtivaNaSala = salaId => `dossie:sala:${salaId}:ficha-ativa`;
  * `aoMudarFora(f)` chama `f({ ficha, rev, conflito, autor, propria })`; `propria` é verdade quando o `autor` é o próprio jogador
  * (o eco da gravação dele), e então o app não precisa redesenhar nada.
  */
-export function armazenamentoSala({ barramento, salaId = null, localStorage: ls = null, agendar = (f, ms) => setTimeout(f, ms), cancelar = t => clearTimeout(t), prazoCargaMs = PRAZO_CARGA_MS, espera = ESPERA_SALVAR_MS } = {}) {
+export function armazenamentoSala({ barramento, salaId = null, localStorage: ls = null, agendar = (f, ms) => setTimeout(f, ms), cancelar = t => clearTimeout(t), prazoCargaMs = PRAZO_CARGA_MS, espera = ESPERA_SALVAR_MS, silencioso = false } = {}) {
   const storage = () => { try { return ls || globalThis.localStorage || null; } catch { return null; } };
   const enviadas = new Map();   // id → JSON da última versão que a sala já tem (carregada, gravada ou recebida)
   const revs = new Map();       // id → rev mais recente que conhecemos
   const pendentes = new Map();  // id → { ficha, timer }
   let eu = null;
+  let carga = null;             // a última resposta ok de `sala.fichas` (o mestre lê nome, donos, membros…); `null` se a última falhou
 
   function enviar(ficha) {
     const json = JSON.stringify(ficha);
@@ -182,8 +183,9 @@ export function armazenamentoSala({ barramento, salaId = null, localStorage: ls 
   return {
     async carregar() {
       const r = await barramento.pedir('sala.fichas', {}, { prazoMs: prazoCargaMs });
-      if (!r.ok) { console.warn('Dossiê: a sala não respondeu ao pedido de fichas', r.motivo); return { fichas: [], ativaId: null }; }
+      if (!r.ok) { carga = null; if (!silencioso) console.warn('Dossiê: a sala não respondeu ao pedido de fichas', r.motivo); return { fichas: [], ativaId: null }; }
       const d = r.resposta ?? {};
+      carga = d;
       const fichas = Array.isArray(d.fichas) ? d.fichas.filter(f => f && typeof f === 'object' && typeof f.id === 'string') : [];
       for (const f of fichas) enviadas.set(f.id, JSON.stringify(f));
       for (const [id, rev] of Object.entries(d.revs ?? {})) if (Number.isFinite(rev)) revs.set(id, rev);
@@ -215,19 +217,134 @@ export function armazenamentoSala({ barramento, salaId = null, localStorage: ls 
 
     aoMudarFora(f) {
       return barramento.ouvir('sala.ficha-atualizada', evento => {
-        const { ficha, rev, conflito } = evento.dados ?? {};
+        const { ficha, rev, conflito, dono } = evento.dados ?? {};
         if (!ficha || typeof ficha.id !== 'string') return;
         if (Number.isFinite(rev)) revs.set(ficha.id, rev);
         const autor = evento.autor ?? null;
         const propria = !!autor && !!eu && autor.discordId === eu.discordId;
         if (!propria) enviadas.set(ficha.id, JSON.stringify(ficha));
-        f({ ficha, rev, conflito: conflito === true, autor, propria });
+        f({ ficha, rev, conflito: conflito === true, autor, propria, dono: typeof dono === 'string' ? dono : null });
       });
     },
 
+    /** A sala tirou uma ficha deste jogador (foi entregue a outro): `f(id)`. Esquece a ficha aqui para não regravá-la. */
+    aoRemovida(f) {
+      return barramento.ouvir('sala.ficha-removida', evento => {
+        const id = evento.dados?.id;
+        if (typeof id !== 'string') return;
+        const p = pendentes.get(id);
+        if (p) { cancelar(p.timer); pendentes.delete(id); }
+        enviadas.delete(id); revs.delete(id);
+        f(id);
+      });
+    },
+
+    /** A última resposta de `sala.fichas` (com o que mais a casca mandou), ou `null` se a sala não respondeu. */
+    carga: () => carga,
+    /** Esta ficha já está na sala com este conteúdo (acabou de ser entregue): a próxima gravação só vale se mudar. */
+    marcarEnviada(ficha) { enviadas.set(ficha.id, JSON.stringify(ficha)); },
     /** Para o app saber de quem é o aviso. */
     eu: () => eu,
     /** Grava o que estiver esperando o debounce (ao sair da página). */
     descarregarTudo() { for (const id of [...pendentes.keys()]) descarregar(id); }
+  };
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Armazenamento do mestre (R13): as fichas locais de sempre + as da sala, quando a Mesa online do mestre está conectada.
+// A Mesa atende `sala.fichas`, `sala.salvar-ficha` e `sala.entregar-ficha` no `mesa:eventos` e avisa com `sala.conexao` quando a sala
+// abre ou cai. A carga local não espera a sala: `carregar()` devolve só as locais, e `conectar()` (chamada de novo a cada `sala.conexao`)
+// traz as da sala. `salvar` separa pelo id: uma ficha da sala grava só na sala; as outras, só no local.
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** A pasta virtual das fichas da sala (não é gravada nas pastas do Dossiê). */
+export const PASTA_SALA = 'folder-sala';
+/** Quanto o mestre espera a Mesa responder: se não há Mesa online aberta, ninguém responde. */
+export const PRAZO_CONEXAO_MS = 1500;
+
+/** A ficha como a sala a guarda: sem a pasta virtual (que só existe no Dossiê do mestre). */
+export function fichaParaSala(ficha) {
+  if (!ficha || ficha.folderId !== PASTA_SALA) return ficha;
+  const { folderId, ...resto } = ficha;
+  return resto;
+}
+
+export function armazenamentoCombinado({ local, barramento, prazoEntregaMs = 5000, ...opcoes } = {}) {
+  const sala = armazenamentoSala({ barramento, silencioso: true, prazoCargaMs: PRAZO_CONEXAO_MS, ...opcoes });
+  const daSala = new Set();
+  let info = null;
+
+  return {
+    idbGet: local.idbGet,
+    idbSet: local.idbSet,
+    carregar: () => local.carregar(),
+
+    /** Pergunta à Mesa pelas fichas da sala. `null` se a sala não está conectada (ou não há Mesa online aberta). */
+    async conectar() {
+      const { fichas } = await sala.carregar();
+      const c = sala.carga();
+      daSala.clear();
+      if (!c) { info = null; return null; }
+      for (const f of fichas) daSala.add(f.id);
+      info = {
+        nome: typeof c.nome === 'string' && c.nome ? c.nome : 'Sala',
+        eu: c.eu ?? null,
+        donos: c.donos && typeof c.donos === 'object' ? c.donos : {},
+        membros: Array.isArray(c.membros) ? c.membros : [],
+        nomes: c.nomes && typeof c.nomes === 'object' ? c.nomes : {},
+      };
+      return { ...info, fichas };
+    },
+    /** Pede de novo a lista de quem está na sala (o menu "Entregar" a lê). Sem resposta, fica a que já havia. */
+    async atualizarMembros() {
+      if (!info) return;
+      const r = await barramento.pedir('sala.fichas', {}, { prazoMs: PRAZO_CONEXAO_MS });
+      const c = r.ok ? r.resposta : null;
+      if (!c) return;
+      if (Array.isArray(c.membros)) info.membros = c.membros;
+      if (c.nomes && typeof c.nomes === 'object') info.nomes = { ...info.nomes, ...c.nomes };
+      if (c.donos && typeof c.donos === 'object') info.donos = { ...info.donos, ...c.donos };
+    },
+    /** A sala caiu: as fichas dela voltam a não ser de ninguém aqui. Devolve os ids que eram dela. */
+    desconectar() { const ids = [...daSala]; daSala.clear(); info = null; return ids; },
+    conectada: () => info !== null,
+    info: () => info,
+    ehDaSala: id => daSala.has(id),
+    /**
+     * A ficha (já normalizada pelo app) é da sala daqui para a frente e esta é a versão que a sala tem: só grava de novo se mudar.
+     * Sem isto, a primeira gravação de qualquer ficha regravaria todas as da sala (a normalização muda o JSON).
+     */
+    registrar(ficha) { daSala.add(ficha.id); sala.marcarEnviada(fichaParaSala(ficha)); },
+
+    salvar(fichas, opcoes2 = {}) {
+      const noLocal = [], naSala = [];
+      for (const f of fichas) (f && daSala.has(f.id) ? naSala : noLocal).push(f);
+      local.salvar(noLocal, opcoes2);
+      if (naSala.length) sala.salvar(naSala.map(fichaParaSala), opcoes2);
+    },
+    salvarAtiva: id => local.salvarAtiva(id),
+
+    aoMudarFora: f => sala.aoMudarFora(f),
+    /** A Mesa conectou ou perdeu a sala: `f({ conectada, nome })`. */
+    aoConexao(f) {
+      return barramento.ouvir('sala.conexao', evento => f({ conectada: evento.dados?.conectada === true, nome: evento.dados?.nome ?? null }));
+    },
+
+    /**
+     * Entrega a ficha a um jogador (`dono` é o `discordId`): grava na sala com o mesmo id e passa o dono. Depois, a ficha é da sala:
+     * deixa de ser gravada no local. Devolve `{ ok }` ou `{ ok: false, motivo }`.
+     */
+    async entregar(ficha, dono) {
+      const r1 = await barramento.pedir('sala.salvar-ficha', { ficha: fichaParaSala(ficha), rev: 0 }, { prazoMs: prazoEntregaMs });
+      if (!r1.ok) return { ok: false, motivo: r1.detalhe ?? 'A Mesa online não respondeu.' };
+      const r2 = await barramento.pedir('sala.entregar-ficha', { fichaId: ficha.id, dono }, { prazoMs: prazoEntregaMs });
+      if (!r2.ok) return { ok: false, motivo: r2.detalhe ?? 'A Mesa online não respondeu.' };
+      this.registrar(ficha);
+      return { ok: true };
+    },
+
+    eu: () => sala.eu(),
+    descarregarTudo: () => sala.descarregarTudo(),
   };
 }

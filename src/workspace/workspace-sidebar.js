@@ -809,8 +809,13 @@ function renderTreeNodes(nodes = [], activeSheetId = '', visibleFolderIds = [], 
 /**
  * Renderiza uma linha individual de ficha na lista ou árvore
  */
+// Rótulos extras por ficha (id → texto), sob o nome: hoje, o dono de uma ficha da sala (mesa online).
+let rotulosExtras = {};
+export function definirRotulosDasFichas(mapa = {}) { rotulosExtras = mapa && typeof mapa === 'object' ? mapa : {}; }
+
 function renderSheetRow(sheet, isActive, safeUrl, folderBreadcrumb = '') {
   if (!sheet) return '';
+  if (!folderBreadcrumb && rotulosExtras[sheet.id]) folderBreadcrumb = rotulosExtras[sheet.id];
   const isThreat = sheet.systemMode === 'threat';
   const isOriginal = sheet.systemMode === 'original';
   const isOfficial = isOfficialThreat(sheet);
