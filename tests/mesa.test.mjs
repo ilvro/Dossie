@@ -301,3 +301,19 @@ test('fichas da sala (R13): entram na campanha como personagem sem "levar"; a en
     assert.deepEqual(await ver(), ['Do Jogador:personagem:nova', 'Muirenn:personagem:velha']);
   } finally { mesa.parar(); }
 });
+
+test('donoDaSala atualiza etiqueta dono: inclusive em personagem criado pela Mesa', async () => {
+  const sheets = [{ id: 'f1', name: 'Muirenn', systemMode: 'ordem2' }];
+  let dono = null;
+  const { mesa, campanha, emissor } = await cenario(sheets, { donoDaSala: () => dono });
+  try {
+    await emissor.criarEntidade({ campanhaId: campanha.id, tipo: 'personagem', nome: 'Muirenn', refs: [refDaFicha('f1')] });
+    await mesa.sincronizar();
+    let ent = (await emissor.listarEntidades(campanha.id))[0];
+    assert.deepEqual(ent.tags, []);
+    dono = 'Cildum';
+    await mesa.sincronizar();
+    ent = (await emissor.listarEntidades(campanha.id))[0];
+    assert.deepEqual(ent.tags, ['dono:Cildum']);
+  } finally { mesa.parar(); }
+});

@@ -206,9 +206,16 @@ export async function iniciarMesa(ficha, ambiente = {}) {
                 const existente = await repositorio.entidadeDaRef(campanhaId, ref);
                 const ameaca = tipo === 'ameaca';
                 if (!existente && !ameaca && !levadas.has(String(sheet.id)) && !idsDaSala.has(String(sheet.id))) continue;
-                if (existente && existente.criadaPor !== 'ficha') continue;
-                const daCampanha = levadas.has(String(sheet.id)) || (existente ? usada(existente) : false);
                 const dono = !ameaca ? ficha.donoDaSala?.(sheet.id) : null;
+                if (existente && existente.criadaPor !== 'ficha') {
+                    if (!ameaca) {
+                        const tags = [...(existente.tags ?? []).filter(t => !t.startsWith(TAG_DONO)), ...(dono ? [`${TAG_DONO}${dono}`] : [])];
+                        const mesmasTags = existente.tags.length === tags.length && existente.tags.every((t, i) => t === tags[i]);
+                        if (!mesmasTags) await repositorio.salvarEntidade({ ...existente, tags });
+                    }
+                    continue;
+                }
+                const daCampanha = levadas.has(String(sheet.id)) || (existente ? usada(existente) : false);
                 const tags = ameaca
                     ? [...(existente?.tags ?? []).filter(t => !ehTagNossa(t)), daCampanha ? TAG_DA_CAMPANHA : TAG_BESTIARIO]
                     : [...(existente?.tags ?? []).filter(t => !t.startsWith(TAG_DONO)), ...(dono ? [`${TAG_DONO}${dono}`] : [])];

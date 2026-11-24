@@ -8,6 +8,17 @@ export function nomeDoDono(info, discordId) {
   return n ? String(n) : `jogador ${String(discordId).slice(-4)}`;
 }
 
+/** Nome limpo do jogador que escolheu ou é dono desta ficha na sala (nunca o mestre). */
+export function donoDoPersonagem(info, fichaId) {
+  if (!info || !fichaId) return null;
+  const euId = info.eu?.discordId;
+  const escolhidoPor = info.membros?.find(m => m.papel === 'jogador' && m.personagem === fichaId && m.discordId !== euId);
+  if (escolhidoPor?.nome) return String(escolhidoPor.nome);
+  const dono = info.donos?.[fichaId];
+  if (!dono || (euId && dono === euId)) return null;
+  return nomeDoDono(info, dono);
+}
+
 /** O rótulo sob o nome da ficha na pasta da sala: "Dono: Ana", ou "Dono: você" se a ficha é do próprio mestre. */
 export function rotuloDoDono(info, fichaId) {
   const dono = info?.donos?.[fichaId];

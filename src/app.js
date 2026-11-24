@@ -19,7 +19,7 @@ if (typeof Uint8Array !== 'undefined') {
 
 import { DEFAULT_SHEETS } from './default-sheets.js';
 import { armazenamentoLocal, armazenamentoSala, armazenamentoCombinado, PASTA_SALA } from './armazenamento.js';
-import { jogadoresParaEntregar, rotuloDoDono, nomeDoDono, decidirChegada, textoDoConflito, BOTAO_VER_DELE, BOTAO_MANTER_MINHA } from './fichas-da-sala.js';
+import { jogadoresParaEntregar, rotuloDoDono, nomeDoDono, donoDoPersonagem, decidirChegada, textoDoConflito, BOTAO_VER_DELE, BOTAO_MANTER_MINHA } from './fichas-da-sala.js';
 import { iniciarMesa, criarBarramentoDaSala, criarBarramentoDoMestre, salaIdValido } from './mesa.js';
 import {
   DEFAULT_ORIGINAL_SHEET,
@@ -6702,13 +6702,24 @@ function aoChegarFichaDaSala({ficha,autor,propria,dono}){
 if(!modoJogador&&barramentoDoMestre&&armazenamento.conectar){
  armazenamento.aoMudarFora(aoChegarFichaDaSala);
  armazenamento.aoConexao(({conectada})=>{void (conectada?conectarSalaDoMestre():Promise.resolve(sairDaSalaDoMestre()))});
+ window.addEventListener('storage',e=>{
+  if(e.key!=='mesa:sala-atualizada'||!salaMestre||!armazenamento.atualizarMembros)return;
+  void armazenamento.atualizarMembros().then(lida=>{
+   if(!lida||!salaMestre)return;
+   salaMestre.membros=lida.membros;
+   salaMestre.nomes={...salaMestre.nomes,...lida.nomes};
+   salaMestre.donos={...salaMestre.donos,...lida.donos};
+   atualizarRotulosDaSala();
+   mesa?.agendar();
+  });
+ });
 }
 
 render();
 iniciarMesa({
   fichas: () => sheets,
   daSala: () => (barramentoDoMestre ? sheets.filter(sheet => sheet.folderId === PASTA_SALA).map(sheet => sheet.id) : []),
-  donoDaSala: id => (salaMestre ? rotuloDoDono(salaMestre, id) : null),
+  donoDaSala: id => (salaMestre ? donoDoPersonagem(salaMestre, id) : null),
   aberta: () => state,
   abrir: id => switchToSheet(id),
   atualizar: sheet => {

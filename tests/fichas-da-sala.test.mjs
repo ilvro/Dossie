@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { nomeDoDono, rotuloDoDono, jogadoresParaEntregar, decidirChegada, textoDoConflito, BOTAO_VER_DELE, BOTAO_MANTER_MINHA } from '../src/fichas-da-sala.js';
+import { nomeDoDono, rotuloDoDono, donoDoPersonagem, jogadoresParaEntregar, decidirChegada, textoDoConflito, BOTAO_VER_DELE, BOTAO_MANTER_MINHA } from '../src/fichas-da-sala.js';
 
 const info = {
   eu: { discordId: '1', nome: 'Mestre' },
@@ -16,6 +16,21 @@ test('o rótulo do dono usa o nome da sala; "você" para o mestre; um resto do i
   assert.equal(rotuloDoDono(info, 'd'), 'Dono: jogador 9');
   assert.equal(rotuloDoDono(info, 'nada'), '');
   assert.equal(nomeDoDono(info, null), null);
+});
+
+test('donoDoPersonagem devolve nome limpo do jogador (priorizando quem escolheu no saguão e omitindo o mestre)', () => {
+  const comEscolha = {
+    ...info,
+    membros: [
+      ...info.membros,
+      { discordId: '5', nome: 'Cildum', papel: 'jogador', personagem: 'b' },
+    ],
+  };
+  assert.equal(donoDoPersonagem(info, 'a'), 'Ana');
+  assert.equal(donoDoPersonagem(info, 'b'), null);
+  assert.equal(donoDoPersonagem(comEscolha, 'b'), 'Cildum');
+  assert.equal(donoDoPersonagem(info, 'c'), 'Caio');
+  assert.equal(donoDoPersonagem(info, 'nada'), null);
 });
 
 test('quem pode receber uma ficha: os jogadores presentes e os donos ausentes, nunca o mestre', () => {
