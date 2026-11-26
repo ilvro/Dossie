@@ -65,6 +65,64 @@ export function recursosDaFicha(sheet) {
     return { pv: n(sheet.pv), pvMax: n(sheet.maxPv), pd: n(pd), pdMax: n(pdMax) };
 }
 
+const REGRAS_LUZ = [
+    ['lanterna', /\b(?:lanternas?|flashlights?|faro(?:l|is)|holofotes?)\b/],
+    ['lamparina', /\b(?:lamparinas?|lampi(?:ao|oes))\b/],
+    ['tocha', /\b(?:tochas?|archotes?)\b/],
+    ['vela', /\b(?:velas?|castica(?:l|is)|isqueiros?|fosforos?)\b/],
+];
+
+const normalizarTexto = texto => String(texto).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+function itemDeLuzIgnorado(item) {
+    if (!item || typeof item !== 'object') return false;
+    if (item.quantity === 0 || item.qtd === 0 || item.quantidade === 0) return true;
+    if (item.enabled === false || item.equipped === false || item.ativo === false || item.checked === false) return true;
+    return false;
+}
+
+/** Presets de luz do Atlas detectados no inventário/equipamentos da ficha, sem duplicatas e na ordem de aparição. */
+export function luzesDoInventario(sheet) {
+    if (!sheet || typeof sheet !== 'object') return [];
+    const entradas = [];
+    for (const campo of ['inventario', 'inventory', 'items', 'equipments', 'attacks', 'ataques']) {
+        if (Array.isArray(sheet[campo])) entradas.push(...sheet[campo]);
+    }
+    if (Array.isArray(sheet.cards)) {
+        for (const card of sheet.cards) {
+            if (card && card.schema === 'items') entradas.push(card);
+        }
+    }
+    const resultado = [];
+    const vistos = new Set();
+    for (const item of entradas) {
+        if (itemDeLuzIgnorado(item)) continue;
+        const textoBruto = typeof item === 'string'
+            ? item
+            : item && typeof item === 'object'
+                ? [item.nome, item.name, item.title, item.titulo, item.descricao, item.description, item.content]
+                    .filter(v => typeof v === 'string' && v.trim())
+                    .join(' ')
+                : '';
+        if (!textoBruto) continue;
+        const texto = normalizarTexto(textoBruto);
+        const encontrados = [];
+        for (const [preset, regex] of REGRAS_LUZ) {
+            if (vistos.has(preset)) continue;
+            const m = regex.exec(texto);
+            if (m) encontrados.push([m.index, preset]);
+        }
+        encontrados.sort((a, b) => a[0] - b[0]);
+        for (const [, preset] of encontrados) {
+            if (!vistos.has(preset)) {
+                vistos.add(preset);
+                resultado.push(preset);
+            }
+        }
+    }
+    return resultado;
+}
+
 const campanhaAtiva = () => {
     try { return localStorage.getItem(CHAVE_CAMPANHA_ATIVA) || null; } catch { return null; }
 };
@@ -103,8 +161,10 @@ export async function iniciarMesa(ficha, ambiente = {}) {
         const ultimos = new Map();
         const publicarRecursos = (sheet = ficha.aberta()) => {
             const r = recursosDaFicha(sheet); if (!r) return;
-            const chave = JSON.stringify(r); if (ultimos.get(sheet.id) === chave) return; ultimos.set(sheet.id, chave);
-            try { barramento.emitir('ficha.recursos', { ficha: refDaFicha(sheet.id), ...r }); } catch (erro) { console.warn('Ficha: recursos não enviados', erro); }
+            const luzes = luzesDoInventario(sheet);
+            const carga = luzes.length > 0 ? { ...r, luzes } : r;
+            const chave = JSON.stringify(carga); if (ultimos.get(sheet.id) === chave) return; ultimos.set(sheet.id, chave);
+            try { barramento.emitir('ficha.recursos', { ficha: refDaFicha(sheet.id), ...carga }); } catch (erro) { console.warn('Ficha: recursos não enviados', erro); }
         };
         const publicarRolagem = (sheet, { titulo, total, modificador }) => {
             if (!ehPublicavel(sheet) || !Number.isFinite(Number(total))) return;
@@ -291,9 +351,11 @@ export async function iniciarMesa(ficha, ambiente = {}) {
     const ultimosRecursos = new Map();
     function publicarRecursos(sheet = ficha.aberta()) {
         const r = recursosDaFicha(sheet); if (!r || !campanhaAtiva()) return;
-        const chave = JSON.stringify(r); if (ultimosRecursos.get(sheet.id) === chave) return; ultimosRecursos.set(sheet.id, chave);
+        const luzes = luzesDoInventario(sheet);
+        const carga = luzes.length > 0 ? { ...r, luzes } : r;
+        const chave = JSON.stringify(carga); if (ultimosRecursos.get(sheet.id) === chave) return; ultimosRecursos.set(sheet.id, chave);
         barramento.campanhaId = campanhaAtiva();
-        try { barramento.emitir('ficha.recursos', { ficha: refDaFicha(sheet.id), ...r }); } catch (erro) { console.warn('Ficha: recursos não enviados', erro); }
+        try { barramento.emitir('ficha.recursos', { ficha: refDaFicha(sheet.id), ...carga }); } catch (erro) { console.warn('Ficha: recursos não enviados', erro); }
     }
     function publicarRolagem(sheet, { titulo, total, modificador }) {
         if (!ehPublicavel(sheet) || !campanhaAtiva() || !Number.isFinite(Number(total))) return;

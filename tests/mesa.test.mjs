@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { IDBFactory } from '../../Atlas/node_modules/fake-indexeddb/build/esm/index.js';
-import { iniciarMesa, recursosDaFicha, ehPersonagem, ehAmeaca, ehPublicavel, tipoDaEntidade, refDaFicha } from '../src/mesa.js';
+import { iniciarMesa, recursosDaFicha, luzesDoInventario, ehPersonagem, ehAmeaca, ehPublicavel, tipoDaEntidade, refDaFicha } from '../src/mesa.js';
 import { abrirRepositorioCampanha, criarBarramento } from '../vendor/mesa-core/index.js';
 
 test('PV e PD por modo; ameaça só tem PV (PD zero)', () => {
@@ -316,4 +316,115 @@ test('donoDaSala atualiza etiqueta dono: inclusive em personagem criado pela Mes
     ent = (await emissor.listarEntidades(campanha.id))[0];
     assert.deepEqual(ent.tags, ['dono:Cildum']);
   } finally { mesa.parar(); }
+});
+
+test('luzesDoInventario: reconhece presets com acentos/caixa alta, ignora qtd 0/desmarcados e deduplica preservando ordem', () => {
+  assert.deepEqual(luzesDoInventario(null), []);
+  assert.deepEqual(luzesDoInventario({ id: 'a' }), []);
+  // Ordem 1 (`inventario`), acentos, caixa alta e preservação de ordem + deduplicação
+  assert.deepEqual(luzesDoInventario({
+    inventario: [
+      { nome: 'LAMPIÃO a óleo', qtd: 1 },
+      { nome: 'Lanterna Tática', qtd: 1 },
+      { nome: 'Flashlight reserva', qtd: 2 },
+      { nome: 'Archote improvisado', qtd: 1 },
+      { nome: 'Caixa de FÓSFOROS', qtd: 1 },
+      { nome: 'Castiçal de prata', qtd: 1 },
+    ],
+  }), ['lamparina', 'lanterna', 'tocha', 'vela']);
+
+  // Sinônimos individuais: farol, holofote, lamparina, tocha, vela, isqueiro
+  assert.deepEqual(luzesDoInventario({ inventory: [{ name: 'Farol portátil' }] }), ['lanterna']);
+  assert.deepEqual(luzesDoInventario({ items: [{ title: 'HOLOFOTE' }] }), ['lanterna']);
+  assert.deepEqual(luzesDoInventario({ equipments: [{ nome: 'Lamparina' }] }), ['lamparina']);
+  assert.deepEqual(luzesDoInventario({ attacks: [{ name: 'Tocha acesa' }] }), ['tocha']);
+  assert.deepEqual(luzesDoInventario({ inventario: [{ nome: 'Isqueiro Zippo', qtd: 1 }] }), ['vela']);
+  assert.deepEqual(luzesDoInventario({ inventario: [{ nome: 'Velas', qtd: 3 }] }), ['vela']);
+
+  // Quantidade 0 ou item desmarcado é ignorado
+  assert.deepEqual(luzesDoInventario({
+    inventario: [
+      { nome: 'Lanterna', qtd: 0 },
+      { nome: 'Tocha', quantity: 0 },
+      { nome: 'Lamparina', enabled: false },
+      { nome: 'Vela', equipped: false },
+      { nome: 'Isqueiro', qtd: 1 },
+    ],
+  }), ['vela']);
+
+  // Ordem 2 / Vigília (`cards` com `schema: 'items'`); ignora habilidades (`schema: 'abilities'`) e evita falso positivo ("revelar")
+  assert.deepEqual(luzesDoInventario({
+    cards: [
+      { id: 'hab1', schema: 'abilities', title: 'Lanterna Mental', content: 'Usa uma tocha imaginária para revelar segredos.' },
+      { id: 'eq1', schema: 'items', title: 'EQUIPAMENTO', content: 'Corda, caravela em miniatura, **tocha** e lanterna.' },
+    ],
+  }), ['tocha', 'lanterna']);
+});
+
+test('publicarRecursos envia luzes em ficha.recursos e republica ao adicionar/remover item (mestre e sala)', async () => {
+  const sheet = {
+    id: 'p1',
+    name: 'Alan',
+    systemMode: 'original',
+    pv: 10,
+    maxPv: 12,
+    san: 8,
+    maxSan: 10,
+    inventario: [{ nome: 'Lanterna tática', qtd: 1 }],
+  };
+  const { mesa, eventos } = await cenario([sheet]);
+  try {
+    mesa.publicarRecursos(sheet);
+    const recursos = () => eventos.filter(e => e.tipo === 'ficha.recursos').map(e => e.dados);
+    assert.equal(recursos().length, 1);
+    assert.deepEqual(recursos()[0], { ficha: refDaFicha('p1'), pv: 10, pvMax: 12, pd: 8, pdMax: 10, luzes: ['lanterna'] });
+
+    // Mesmos recursos e mesmas luzes: deduplica
+    mesa.publicarRecursos(sheet);
+    assert.equal(recursos().length, 1);
+
+    // Adiciona isqueiro sem mudar PV/PD: republica com ['lanterna', 'vela']
+    sheet.inventario.push({ nome: 'Isqueiro', qtd: 1 });
+    mesa.publicarRecursos(sheet);
+    assert.equal(recursos().length, 2);
+    assert.deepEqual(recursos()[1].luzes, ['lanterna', 'vela']);
+
+    // Remove todos os itens de luz: republica sem campo `luzes`
+    sheet.inventario.length = 0;
+    mesa.publicarRecursos(sheet);
+    assert.equal(recursos().length, 3);
+    assert.equal('luzes' in recursos()[2], false);
+  } finally { mesa.parar(); }
+
+  // Modo jogador (sala)
+  const eventosSala = [];
+  const canalSala = { onmessage: null, postMessage(m) { eventosSala.push(m); }, close() {} };
+  const sheetJogador = {
+    id: 'p2',
+    name: 'Muirenn',
+    systemMode: 'ordem2',
+    pv: 8,
+    maxPv: 10,
+    pd: 4,
+    maxPd: 6,
+    cards: [{ id: 'c1', schema: 'items', title: 'Lamparina', content: '' }],
+  };
+  const mesaSala = await iniciarMesa(
+    { fichas: () => [sheetJogador], aberta: () => sheetJogador, abrir() {} },
+    { sala: 'mesa-teste', criarCanal: () => canalSala },
+  );
+  try {
+    mesaSala.publicarRecursos(sheetJogador);
+    const enviados = () => eventosSala.filter(e => e.tipo === 'ficha.recursos').map(e => e.dados);
+    assert.equal(enviados().length, 1);
+    assert.deepEqual(enviados()[0], { ficha: refDaFicha('p2'), pv: 8, pvMax: 10, pd: 4, pdMax: 6, luzes: ['lamparina'] });
+
+    // Repetição deduplica; remover item republica
+    mesaSala.publicarRecursos(sheetJogador);
+    assert.equal(enviados().length, 1);
+    sheetJogador.cards = [];
+    mesaSala.publicarRecursos(sheetJogador);
+    assert.equal(enviados().length, 2);
+    assert.equal('luzes' in enviados()[1], false);
+  } finally { mesaSala.parar(); }
 });
