@@ -906,7 +906,8 @@ function renderVigiliaAmbient() {
  * Função Principal: Renderiza a Ficha no Modo "A Vigília"
  */
 export function renderVigiliaSheet(sheet, editMode, options = {}) {
-  const isBack = currentVigiliaSide === 'back';
+  const emProjecao = Boolean(options.emProjecao);
+  const isBack = !emProjecao && currentVigiliaSide === 'back';
   const armorPoints = sheet.armorPoints ?? (sheet.pontosArmadura ?? 0);
   const dadoPavor = sheet.dadoPavor;
   const lesoesCount = sheet.lesoesCountScene || 0;
@@ -981,6 +982,7 @@ export function renderVigiliaSheet(sheet, editMode, options = {}) {
       </div>`}
 
       <!-- BARRA DE CONTROLE SUPERIOR (FLIP ENTRE FRENTE E VERSO) -->
+      ${emProjecao ? '' : `
       <div class="vigilia-toolbar">
         <div class="vigilia-side-switch">
           <button type="button" class="side-btn ${!isBack ? 'active' : ''}" data-vigilia-side="front">
@@ -990,7 +992,7 @@ export function renderVigiliaSheet(sheet, editMode, options = {}) {
             ${icon('book', 14)} <span class="vigilia-side-label-long">VERSO (HISTÓRIA &amp; RELAÇÕES)</span><span class="vigilia-side-label-short">VERSO</span>
           </button>
         </div>
-      </div>
+      </div>`}
 
       <!-- CONTAINER COM PROPORÇÃO 1624:1211 -->
       <div class="vigilia-content-viewport">

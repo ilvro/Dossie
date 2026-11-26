@@ -7885,9 +7885,9 @@ body[data-vista="completa"] {
 }
 
 body[data-vista="completa"] .vigilia-page {
-  margin-left: 80px;
-  width: calc(100% - 80px);
-  max-width: calc(100% - 80px);
+  margin-left: 0;
+  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
   height: auto;
@@ -7978,13 +7978,38 @@ body[data-compacto="1"] #dice-stage-result {
   gap: 8px !important;
 }
 
-/* Modo jogador (?sala=<id>): sem pastas, ameaças, bestiário nem campanha (o app.js também não os desenha). */
+/* Modo jogador (?sala=<id>): sem pastas, ameaças, bestiário, barra lateral nem campanha (o app.js também não os desenha). */
+body[data-modo-jogador="1"] .nav-rail,
+body[data-vista="completa"] .nav-rail,
 body[data-modo-jogador="1"] [data-create-system="threat"],
 body[data-modo-jogador="1"] [data-toggle-navigator],
 body[data-modo-jogador="1"] .workspace-navigator,
 body[data-modo-jogador="1"] [data-open-bestiary-unlock],
 body[data-modo-jogador="1"] [data-open-bestiary-license-modal] {
   display: none !important;
+}
+body[data-modo-jogador="1"] .page,
+body[data-modo-jogador="1"] .traditional-dossier-page,
+body[data-modo-jogador="1"] .threat-book-page,
+body[data-modo-jogador="1"] .vigilia-page,
+body[data-modo-jogador="1"] .cinematic-page,
+body[data-vista="completa"] .page,
+body[data-vista="completa"] .traditional-dossier-page,
+body[data-vista="completa"] .threat-book-page,
+body[data-vista="completa"] .cinematic-page {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  left: 0 !important;
+}
+body[data-modo-jogador="1"] .cinematic-page .sheet-background-layer,
+body[data-modo-jogador="1"] .vigilia-page .sheet-background-layer,
+body[data-modo-jogador="1"] .threat-book-page .sheet-background-layer,
+body[data-vista="completa"] .cinematic-page .sheet-background-layer,
+body[data-vista="completa"] .vigilia-page .sheet-background-layer,
+body[data-vista="completa"] .threat-book-page .sheet-background-layer {
+  left: 0 !important;
+  width: 100% !important;
 }
 body[data-modo-jogador="1"] .sheet-drawer-list .sheet-drawer-item {
   display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 6px; padding: 10px 12px;
@@ -8005,7 +8030,11 @@ body[data-projecao-mesa="1"] .workspace-sidebar,
 body[data-projecao-mesa="1"] .workspace-navigator,
 body[data-projecao-mesa="1"] .view-mode-switch,
 body[data-projecao-mesa="1"] .view-mode-trigger,
+body[data-projecao-mesa="1"] .vigilia-toolbar,
+body[data-projecao-mesa="1"] .vigilia-system-pill,
 body[data-projecao-mesa="1"] .floating,
+body[data-projecao-mesa="1"] .edit-toggle,
+body[data-projecao-mesa="1"] #btn-edit-mode,
 body[data-projecao-mesa="1"] .edit-status,
 body[data-projecao-mesa="1"] .bottom-nav,
 body[data-projecao-mesa="1"] .mobile-bottom-nav,
