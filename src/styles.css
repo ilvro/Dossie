@@ -4780,17 +4780,25 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
   font-display: swap;
 }
 
+body:has(.vigilia-page) {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 .vigilia-page {
   position: relative;
   width: 100%;
   max-width: 1624px;
   min-height: 100vh;
+  min-height: 100dvh;
+  height: auto;
   margin: 0 auto;
   background-color: #07120e;
   color: #e6ece9;
   font-family: Georgia, 'Times New Roman', serif;
   box-sizing: border-box;
   overflow-x: hidden;
+  overflow-y: clip;
   padding-bottom: 60px;
 }
 
@@ -4821,12 +4829,12 @@ button.nex-seg:focus-visible{outline:1px solid #f5c563;outline-offset:1px}
 }
 
 .vigilia-toolbar {
-  position: sticky;
-  top: 10px;
+  position: relative;
+  top: auto;
   z-index: 20;
   display: flex;
   justify-content: center;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
   pointer-events: auto;
 }
 
@@ -5986,9 +5994,9 @@ body.critical-pv-state.critical-pd-state .vigilia-page {
   top: -160px;
   right: -45px;
   width: 800px;
-  height: 840px;
-  min-height: 840px;
-  max-height: 840px;
+  height: min(840px, calc(100% + 160px));
+  min-height: 0;
+  max-height: calc(100% + 160px);
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
@@ -7817,8 +7825,7 @@ body[data-compacto="1"] .view-mode-trigger {
 
 body[data-compacto="1"] .page,
 body[data-compacto="1"] .traditional-dossier-page,
-body[data-compacto="1"] .threat-book-page,
-body[data-compacto="1"] .vigilia-page {
+body[data-compacto="1"] .threat-book-page {
   margin-left: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
@@ -7826,6 +7833,19 @@ body[data-compacto="1"] .vigilia-page {
   height: 100dvh !important;
   padding: 12px 14px 40px 14px !important;
   overflow-y: auto !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+
+body[data-compacto="1"] .vigilia-page {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  height: auto !important;
+  padding: 12px 14px 48px 14px !important;
+  overflow-y: clip !important;
   overflow-x: hidden !important;
   box-sizing: border-box !important;
 }
@@ -7868,11 +7888,45 @@ body[data-vista="completa"] .vigilia-page {
   margin-left: 80px;
   width: calc(100% - 80px);
   max-width: calc(100% - 80px);
-  height: 100vh;
-  height: 100dvh;
-  overflow-y: auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  height: auto;
+  overflow-y: clip;
   overflow-x: hidden;
-  padding-top: 44px;
+  padding-top: 12px;
+  padding-bottom: 72px;
+}
+
+@media (min-width: 769px) {
+  body[data-vista="completa"] .vigilia-content-viewport,
+  body[data-projecao-mesa="1"] .vigilia-content-viewport {
+    aspect-ratio: auto;
+    padding-top: 10px;
+    padding-bottom: 28px;
+  }
+
+  body[data-vista="completa"] .vigilia-skills-table,
+  body[data-projecao-mesa="1"] .vigilia-skills-table,
+  body[data-vista="completa"] .vigilia-abilities-list,
+  body[data-projecao-mesa="1"] .vigilia-abilities-list {
+    max-height: none;
+    overflow: visible;
+    padding-bottom: 12px;
+  }
+}
+
+@media (min-width: 769px) and (max-height: 860px) and (hover: hover) {
+  .vigilia-content-viewport {
+    aspect-ratio: auto;
+    padding-top: 10px;
+    padding-bottom: 28px;
+  }
+
+  .vigilia-skills-table,
+  .vigilia-abilities-list {
+    max-height: none;
+    overflow: visible;
+  }
 }
 
 body[data-compacto="1"] .threat-dossier-card {
@@ -7946,19 +8000,33 @@ body[data-projecao-mesa="1"] {
   overflow-x: hidden !important;
 }
 body[data-projecao-mesa="1"] .nav-rail,
+body[data-projecao-mesa="1"] .sidebar,
 body[data-projecao-mesa="1"] .workspace-sidebar,
 body[data-projecao-mesa="1"] .workspace-navigator,
 body[data-projecao-mesa="1"] .view-mode-switch,
+body[data-projecao-mesa="1"] .view-mode-trigger,
 body[data-projecao-mesa="1"] .floating,
+body[data-projecao-mesa="1"] .edit-status,
 body[data-projecao-mesa="1"] .bottom-nav,
 body[data-projecao-mesa="1"] .mobile-bottom-nav,
 body[data-projecao-mesa="1"] .mobile-landscape-trigger,
 body[data-projecao-mesa="1"] .unsaved-bar,
+body[data-projecao-mesa="1"] .conflito-sala,
 body[data-projecao-mesa="1"] .btn-expandir-ficha-online,
 body[data-projecao-mesa="1"] .vigilia-floating-dock,
 body[data-projecao-mesa="1"] .vigilia-dock,
+body[data-projecao-mesa="1"] .vigilia-edit-tools,
+body[data-projecao-mesa="1"] .cinematic-token-tools,
+body[data-projecao-mesa="1"] .dossier-visual-bar,
 body[data-projecao-mesa="1"] .btn-collapse-switch,
-body[data-projecao-mesa="1"] [data-toggle-navigator] {
+body[data-projecao-mesa="1"] .btn-reset-relations,
+body[data-projecao-mesa="1"] .sheet-drawer,
+body[data-projecao-mesa="1"] .sheet-drawer-backdrop,
+body[data-projecao-mesa="1"] [data-toggle-navigator],
+body[data-projecao-mesa="1"] [data-toggle-edit],
+body[data-projecao-mesa="1"] [data-new-sheet],
+body[data-projecao-mesa="1"] [data-delete-sheet],
+body[data-projecao-mesa="1"] [data-delete-card-direct] {
   display: none !important;
 }
 body[data-projecao-mesa="1"] .page,
@@ -7970,6 +8038,19 @@ body[data-projecao-mesa="1"] .cinematic-page {
   width: 100% !important;
   max-width: 100% !important;
   left: 0 !important;
+}
+body[data-projecao-mesa="1"] .cinematic-page {
+  height: 100vh !important;
+  height: 100dvh !important;
+}
+body[data-projecao-mesa="1"] .vigilia-page {
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  height: auto !important;
+  overflow-y: clip !important;
+  overflow-x: hidden !important;
+  padding-top: 14px !important;
+  padding-bottom: 48px !important;
 }
 body[data-projecao-mesa="1"] .cinematic-page .sheet-background-layer,
 body[data-projecao-mesa="1"] .vigilia-page .sheet-background-layer,

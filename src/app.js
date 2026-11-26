@@ -847,13 +847,22 @@ function removerSinteticaSeIntacta(novoIdAlvo){
 }
 
 function aplicarProjecaoDaMesa(fichaId,fichaBruta=null){
- if(!inicializadoApp){
-  projecaoPendenteJogador=fichaId?{fichaId,ficha:fichaBruta}:null;
-  return;
- }
  if(fichaId){
+  document.body.dataset.projecaoMesa='1';
+  delete document.body.dataset.compacto;
+  if(!inicializadoApp){
+   projecaoPendenteJogador={fichaId,ficha:fichaBruta};
+   return;
+  }
   const bruta=fichaBruta??sheets.find(sheet=>sheet.id===fichaId);
-  if(!bruta)return;
+  if(!bruta){
+   projecaoPendenteJogador={fichaId,ficha:null};
+   editMode=false;
+   presentationMode=false;
+   if(modoJogador)void sincronizarFichasDaSala();
+   return;
+  }
+  projecaoPendenteJogador=null;
   const alvo=normalizeSheet(clone(bruta));
   if(alvo.systemMode!=='threat'&&alvo.viewMode!=='vigilia')alvo.viewMode='cinematic';
   if(!projecaoDaMesa){
@@ -863,28 +872,37 @@ function aplicarProjecaoDaMesa(fichaId,fichaBruta=null){
   }
   editMode=false;
   presentationMode=false;
-  document.body.dataset.projecaoMesa='1';
   state=alvo;
   render();
   return;
  }
  projecaoPendenteJogador=null;
- if(!projecaoDaMesa)return;
+ if(!projecaoDaMesa){
+  delete document.body.dataset.projecaoMesa;
+  if(modoJogador)aplicarVistaJogador(vistaJogador);
+  return;
+ }
  const {antes}=projecaoDaMesa;
  projecaoDaMesa=null;
  delete document.body.dataset.projecaoMesa;
  editMode=antes.editMode;
  presentationMode=antes.presentationMode;
+ if(modoJogador)aplicarVistaJogador(vistaJogador);
  state=sheets.find(sheet=>sheet.id===antes.stateId)||sheets.find(sheet=>sheet.id===activeSheetId)||sheets[0];
  activeSheetId=state.id;
  render();
 }
 
 function aplicarVistaJogador(vista){
- if(vista==='card')document.body.dataset.compacto='1';
- else if(vista==='completa')delete document.body.dataset.compacto;
- else return;
+ if(vista!=='card'&&vista!=='completa')return;
  document.body.dataset.vista=vista;
+ if(projecaoDaMesa||projecaoPendenteJogador){
+  delete document.body.dataset.compacto;
+  vistaJogador=vista;
+  return;
+ }
+ if(vista==='card')document.body.dataset.compacto='1';
+ else delete document.body.dataset.compacto;
  if(vistaJogador!==vista){vistaJogador=vista;if(inicializadoApp)render();}
 }
 
@@ -919,6 +937,10 @@ async function sincronizarFichasDaSala(){
    armazenamento.salvarAtiva(state.id);
   }
   removerSinteticaSeIntacta(projecaoDaMesa?activeSheetId:state?.id);
+  if(projecaoPendenteJogador&&sheets.some(sheet=>sheet.id===projecaoPendenteJogador.fichaId)){
+   aplicarProjecaoDaMesa(projecaoPendenteJogador.fichaId,projecaoPendenteJogador.ficha);
+   return;
+  }
   if(!projecaoDaMesa){
    if(state&&!sheets.some(sheet=>sheet.id===state.id)){state=sheets[0];activeSheetId=state.id;}
    if(sheets.some(sheet=>sheet.id===state?.id))state=sheets.find(sheet=>sheet.id===state.id);
@@ -1736,18 +1758,28 @@ function bindRollLogItemEvents(container = document) {
 }
 
 function render(){
+ if(projecaoPendenteJogador&&!projecaoDaMesa){
+  editMode=false;
+  presentationMode=false;
+  app.innerHTML='';
+  return;
+ }
+ const emProjecao=Boolean(projecaoDaMesa);
  const isMobileScreen = window.matchMedia('(max-width: 768px), ((orientation: landscape) and (max-height: 620px))').matches;
- if (isMobileScreen) {
+ if (isMobileScreen || emProjecao) {
   editMode = false;
+ }
+ if (emProjecao) {
+  presentationMode = false;
  }
  const sheetChanged = lastRenderedSheetId !== state.id;
  lastRenderedSheetId = state.id;
- syncDraftBaseline();syncUnsavedBar();document.querySelectorAll('.cinematic-ghost-exit').forEach(el=>el.remove());document.body.classList.toggle('navigator-pinned',Boolean(sidebarNavigatorPinned&&sidebarNavigatorOpen));const isCinematic=(presentationMode||state.viewMode==='cinematic')&&state.systemMode!=='threat';const previousScroll={sheet:sheetChanged?0:(app.querySelector('.sheet-main')?.scrollTop||0),right:sheetChanged?0:(app.querySelector('.right-panel')?.scrollTop||0),traditionalPage:sheetChanged?0:(app.querySelector('.traditional-dossier-page')?.scrollTop||0),threatPage:sheetChanged?0:(app.querySelector('.threat-book-page')?.scrollTop||0),cinematicRight:sheetChanged?0:(app.querySelector('.cinematic-scroll')?.scrollTop||0),cinematicSkills:sheetChanged?0:(app.querySelector('.cinematic-skills>div')?.scrollTop||0),sheetSwitcher:app.querySelector('.sheet-switcher')?.scrollTop||0,vigiliaSkills:sheetChanged?0:(app.querySelector('.vigilia-skills-table')?.scrollTop||0),vigiliaAbilities:sheetChanged?0:(app.querySelector('.vigilia-abilities-list')?.scrollTop||0)};applyTheme();const bgIsVideo=!!(state.backgroundImage&&state.backgroundImage.startsWith('data:video/'));const trainingOptions=TRAINING.map(([label,value])=>({value:label,label,html:`${die(value,'menu-die',value>4)}<span>d${value} — ${label}</span>`})),aptidaoOptions=APTIDAO_FIELDS.map(value=>({value,label:value})),aptidaoCount=Array.isArray(state.skills)?state.skills.filter(s=>s.name.startsWith('APTIDÃO')).length:0;app.innerHTML=`
+ syncDraftBaseline();syncUnsavedBar();document.querySelectorAll('.cinematic-ghost-exit').forEach(el=>el.remove());document.body.classList.toggle('navigator-pinned',Boolean(!emProjecao&&sidebarNavigatorPinned&&sidebarNavigatorOpen));const isCinematic=(presentationMode||state.viewMode==='cinematic')&&state.systemMode!=='threat';const previousScroll={sheet:sheetChanged?0:(app.querySelector('.sheet-main')?.scrollTop||0),right:sheetChanged?0:(app.querySelector('.right-panel')?.scrollTop||0),traditionalPage:sheetChanged?0:(app.querySelector('.traditional-dossier-page')?.scrollTop||0),threatPage:sheetChanged?0:(app.querySelector('.threat-book-page')?.scrollTop||0),cinematicRight:sheetChanged?0:(app.querySelector('.cinematic-scroll')?.scrollTop||0),cinematicSkills:sheetChanged?0:(app.querySelector('.cinematic-skills>div')?.scrollTop||0),sheetSwitcher:app.querySelector('.sheet-switcher')?.scrollTop||0,vigiliaSkills:sheetChanged?0:(app.querySelector('.vigilia-skills-table')?.scrollTop||0),vigiliaAbilities:sheetChanged?0:(app.querySelector('.vigilia-abilities-list')?.scrollTop||0)};applyTheme();const bgIsVideo=!!(state.backgroundImage&&state.backgroundImage.startsWith('data:video/'));const trainingOptions=TRAINING.map(([label,value])=>({value:label,label,html:`${die(value,'menu-die',value>4)}<span>d${value} — ${label}</span>`})),aptidaoOptions=APTIDAO_FIELDS.map(value=>({value,label:value})),aptidaoCount=Array.isArray(state.skills)?state.skills.filter(s=>s.name.startsWith('APTIDÃO')).length:0;app.innerHTML=`
 
-	  <aside class="nav-rail compact-rail"><button class="nav-btn active main-sheet-icon" title="Ficha principal">${state.tokenImage?`<img src="${safeUrl(state.tokenImage)}" alt="" draggable="false">`:icon('sheet')}</button>${modoJogador?'':`<button type="button" class="nav-btn ${sidebarNavigatorOpen?'active':''}" data-toggle-navigator title="Navegador de pastas e fichas">${icon('folder',18)}</button><button class="nav-btn" ${state.systemMode==='original'?'data-open-compendium title="Compêndio"':'data-compendium title="Compêndio (em breve)"'}>${icon('book')}</button>`}<button type="button" class="nav-btn" data-open-presentation title="Modo de Apresentação / Seleção de Agentes (Dossiês)">${icon('presentation',18)}</button><button type="button" class="nav-btn btn-nav-roll-log" data-open-roll-log title="Histórico de rolagens (H)">${icon('history',18)}<span class="roll-log-badge ${rollLog.length?'visible':''}" id="nav-roll-badge">${rollLog.length||''}</span></button><div class="nav-separator"></div>${modoJogador?'':renderRailScopePills(sidebarScope,sheets)}${renderRailSwitcher(sheets,folders,state.id,{scope:sidebarScope,visibleFolderIds:appSettings.sidebarVisibleFolderIds,threatElement:threatFilterElement,threatVdRange:threatFilterVdRange,threatVdMin:threatFilterVdMin,threatVdMax:threatFilterVdMax,threatCategory:threatFilterCategory,threatSort:threatSort,safeUrl,semPastas:modoJogador})}<span class="nav-spacer"></span><button class="nav-btn" data-export-cinematic-image title="Exportar imagem da ficha cinematográfica (PNG HD)">${icon('camera')}</button><button class="nav-btn" data-export-json title="Exportar ficha em JSON">${icon('download')}</button><button class="nav-btn" data-import-json title="Importar ficha em JSON">${icon('upload')}</button><input type="file" id="json-file-input" accept=".json,application/json" style="display:none"><button class="nav-btn" data-save-sheet title="Salvar ficha (disco e navegador)">${icon('save')}</button><button class="nav-btn" data-critical-settings title="Configurar efeitos críticos">${icon('settings')}</button></aside>
+	  ${emProjecao?'':`<aside class="nav-rail compact-rail"><button class="nav-btn active main-sheet-icon" title="Ficha principal">${state.tokenImage?`<img src="${safeUrl(state.tokenImage)}" alt="" draggable="false">`:icon('sheet')}</button>${modoJogador?'':`<button type="button" class="nav-btn ${sidebarNavigatorOpen?'active':''}" data-toggle-navigator title="Navegador de pastas e fichas">${icon('folder',18)}</button><button class="nav-btn" ${state.systemMode==='original'?'data-open-compendium title="Compêndio"':'data-compendium title="Compêndio (em breve)"'}>${icon('book')}</button>`}<button type="button" class="nav-btn" data-open-presentation title="Modo de Apresentação / Seleção de Agentes (Dossiês)">${icon('presentation',18)}</button><button type="button" class="nav-btn btn-nav-roll-log" data-open-roll-log title="Histórico de rolagens (H)">${icon('history',18)}<span class="roll-log-badge ${rollLog.length?'visible':''}" id="nav-roll-badge">${rollLog.length||''}</span></button><div class="nav-separator"></div>${modoJogador?'':renderRailScopePills(sidebarScope,sheets)}${renderRailSwitcher(sheets,folders,state.id,{scope:sidebarScope,visibleFolderIds:appSettings.sidebarVisibleFolderIds,threatElement:threatFilterElement,threatVdRange:threatFilterVdRange,threatVdMin:threatFilterVdMin,threatVdMax:threatFilterVdMax,threatCategory:threatFilterCategory,threatSort:threatSort,safeUrl,semPastas:modoJogador})}<span class="nav-spacer"></span><button class="nav-btn" data-export-cinematic-image title="Exportar imagem da ficha cinematográfica (PNG HD)">${icon('camera')}</button><button class="nav-btn" data-export-json title="Exportar ficha em JSON">${icon('download')}</button><button class="nav-btn" data-import-json title="Importar ficha em JSON">${icon('upload')}</button><input type="file" id="json-file-input" accept=".json,application/json" style="display:none"><button class="nav-btn" data-save-sheet title="Salvar ficha (disco e navegador)">${icon('save')}</button><button class="nav-btn" data-critical-settings title="Configurar efeitos críticos">${icon('settings')}</button></aside>`}
 
-   ${modoJogador?'':renderWorkspaceNavigator(folders,sheets,state.id,{open:sidebarNavigatorOpen,pinned:sidebarNavigatorPinned,searchQuery:sidebarSearchQuery,scope:sidebarScope,visibleFolderIds:appSettings.sidebarVisibleFolderIds,recentSheetIds:appSettings.recentSheetIds,threatElement:threatFilterElement,threatVdRange:threatFilterVdRange,threatVdMin:threatFilterVdMin,threatVdMax:threatFilterVdMax,threatCategory:threatFilterCategory,threatSort:threatSort,threatGroupBy:threatGroupBy,threatFiltersOpen:threatFiltersOpen,virtualGroupsCollapsed:virtualGroupsCollapsed,safeUrl})}
-   ${quickSwitcherOpen?renderQuickSwitcherModal(sheets,folders,quickSwitcherQuery,quickSwitcherIndex,safeUrl):''}
+   ${emProjecao||modoJogador?'':renderWorkspaceNavigator(folders,sheets,state.id,{open:sidebarNavigatorOpen,pinned:sidebarNavigatorPinned,searchQuery:sidebarSearchQuery,scope:sidebarScope,visibleFolderIds:appSettings.sidebarVisibleFolderIds,recentSheetIds:appSettings.recentSheetIds,threatElement:threatFilterElement,threatVdRange:threatFilterVdRange,threatVdMin:threatFilterVdMin,threatVdMax:threatFilterVdMax,threatCategory:threatFilterCategory,threatSort:threatSort,threatGroupBy:threatGroupBy,threatFiltersOpen:threatFiltersOpen,virtualGroupsCollapsed:virtualGroupsCollapsed,safeUrl})}
+   ${!emProjecao&&quickSwitcherOpen?renderQuickSwitcherModal(sheets,folders,quickSwitcherQuery,quickSwitcherIndex,safeUrl):''}
 
   ${state.systemMode==='threat'
     ? renderThreatBook(state, editMode, { safeUrl, renderBackgroundLayer })
@@ -1758,24 +1790,24 @@ function render(){
             : (isCinematic?renderCinematic(trainingOptions,bgIsVideo):renderTraditional(trainingOptions,bgIsVideo,aptidaoOptions,aptidaoCount)))
     )
   }
-  ${modoJogador&&vistaJogador==='card'&&!projecaoDaMesa?`<button type="button" class="btn-expandir-ficha-online" data-cartao-completa title="Expandir ficha completa">${icon('presentation',14)} Expandir ficha</button>`:''}
+  ${modoJogador&&vistaJogador==='card'&&!emProjecao?`<button type="button" class="btn-expandir-ficha-online" data-cartao-completa title="Expandir ficha completa">${icon('presentation',14)} Expandir ficha</button>`:''}
 	 ${(isCinematic || state.viewMode === 'vigilia')?renderCriticalAtmosphere():''}
-	 ${state.systemMode==='threat'?'':`<div class="view-mode-switch ${viewSwitchCollapsed?'collapsed':'expanded'}">${viewSwitchCollapsed?`<button type="button" class="view-mode-trigger" data-toggle-view-switch title="Alternar modo de exibição (Clique para expandir)">${state.viewMode==='vigilia'?icon('shield',14):(isCinematic?icon('film',14):icon('grid',14))}<span>${state.viewMode==='vigilia'?'VIGÍLIA':(isCinematic?'CINEMA':'PADRÃO')}</span><i class="switch-arrow">▾</i></button>`:`<button type="button" class="${state.viewMode==='traditional'&&!presentationMode?'active':''}" data-display-mode="traditional">${icon('grid',14)}<span>TRADICIONAL</span></button><button type="button" class="${isCinematic&&!presentationMode?'active':''}" data-display-mode="cinematic">${icon('film',14)}<span>CINEMATOGRÁFICO</span></button><button type="button" class="${state.viewMode==='vigilia'?'active':''}" data-display-mode="vigilia">${icon('shield',14)}<span>A VIGÍLIA</span></button><button type="button" class="${presentationMode?'active':''}" data-open-presentation title="Modo de Apresentação">${icon('presentation',14)}<span>APRESENTAÇÃO</span></button><button type="button" class="btn-collapse-switch" data-toggle-view-switch title="Recolher menu">${icon('chevron',12)}</button>`}</div>`}
-  ${editMode?`<div class="edit-status active"><span></span>MODO DE EDIÇÃO — TEMA ÂMBAR</div>`:''}<div class="floating"><button class="${editMode?'active':''}" data-toggle-edit title="${editMode?'Fechar edição':'Editar ficha'}">${editMode?icon('close'):icon('edit')}</button></div><div class="save-toast" id="save-toast">SALVO</div>
+	 ${emProjecao||state.systemMode==='threat'?'':`<div class="view-mode-switch ${viewSwitchCollapsed?'collapsed':'expanded'}">${viewSwitchCollapsed?`<button type="button" class="view-mode-trigger" data-toggle-view-switch title="Alternar modo de exibição (Clique para expandir)">${state.viewMode==='vigilia'?icon('shield',14):(isCinematic?icon('film',14):icon('grid',14))}<span>${state.viewMode==='vigilia'?'VIGÍLIA':(isCinematic?'CINEMA':'PADRÃO')}</span><i class="switch-arrow">▾</i></button>`:`<button type="button" class="${state.viewMode==='traditional'&&!presentationMode?'active':''}" data-display-mode="traditional">${icon('grid',14)}<span>TRADICIONAL</span></button><button type="button" class="${isCinematic&&!presentationMode?'active':''}" data-display-mode="cinematic">${icon('film',14)}<span>CINEMATOGRÁFICO</span></button><button type="button" class="${state.viewMode==='vigilia'?'active':''}" data-display-mode="vigilia">${icon('shield',14)}<span>A VIGÍLIA</span></button><button type="button" class="${presentationMode?'active':''}" data-open-presentation title="Modo de Apresentação">${icon('presentation',14)}<span>APRESENTAÇÃO</span></button><button type="button" class="btn-collapse-switch" data-toggle-view-switch title="Recolher menu">${icon('chevron',12)}</button>`}</div>`}
+  ${emProjecao?'':`${editMode?`<div class="edit-status active"><span></span>MODO DE EDIÇÃO — TEMA ÂMBAR</div>`:''}<div class="floating"><button class="${editMode?'active':''}" data-toggle-edit title="${editMode?'Fechar edição':'Editar ficha'}">${editMode?icon('close'):icon('edit')}</button></div>`}<div class="save-toast" id="save-toast">SALVO</div>
 
   <div id="dice-stage"><canvas id="dice-canvas"></canvas><div class="stage-fumble-desat" aria-hidden="true"></div><div id="dice-stage-result"></div></div>
 	 <div class="modal skill-info-modal" id="skill-info-modal"><div class="backdrop skill-info-backdrop"></div><section><button class="skill-info-close">${icon('close')}</button><small>PERÍCIA</small><h2 id="skill-info-title"></h2><p id="skill-info-copy"></p><footer id="skill-info-attribute"></footer></section></div>
 	 ${renderCriticalSettings()}
-  ${state.systemMode === 'ordem2' ? renderVigiliaDock(state) + renderVigiliaModals(state) : ''}
+  ${!emProjecao && state.systemMode === 'ordem2' ? renderVigiliaDock(state) + renderVigiliaModals(state) : ''}
   <div class="modal slot-fill-modal" id="slot-fill-modal"><div class="backdrop slot-fill-backdrop"></div><section><button type="button" class="slot-fill-close">${icon('close')}</button><small id="slot-fill-subtitle">PREENCHER ESPAÇO</small><h2 id="slot-fill-title">VALOR DO DADO</h2><p id="slot-fill-info"></p><div class="slot-fill-actions"><button type="button" class="btn-slot-roll" id="btn-slot-roll-die">${icon('d20',15)} ROLAR 1d6</button><div class="slot-quick-numbers"><button type="button" data-pick-val="1">1</button><button type="button" data-pick-val="2">2</button><button type="button" data-pick-val="3">3</button><button type="button" data-pick-val="4">4</button><button type="button" data-pick-val="5">5</button><button type="button" data-pick-val="6">6</button></div><div class="slot-manual-entry"><label>OUTRO VALOR<input type="number" id="slot-manual-val" min="1" max="99" placeholder="Ex: 4"></label><button type="button" id="btn-slot-confirm-manual">CONFIRMAR</button></div></div></section></div>
   <div class="modal card-editor" id="card-editor"><div class="backdrop editor-backdrop"></div><form id="card-form"><header><div><small>EDITOR DE CARD</small><h2 id="editor-title">NOVA HABILIDADE</h2></div><button type="button" class="editor-close">${icon('close')}</button></header><div class="editor-grid"><label class="span-2">TÍTULO<input name="title" maxlength="64" required></label><label>COLEÇÃO${customSelect({value:'abilities',options:[{value:'abilities',label:'Habilidades'},{value:'items',label:'Itens'}],id:'editor-schema',formName:'schema',className:'editor-select'})}</label><label>TIPO<input name="type" placeholder="Habilidade"></label><label>CUSTO<input name="cost" placeholder="Ex: 2 PD ou 1d4 PV"></label><label>ÍCONE<input name="icon" maxlength="3" placeholder="◆"></label><label>COR<input name="accent" type="color" value="#e91d25"></label><label>USAR COR${customSelect({value:'profile',options:[{value:'profile',label:'Do perfil'},{value:'custom',label:'Personalizada'}],id:'editor-color-mode',formName:'colorMode',className:'editor-select'})}</label><label>APRESENTAÇÃO${customSelect({value:'standard',options:[{value:'standard',label:'Padrão'},{value:'compact',label:'Compacto'},{value:'featured',label:'Destaque'}],id:'editor-layout',formName:'layout',className:'editor-select'})}</label><label>INICIAR${customSelect({value:'false',options:[{value:'false',label:'Expandido'},{value:'true',label:'Recolhido'}],id:'editor-collapsed',formName:'collapsed',className:'editor-select'})}</label><label class="span-2">URL DA IMAGEM<input name="imageUrl" type="url" placeholder="https://..."></label><label class="span-2 content-editor-label">CONTEÚDO<div class="rich-toolbar"><button type="button" data-format="bold"><b>B</b></button><button type="button" data-format="italic"><i>I</i></button><button type="button" data-format="underline"><u>U</u></button><span class="color-picker" title="Cor do texto"><input id="content-color" type="color" value="#67a2ff"><span>A</span></span><button type="button" data-format="color">APLICAR COR</button></div><textarea name="content" rows="5" placeholder="Descrição e regras do card..."></textarea></label>
   <section class="span-2 builder-section"><header><div><b>MARCADORES</b><small>Contador, barra, cargas ou liga/desliga. Fórmulas aceitam @{level}, @{pv} e atributos.</small></div><button type="button" data-add-marker>+ ADICIONAR</button></header><div id="marker-builder"></div></section>
    <section class="span-2 builder-section"><header><div><b>AÇÕES</b><small>Expressões como 2d6 + 1d8 + @{level}.</small></div><button type="button" data-add-action>+ ADICIONAR</button></header><div id="action-builder"></div></section>
    <section class="span-2 builder-section"><header><div><b>MODIFICADORES / BUFFS & NERFS</b><small>Bônus ou penalidades em perícias/testes (ex: –1 em Percepção, +2 em Ataque). Passivas ou ativáveis.</small></div><button type="button" data-add-modifier>+ ADICIONAR</button></header><div id="modifier-builder"></div></section></div><footer><button type="button" class="delete-card">EXCLUIR</button><span></span><button type="button" class="editor-close secondary">CANCELAR</button><button type="submit">SALVAR CARD</button></footer></form></div>
   <div class="modal system-select-modal" id="system-select-modal" style="display:none;"><div class="backdrop" data-close-system-modal></div><section><button type="button" class="skill-info-close" data-close-system-modal>${icon('close')}</button><small style="color:var(--red);font-weight:800;letter-spacing:.15em;">NOVA FICHA</small><h2>ESCOLHA O TIPO DE FICHA</h2><p>Selecione a base mecânica para esta nova ficha. Todas as fichas coexistem na sua base de dados organizada por pastas.</p><div class="system-options-grid"><div class="system-option-card card-v2" data-create-system="ordem2"><span class="badge-system-sigil">SISTEMA II</span><h3>ORDEM PARANORMAL II</h3><p>Playtest Alpha de "A Maldição do Ídolo de Pedra". Atributos em dados (Físico, Mente, Emoção), Pontos de Determinação, Perfis táticos e cards interativos.</p></div><div class="system-option-card card-original" data-create-system="original"><span class="badge-system-sigil">SISTEMA ORIGINAL</span><h3>ORDEM PARANORMAL RPG</h3><p>Sistema clássico de regras d20. 5 Atributos (AGI, FOR, INT, PRE, VIG), Classes, Trilhas, NEX% (0-99%), Sanidade, Esforço, 28 Perícias d20, Rituais e Inventário.</p></div><div class="system-option-card card-threat" data-create-system="threat"><span class="badge-system-sigil">AMEAÇA DA REALIDADE</span><h3>AMEAÇA / CRIATURA</h3><p>Ficha de criatura paranormal ou inimigo com VD (Valor de Desafio), Elementos do Outro Lado, Ações padrão/livre, Ataques e Habilidades de combate.</p></div></div></section></div>
-  ${renderBottomNav()}
+  ${emProjecao?'':`${renderBottomNav()}
   ${renderMobileSheetDrawer(sheets,folders,state.id,{open:sheetDrawerOpen,searchQuery:mobileSearchQuery,rollLogCount:rollLog.length,viewMode:state.viewMode,safeUrl,semPastas:modoJogador})}
-  <button type="button" class="mobile-landscape-trigger" data-sheet-drawer title="Fichas & Modelos" aria-label="Abrir Fichas e Modelos">${state.tokenImage?`<img src="${safeUrl(state.tokenImage)}" alt="" class="mobile-avatar-thumb">`:icon('sheet',18)}</button>
+  <button type="button" class="mobile-landscape-trigger" data-sheet-drawer title="Fichas & Modelos" aria-label="Abrir Fichas e Modelos">${state.tokenImage?`<img src="${safeUrl(state.tokenImage)}" alt="" class="mobile-avatar-thumb">`:icon('sheet',18)}</button>`}
   ${renderRollLogDrawer()}
   ${isCinematic?renderMobileOrientationPrompt():''}
   ${modoJogador?'':renderBestiaryUnlockModalHtml()}
@@ -4382,6 +4414,7 @@ function bindVigiliaEvents() {
  document.querySelectorAll('[data-set-relation]').forEach(btn => {
   btn.onclick = (e) => {
    e.stopPropagation();
+   if (projecaoDaMesa) return;
    const [target, degStr] = btn.dataset.setRelation.split(':');
    const degree = Number(degStr) || 0;
    if (!Array.isArray(state.relations)) state.relations = [];
@@ -4400,6 +4433,7 @@ function bindVigiliaEvents() {
  document.querySelectorAll('[data-reset-relations]').forEach(btn => {
   btn.onclick = (e) => {
    e.stopPropagation();
+   if (projecaoDaMesa) return;
    if (Array.isArray(state.relations)) {
     state.relations.forEach(r => r.invoked = false);
     save(false);
@@ -4417,6 +4451,7 @@ function bindVigiliaEvents() {
  document.querySelectorAll('[data-invoke-relation]').forEach(btn => {
   btn.onclick = (e) => {
    e.stopPropagation();
+   if (projecaoDaMesa) return;
    const [target, degStr] = btn.dataset.invokeRelation.split(':');
    const degree = Number(degStr) || 1;
    const rel = state.relations?.find(r => r.target === target) || { target, degree, feeling: 'AMIZADE', note: '' };
@@ -6688,6 +6723,10 @@ const aplicarChegadaNaSala = ({ ficha, propria, autor }) => {
   armazenamento.marcarEnviada?.(nova);   // a versão normalizada é a que a sala tem: sem isto a próxima gravação a reenviaria, sem mudança nenhuma
   if (i >= 0) sheets[i] = nova; else sheets.push(nova);
   const alvoPendente = fichaPendenteJogador && sheets.some(sheet => sheet.id === fichaPendenteJogador) ? fichaPendenteJogador : null;
+  if (projecaoPendenteJogador && projecaoPendenteJogador.fichaId === nova.id) {
+    aplicarProjecaoDaMesa(nova.id, nova);
+    return;
+  }
   if (projecaoDaMesa) {
     if (alvoPendente) {
       fichaPendenteJogador = null;
@@ -6765,6 +6804,9 @@ if (state.systemMode === 'threat') {
  state.viewMode = 'livro';
 }
 activeSheetId = state.id;
+if (projecaoPendenteJogador) {
+ aplicarProjecaoDaMesa(projecaoPendenteJogador.fichaId, projecaoPendenteJogador.ficha);
+}
 initOriginalCompendium({
  getSheet:()=>state,
  isOriginal:()=>state.systemMode==='original',
@@ -6812,9 +6854,8 @@ if (modoJogador) {
   inicializadoModoJogador = true;
   while (mudancasPendentesSala.length) aplicarChegadaNaSala(mudancasPendentesSala.shift());
   while (removidasPendentesSala.length) aplicarRemocaoNaSala(removidasPendentesSala.shift());
-  if (projecaoPendenteJogador) {
+  if (projecaoPendenteJogador && (projecaoPendenteJogador.ficha || sheets.some(sheet => sheet.id === projecaoPendenteJogador.fichaId))) {
     aplicarProjecaoDaMesa(projecaoPendenteJogador.fichaId, projecaoPendenteJogador.ficha);
-    projecaoPendenteJogador = null;
   }
 }
 
@@ -6947,6 +6988,7 @@ if (modoJogador && typeof window !== 'undefined' && window.parent !== window) {
 iniciarMesa({
   fichas: () => sheets,
   daSala: () => (barramentoDoMestre ? sheets.filter(sheet => sheet.folderId === PASTA_SALA).map(sheet => sheet.id) : []),
+  salaConectada: () => !!salaMestre,
   donoDaSala: id => (salaMestre ? donoDoPersonagem(salaMestre, id) : null),
   aberta: () => state,
   abrir: id => switchToSheet(id),

@@ -9,6 +9,9 @@
 // Na primeira vez que a Ficha vê uma campanha com esta regra, tira dela os personagens que a própria Ficha publicou em massa e que ninguém
 // usa (fora do elenco, sem ligação e fora de todo roteiro).
 import { abrirRepositorioCampanha, criarBarramento, criarRef } from '../vendor/mesa-core/index.js';
+import { fichaParaSala } from './armazenamento.js';
+
+export const CANAL_PROJECAO_DOSSIE = 'mesa:dossie-projecao';
 
 const CHAVE_CAMPANHA_ATIVA = 'mesa:campanha-ativa';
 /** Ids de todas as fichas que esta Ficha já viu. Uma ficha fora daqui é nova: entra na campanha ativa. */
@@ -240,12 +243,18 @@ export async function iniciarMesa(ficha, ambiente = {}) {
         const novas = new Set(conhecidas ? publicaveis.filter(x => !conhecidas.has(String(x.id))).map(x => String(x.id)) : []);
         const marcarConhecidas = () => { if (!todas.length) return; const c = conhecidas ?? new Set(); for (const x of todas) c.add(String(x.id)); gravarConjunto(CHAVE_CONHECIDAS, c); };
         const campanhaId = campanhaAtiva();
-        // As fichas da sala (R13): lembradas entre sessões, porque a Ficha do mestre só as vê com a Mesa online conectada.
+        // As fichas da sala (R13): lembradas entre sessões quando a sala está desconectada; quando conectada, vale apenas a lista atual da sala.
         const idsDaSala = new Set((ficha.daSala?.() ?? []).map(String));
-        const daSala = lerConjunto(CHAVE_DA_SALA) ?? new Set();
-        const antesDaSala = daSala.size;
-        for (const id of idsDaSala) daSala.add(id);
-        if (daSala.size !== antesDaSala) gravarConjunto(CHAVE_DA_SALA, daSala);
+        const conectada = typeof ficha.salaConectada === 'function' ? !!ficha.salaConectada() : idsDaSala.size > 0;
+        let daSala;
+        if (conectada) {
+            daSala = new Set(idsDaSala);
+            const salvo = lerConjunto(CHAVE_DA_SALA);
+            const mudouSala = !salvo || salvo.size !== daSala.size || [...daSala].some(id => !salvo.has(id));
+            if (mudouSala) gravarConjunto(CHAVE_DA_SALA, daSala);
+        } else {
+            daSala = lerConjunto(CHAVE_DA_SALA) ?? new Set();
+        }
         try {
             if (!campanhaId || !(await repositorio.obterCampanha(campanhaId))) { presentes = new Set(); campanhaDasPresentes = null; marcarConhecidas(); return; }
             barramento.campanhaId = campanhaId;
@@ -295,12 +304,12 @@ export async function iniciarMesa(ficha, ambiente = {}) {
                 assinaturas.set(sheet.id, assinatura);
                 if (++lidas % 6 === 0) await respirar();      // dezenas de fichas com retrato: não prende a tela
             }
-            // Ficha apagada na Ficha: a entidade que ela publicou sai da campanha (só as que a Ficha criou). Lista vazia não apaga nada: pode ser a Ficha ainda carregando.
-            if (todas.length) {
-                const vivas = new Set(todas.map(x => x.id));
+            // Ficha apagada na Ficha (ou sala recriada sem ela): a entidade que ela publicou sai da campanha (só as que a Ficha criou). Lista vazia sem sala conectada não apaga nada: pode ser a Ficha ainda carregando.
+            if (todas.length || conectada) {
+                const vivas = new Set(todas.map(x => String(x.id)));
                 for (const e of await repositorio.listarEntidades(campanhaId)) {
                     const r = e.refs.find(x => x.app === 'ficha' && x.tipo === 'ficha');
-                    if (e.criadaPor === 'ficha' && r && !vivas.has(r.id) && !daSala.has(r.id)) { await repositorio.removerEntidade(e.id); assinaturas.delete(r.id); ultimosRecursos.delete(r.id); }
+                    if (e.criadaPor === 'ficha' && r && !vivas.has(String(r.id)) && (conectada || !daSala.has(String(r.id)))) { await repositorio.removerEntidade(e.id); assinaturas.delete(r.id); ultimosRecursos.delete(r.id); }
                 }
             }
             gravarAssinaturas(campanhaId);
@@ -416,11 +425,29 @@ export async function iniciarMesa(ficha, ambiente = {}) {
         publicarRecursos(sheet);
         return { ok: true, ...(recursosDaFicha(sheet) ?? {}) };
     });
+    let canalProjecao = null;
+    try {
+        canalProjecao = typeof ambiente.criarCanalProjecao === 'function'
+            ? ambiente.criarCanalProjecao(CANAL_PROJECAO_DOSSIE)
+            : (typeof globalThis.BroadcastChannel === 'function' && (!ambiente.BroadcastChannel || ambiente.BroadcastChannel === globalThis.BroadcastChannel)
+                ? new BC(CANAL_PROJECAO_DOSSIE)
+                : null);
+    } catch { canalProjecao = null; }
+    if (canalProjecao) {
+        canalProjecao.onmessage = ev => {
+            const msg = ev?.data;
+            if (!msg || msg.tipo !== 'pedir-ficha' || typeof msg.reqId !== 'string' || typeof msg.id !== 'string') return;
+            const encontrada = ficha.fichas().find(s => String(s?.id) === String(msg.id)) ?? null;
+            const payload = encontrada ? fichaParaSala(encontrada) : null;
+            try { canalProjecao.postMessage({ tipo: 'ficha', reqId: msg.reqId, id: msg.id, ficha: payload }); } catch { /* ignora */ }
+        };
+    }
+
     const aoMudarCampanha = event => { if (event.key === CHAVE_CAMPANHA_ATIVA) agendar(); };
     globalThis.addEventListener?.('storage', aoMudarCampanha);
     agendar();
     return {
         publicarRolagem, publicarRecursos, sincronizar, agendar, levarParaCampanha, tirarDaCampanha, naCampanha, temCampanha,
-        parar() { clearTimeout(temporizador); globalThis.removeEventListener?.('storage', aoMudarCampanha); barramento.fechar(); },
+        parar() { clearTimeout(temporizador); globalThis.removeEventListener?.('storage', aoMudarCampanha); canalProjecao?.close?.(); barramento.fechar(); },
     };
 }

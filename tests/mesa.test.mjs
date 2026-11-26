@@ -51,8 +51,8 @@ async function cenario(sheets, ganchos = {}) {
     eventos.push(m);
     postOriginal(m);
   };
-  const { semHistorico: _s, ...resto } = ganchos;
-  const mesa = await iniciarMesa({ fichas: () => sheets, aberta: () => sheets[0] ?? null, abrir() {}, ...resto }, { BroadcastChannel: class {}, criarCanal: () => canalFicha, indexedDB: idb });
+  const { semHistorico: _s, criarCanalProjecao, ...resto } = ganchos;
+  const mesa = await iniciarMesa({ fichas: () => sheets, aberta: () => sheets[0] ?? null, abrir() {}, ...resto }, { BroadcastChannel: class {}, criarCanal: () => canalFicha, ...(criarCanalProjecao ? { criarCanalProjecao } : {}), indexedDB: idb });
   const entidades = async () => (await emissor.listarEntidades(campanha.id)).map(e => ({ nome: e.nome, tipo: e.tipo, criadaPor: e.criadaPor, ficha: e.refs.find(r => r.app === 'ficha')?.id }));
   return { mesa, emissor, campanha, eventos, guardado, entidades, criarCanal };
 }
@@ -427,4 +427,81 @@ test('publicarRecursos envia luzes em ficha.recursos e republica ao adicionar/re
     assert.equal(enviados().length, 2);
     assert.equal('luzes' in enviados()[1], false);
   } finally { mesaSala.parar(); }
+});
+
+test('fichas da sala (Bug 1): ao conectar em nova sala, remove entidades de salas deletadas (inclusive com tag dono:) e atualiza mesa:ficha-da-sala', async () => {
+  const local = { id: 'local-1', name: 'Local', systemMode: 'ordem2' };
+  const muirenn1 = { id: 'muirenn-sala-1', name: 'Muirenn da Lua Pálida', systemMode: 'ordem2' };
+  const agente1 = { id: 'agente-sala-1', name: 'AGENTE 1', systemMode: 'ordem2' };
+  const muirenn2 = { id: 'muirenn-sala-2', name: 'Muirenn da Lua Pálida', systemMode: 'ordem2' };
+  const sheets = [local, muirenn1, agente1];
+  let ids = ['muirenn-sala-1', 'agente-sala-1'];
+  let conectada = true;
+  let donos = { 'muirenn-sala-1': 'JogadorA', 'muirenn-sala-2': 'JogadorB' };
+  const { mesa, campanha, emissor, guardado } = await cenario(sheets, {
+    daSala: () => ids,
+    salaConectada: () => conectada,
+    donoDaSala: id => donos[id] ?? null,
+  });
+  const ver = async () => (await emissor.listarEntidades(campanha.id)).map(e => `${e.nome}:${e.refs.find(r => r.app === 'ficha')?.id}:${e.tags.join(',')}`).sort();
+  try {
+    guardado.set('mesa:ficha-conhecidas', '["local-1"]');
+    await mesa.sincronizar();
+    assert.deepEqual(await ver(), [
+      'AGENTE 1:agente-sala-1:',
+      'Muirenn da Lua Pálida:muirenn-sala-1:dono:JogadorA',
+    ]);
+    assert.deepEqual(JSON.parse(guardado.get('mesa:ficha-da-sala')).sort(), ['agente-sala-1', 'muirenn-sala-1']);
+
+    // Sala desconecta temporariamente: entidades da sala anterior permanecem
+    conectada = false;
+    sheets.length = 0; sheets.push(local); ids = [];
+    await mesa.sincronizar();
+    assert.equal((await ver()).length, 2);
+
+    // Mestre deleta a sala antiga e cria uma nova sala com outra Muirenn
+    conectada = true;
+    sheets.length = 0; sheets.push(local, muirenn2); ids = ['muirenn-sala-2'];
+    await mesa.sincronizar();
+    assert.deepEqual(await ver(), [
+      'Muirenn da Lua Pálida:muirenn-sala-2:dono:JogadorB',
+    ]);
+    assert.deepEqual(JSON.parse(guardado.get('mesa:ficha-da-sala')), ['muirenn-sala-2']);
+
+    // Nova sala vazia (0 fichas): remove a ficha da sala anterior e limpa mesa:ficha-da-sala
+    sheets.length = 0; sheets.push(local); ids = [];
+    await mesa.sincronizar();
+    assert.deepEqual(await ver(), []);
+    assert.deepEqual(JSON.parse(guardado.get('mesa:ficha-da-sala')), []);
+  } finally { mesa.parar(); }
+});
+
+test('canal mesa:dossie-projecao responde pedir-ficha com ficha completa (sem pasta virtual) ou null', async () => {
+  const sheets = [
+    { id: 'local-1', name: 'Alan', systemMode: 'ordem2', folderId: 'folder-characters', pv: 10, maxPv: 12 },
+    { id: 'sala-1', name: 'Muirenn', systemMode: 'ordem2', folderId: 'folder-sala', pv: 15, maxPv: 15 },
+  ];
+  const respostas = [];
+  let canal = null;
+  const { mesa } = await cenario(sheets, {
+    criarCanalProjecao: () => {
+      canal = {
+        onmessage: null,
+        postMessage(m) { respostas.push(m); },
+        close() {},
+      };
+      return canal;
+    },
+  });
+  try {
+    assert.ok(canal && typeof canal.onmessage === 'function');
+    canal.onmessage({ data: { tipo: 'pedir-ficha', reqId: 'r1', id: 'local-1' } });
+    canal.onmessage({ data: { tipo: 'pedir-ficha', reqId: 'r2', id: 'sala-1' } });
+    canal.onmessage({ data: { tipo: 'pedir-ficha', reqId: 'r3', id: 'inexistente' } });
+
+    assert.equal(respostas.length, 3);
+    assert.deepEqual(respostas[0], { tipo: 'ficha', reqId: 'r1', id: 'local-1', ficha: sheets[0] });
+    assert.deepEqual(respostas[1], { tipo: 'ficha', reqId: 'r2', id: 'sala-1', ficha: { id: 'sala-1', name: 'Muirenn', systemMode: 'ordem2', pv: 15, maxPv: 15 } });
+    assert.deepEqual(respostas[2], { tipo: 'ficha', reqId: 'r3', id: 'inexistente', ficha: null });
+  } finally { mesa.parar(); }
 });
