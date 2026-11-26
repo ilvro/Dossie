@@ -821,8 +821,85 @@ let state=normalizeSheet();
 let activeSheetId=state.id;
 let lastRenderedSheetId=state.id;
 let _suppressVigiliaScrollFx=false;
+let fichaSinteticaSalaId=null;
+let inicializadoApp=false;
+let inicializadoModoJogador=false;
+let fichaPendenteJogador=null;
+let vistaPendenteJogador=null;
+const mudancasPendentesSala=[];
+const removidasPendentesSala=[];
 // A ligação com a mesa (src/mesa.js): começa vazia e vira a real quando a plataforma responde.
 let mesa={publicarRolagem(){},publicarRecursos(){},agendar(){},naCampanha:()=>false,temCampanha:()=>false,async levarParaCampanha(){return{ok:false};},async tirarDaCampanha(){return{ok:false};}};
+
+function removerSinteticaSeIntacta(novoIdAlvo){
+ if(!fichaSinteticaSalaId||fichaSinteticaSalaId===novoIdAlvo)return;
+ if(editMode&&state?.id===fichaSinteticaSalaId)return;
+ if(dirtySheets.has(fichaSinteticaSalaId))return;
+ if(!sheets.some(sheet=>sheet.id!==fichaSinteticaSalaId))return;
+ sheets=sheets.filter(sheet=>sheet.id!==fichaSinteticaSalaId);
+ fichaSinteticaSalaId=null;
+}
+
+function aplicarVistaJogador(vista){
+ if(vista==='card')document.body.dataset.compacto='1';
+ else if(vista==='completa')delete document.body.dataset.compacto;
+ else return;
+ document.body.dataset.vista=vista;
+ if(vistaJogador!==vista){vistaJogador=vista;if(inicializadoApp)render();}
+}
+
+let sincronizandoSala=null;
+async function sincronizarFichasDaSala(){
+ if(!modoJogador)return;
+ if(sincronizandoSala)return sincronizandoSala;
+ sincronizandoSala=(async()=>{
+  const {fichas:salvas,ativaId}=await armazenamento.carregar();
+  if(!salvas.length)return;
+  const novas=salvas.map(normalizeSheet);
+  for(const nova of novas){
+   const i=sheets.findIndex(sheet=>sheet.id===nova.id);
+   if(i>=0){if(!dirtySheets.has(nova.id))sheets[i]=nova;}
+   else sheets.push(nova);
+  }
+  const desejado=(fichaPendenteJogador&&sheets.some(sheet=>sheet.id===fichaPendenteJogador)?fichaPendenteJogador:null)
+   ||(ativaId&&sheets.some(sheet=>sheet.id===ativaId)?ativaId:null);
+  if(desejado){
+   fichaPendenteJogador=null;
+   state=sheets.find(sheet=>sheet.id===desejado)||state;
+   activeSheetId=state.id;
+   armazenamento.salvarAtiva(state.id);
+  }else if(state?.id===fichaSinteticaSalaId&&!editMode&&!dirtySheets.has(fichaSinteticaSalaId)){
+   state=sheets.find(sheet=>sheet.id!==fichaSinteticaSalaId)||state;
+   activeSheetId=state.id;
+   armazenamento.salvarAtiva(state.id);
+  }
+  removerSinteticaSeIntacta(state?.id);
+  if(state&&!sheets.some(sheet=>sheet.id===state.id)){state=sheets[0];activeSheetId=state.id;}
+  if(sheets.some(sheet=>sheet.id===state?.id))state=sheets.find(sheet=>sheet.id===state.id);
+  render();
+ })().finally(()=>{sincronizandoSala=null;});
+ return sincronizandoSala;
+}
+
+function abrirFichaDaCasca(fichaId){
+ if(!fichaId)return;
+ if(!inicializadoApp){
+  fichaPendenteJogador=fichaId;
+  return;
+ }
+ if(sheets.some(sheet=>sheet.id===fichaId)){
+  fichaPendenteJogador=null;
+  if(state?.id===fichaId){
+   removerSinteticaSeIntacta(fichaId);
+   render();
+   return;
+  }
+  switchToSheet(fichaId);
+  return;
+ }
+ fichaPendenteJogador=fichaId;
+ if(modoJogador)void sincronizarFichasDaSala();
+}
 
 async function loadInitialSheets(){
  try{
@@ -834,7 +911,13 @@ async function loadInitialSheets(){
  let loaded=salvas.length?salvas.map(normalizeSheet):null;
  // Na sala só existem as fichas do jogador: nada de fichas padrão. Sem nenhuma, nasce uma em branco (só vai à sala quando ele a editar).
  if(modoJogador){
-  if(!loaded||!loaded.length)loaded=[normalizeSheet({name:'AGENTE 1',systemMode:'ordem2',folderId:'folder-characters',viewMode:'cinematic'})];
+  if(!loaded||!loaded.length){
+   const sintetica=normalizeSheet({name:'AGENTE 1',systemMode:'ordem2',folderId:'folder-characters',viewMode:'cinematic'});
+   fichaSinteticaSalaId=sintetica.id;
+   loaded=[sintetica];
+  }else{
+   fichaSinteticaSalaId=null;
+  }
  }else
  // Fallback: fichas padrão embutidas no bundle (primeira visita ao site estático)
  if(!loaded||!loaded.length){
@@ -849,7 +932,11 @@ async function loadInitialSheets(){
   }
  }
  sheets=migrateSheetsFolders(loaded.map(normalizeSheet));
- state=sheets.find(sheet=>sheet.id===storedActiveId)||sheets[0];
+ const alvoInicial=(fichaPendenteJogador&&sheets.some(sheet=>sheet.id===fichaPendenteJogador))
+  ?fichaPendenteJogador
+  :storedActiveId;
+ state=sheets.find(sheet=>sheet.id===alvoInicial)||sheets[0];
+ if(fichaPendenteJogador&&state?.id===fichaPendenteJogador)fichaPendenteJogador=null;
  if(state?.cinematicCollapsed)state.cinematicCollapsed.abilities=false;
  activeSheetId=state.id;
 }
@@ -1816,6 +1903,7 @@ function empurrarEstadoParaCampos(){
 }
 function save(showToast=true,toastMsg='SALVO',commit=false){
  collectActiveInputs();
+ if(state?.id===fichaSinteticaSalaId)fichaSinteticaSalaId=null;
  const index=sheets.findIndex(sheet=>sheet.id===state.id);
  if(index>=0)sheets[index]=state; else sheets.push(state);
  if(commit){
@@ -3611,6 +3699,7 @@ function switchToSheet(targetId) {
  const doSwitch = () => {
   state = sheets.find(sheet => sheet.id === targetId) || state;
   activeSheetId = state.id;
+  removerSinteticaSeIntacta(state.id);
   armazenamento.salvarAtiva(state.id);
   if (presentationMode) {
    if (state.systemMode === 'threat') {
@@ -6495,7 +6584,87 @@ document.addEventListener('gesturestart',event=>{if(document.body.classList.cont
 document.addEventListener('visibilitychange',syncCriticalAtmosphere);
 document.addEventListener('pointerdown',()=>{const context=getUiAudioContext();if(context?.state==='running')syncCriticalAtmosphere();else context?.resume?.().then(syncCriticalAtmosphere).catch(()=>{})},{once:true,capture:true});
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}),{once:true});
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  if (new URLSearchParams(location.search).get('compacto') === '1') {
+    document.body.dataset.compacto = '1';
+  }
+  window.addEventListener('message', ev => {
+    if (ev.origin !== location.origin) return;
+    if (ev.data?.tipo === 'dossie:abrir-ficha' && ev.data.fichaId) {
+      abrirFichaDaCasca(ev.data.fichaId);
+    } else if (modoJogador && window.parent !== window && ev.source === window.parent && ev.data?.tipo === 'dossie.vista') {
+      if (!inicializadoApp) vistaPendenteJogador = ev.data.vista;
+      else aplicarVistaJogador(ev.data.vista);
+    }
+  });
+}
+
+const avisoDaSala = texto => {
+  const toast = document.querySelector('#save-toast');
+  if (!toast) return;
+  toast.textContent = texto; toast.classList.add('show');
+  setTimeout(() => { toast.classList.remove('show'); toast.textContent = 'SALVO'; }, 2600);
+};
+const aplicarChegadaNaSala = ({ ficha, propria, autor }) => {
+  const nova = normalizeSheet(clone(ficha));
+  const i = sheets.findIndex(sheet => sheet.id === nova.id);
+  if (propria && i >= 0) return;
+  if (i >= 0 && dirtySheets.has(nova.id)) {
+    if (!propria) {
+      const quem = autor?.papel === 'mestre' ? 'PELO MESTRE' : (autor?.nome ? `POR ${String(autor.nome).toUpperCase()}` : 'DE FORA');
+      avisoDaSala(`ATUALIZADA ${quem}; SALVE OU DESCARTE`);
+    }
+    return;
+  }
+  armazenamento.marcarEnviada?.(nova);   // a versão normalizada é a que a sala tem: sem isto a próxima gravação a reenviaria, sem mudança nenhuma
+  if (i >= 0) sheets[i] = nova; else sheets.push(nova);
+  const alvoPendente = fichaPendenteJogador && sheets.some(sheet => sheet.id === fichaPendenteJogador) ? fichaPendenteJogador : null;
+  if (alvoPendente) {
+    fichaPendenteJogador = null;
+    state = sheets.find(sheet => sheet.id === alvoPendente) || nova;
+    activeSheetId = state.id;
+    armazenamento.salvarAtiva(state.id);
+  } else if (state?.id === nova.id) {
+    state = nova;
+  } else if (state?.id === fichaSinteticaSalaId && !editMode && !dirtySheets.has(fichaSinteticaSalaId)) {
+    state = nova;
+    activeSheetId = state.id;
+    armazenamento.salvarAtiva(state.id);
+  }
+  removerSinteticaSeIntacta(state?.id);
+  render();
+  if (!propria) {
+    const quem = autor?.papel === 'mestre' ? 'PELO MESTRE' : (autor?.nome ? `POR ${String(autor.nome).toUpperCase()}` : 'DE FORA');
+    avisoDaSala(`FICHA ATUALIZADA ${quem}`);
+  }
+};
+const aplicarRemocaoNaSala = id => {
+  const nome = sheets.find(sheet => sheet.id === id)?.name;
+  sheets = sheets.filter(sheet => sheet.id !== id);
+  dirtySheets.delete(id); draftBaseline.delete(id);
+  if (!sheets.length) {
+    const sintetica = normalizeSheet({ name: 'AGENTE 1', systemMode: 'ordem2', folderId: 'folder-characters', viewMode: 'cinematic' });
+    fichaSinteticaSalaId = sintetica.id;
+    sheets = [sintetica];
+  }
+  if (state?.id === id) { state = sheets[0]; activeSheetId = state.id; armazenamento.salvarAtiva(state.id); }
+  render();
+  avisoDaSala(`${nome ? String(nome).toUpperCase() : 'UMA FICHA'} FOI ENTREGUE A OUTRO JOGADOR`);
+};
+
+if (modoJogador) {
+  armazenamento.aoMudarFora(ev => {
+    if (!inicializadoModoJogador) { mudancasPendentesSala.push(ev); return; }
+    aplicarChegadaNaSala(ev);
+  });
+  armazenamento.aoRemovida?.(id => {
+    if (!inicializadoModoJogador) { removidasPendentesSala.push(id); return; }
+    aplicarRemocaoNaSala(id);
+  });
+}
+
 await loadInitialSheets();
+inicializadoApp = true;
 presentationMode = false;
 if (state.systemMode === 'threat') {
  state.viewMode = 'livro';
@@ -6518,27 +6687,10 @@ installDragRoll({
  // Com a cena ligada o arremesso acontece dentro dela (dice-hand.js)
  isDisabled: () => rollSceneEnabled()
 });
-if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-  if (new URLSearchParams(location.search).get('compacto') === '1') {
-    document.body.dataset.compacto = '1';
-  }
-  window.addEventListener('message', ev => {
-    if (ev.origin === location.origin && ev.data?.tipo === 'dossie:abrir-ficha' && ev.data.fichaId) {
-      switchToSheet(ev.data.fichaId);
-    }
-  });
-}
 
 if (modoJogador) {
   // Vistas do modo jogador: `card` é o modo compacto de sempre (sem a barra lateral); `completa`, a ficha inteira.
   // A casca troca a vista por postMessage, sem recarregar; só vale o que vem do pai, na mesma origem.
-  const aplicarVista = vista => {
-    if (vista === 'card') document.body.dataset.compacto = '1';
-    else if (vista === 'completa') delete document.body.dataset.compacto;
-    else return;
-    document.body.dataset.vista = vista;
-    if (vistaJogador !== vista) { vistaJogador = vista; render(); }
-  };
   // Card: recursos com limite no máximo, troca de ficha e o pedido de ficha completa (a casca decide; sozinho, troca aqui).
   const maxDoRecurso = chave => state.systemMode === 'original'
     ? ({ pv: originalCalcPvMax, pe: originalCalcPeMax, san: originalCalcSanMax }[chave]?.(state) ?? 0)
@@ -6556,42 +6708,14 @@ if (modoJogador) {
     if (outra) { switchToSheet(outra.dataset.cartaoFicha); return; }
     if (ev.target.closest?.('[data-cartao-completa]')) {
       if (window.parent !== window) window.parent.postMessage({ tipo: 'dossie.pedir-vista', vista: 'completa' }, location.origin);
-      else aplicarVista('completa');
+      else aplicarVistaJogador('completa');
     }
   });
-  aplicarVista(_paramsUrl.get('vista') === 'card' ? 'card' : 'completa');
-  window.addEventListener('message', ev => {
-    if (window.parent !== window && ev.source === window.parent && ev.origin === location.origin && ev.data?.tipo === 'dossie.vista') aplicarVista(ev.data.vista);
-  });
-  // Mudança vinda de fora (o mestre gravou a ficha): redesenha e avisa. O eco da gravação do próprio jogador não faz nada.
-  const avisoDaSala = texto => {
-    const toast = document.querySelector('#save-toast');
-    if (!toast) return;
-    toast.textContent = texto; toast.classList.add('show');
-    setTimeout(() => { toast.classList.remove('show'); toast.textContent = 'SALVO'; }, 2600);
-  };
-  armazenamento.aoMudarFora(({ ficha, propria, autor }) => {
-    if (propria) return;
-    const quem = autor?.papel === 'mestre' ? 'PELO MESTRE' : (autor?.nome ? `POR ${String(autor.nome).toUpperCase()}` : 'DE FORA');
-    const nova = normalizeSheet(clone(ficha));
-    const i = sheets.findIndex(sheet => sheet.id === nova.id);
-    if (i >= 0 && dirtySheets.has(nova.id)) { avisoDaSala(`ATUALIZADA ${quem}; SALVE OU DESCARTE`); return; }
-    armazenamento.marcarEnviada?.(nova);   // a versão normalizada é a que a sala tem: sem isto a próxima gravação a reenviaria, sem mudança nenhuma
-    if (i >= 0) sheets[i] = nova; else sheets.push(nova);
-    if (state?.id === nova.id) state = nova;
-    render();
-    avisoDaSala(`FICHA ATUALIZADA ${quem}`);
-  });
-  // O mestre entregou uma ficha deste jogador a outro (R13): ela sai da lista aqui, e não é mais regravada.
-  armazenamento.aoRemovida?.(id => {
-    const nome = sheets.find(sheet => sheet.id === id)?.name;
-    sheets = sheets.filter(sheet => sheet.id !== id);
-    dirtySheets.delete(id); draftBaseline.delete(id);
-    if (!sheets.length) sheets = [normalizeSheet({ name: 'AGENTE 1', systemMode: 'ordem2', folderId: 'folder-characters', viewMode: 'cinematic' })];
-    if (state?.id === id) { state = sheets[0]; activeSheetId = state.id; armazenamento.salvarAtiva(state.id); }
-    render();
-    avisoDaSala(`${nome ? String(nome).toUpperCase() : 'UMA FICHA'} FOI ENTREGUE A OUTRO JOGADOR`);
-  });
+  aplicarVistaJogador(vistaPendenteJogador ?? (_paramsUrl.get('vista') === 'card' ? 'card' : 'completa'));
+  vistaPendenteJogador = null;
+  inicializadoModoJogador = true;
+  while (mudancasPendentesSala.length) aplicarChegadaNaSala(mudancasPendentesSala.shift());
+  while (removidasPendentesSala.length) aplicarRemocaoNaSala(removidasPendentesSala.shift());
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -6716,6 +6840,10 @@ if(!modoJogador&&barramentoDoMestre&&armazenamento.conectar){
 }
 
 render();
+if (modoJogador && typeof window !== 'undefined' && window.parent !== window) {
+  window.parent.postMessage({ tipo: 'dossie.pronto' }, location.origin);
+  if (fichaPendenteJogador) void sincronizarFichasDaSala();
+}
 iniciarMesa({
   fichas: () => sheets,
   daSala: () => (barramentoDoMestre ? sheets.filter(sheet => sheet.folderId === PASTA_SALA).map(sheet => sheet.id) : []),
