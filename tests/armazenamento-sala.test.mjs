@@ -165,3 +165,11 @@ test('o id da sala é conferido antes de virar nome de canal', () => {
   assert.throws(() => criarBarramentoDaSala('../x', { criarCanal: () => rede().abrir('x') }));
   assert.equal(canalDaSala('abc'), 'sala:abc:mesa:eventos');
 });
+
+test('salvar ignora ficha sintética marcada com _sinteticaSala', async () => {
+  const c = cenario({ fichas: [] });
+  await c.arm.carregar();
+  c.arm.salvar([{ id: 'sint', name: 'AGENTE 1', _sinteticaSala: true }, { id: 'real', name: 'Muirenn' }], { forcar: true });
+  await esperar();
+  assert.deepEqual(c.salvas.map(s => s.ficha.id), ['real']);
+});

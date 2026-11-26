@@ -198,7 +198,7 @@ export function armazenamentoSala({ barramento, salaId = null, localStorage: ls 
     // Só as fichas que mudaram desde a última versão que a sala tem; cada uma com o seu debounce. `forcar` (a página vai fechar) grava já.
     salvar(fichas, { forcar = false } = {}) {
       for (const ficha of fichas) {
-        if (!ficha || typeof ficha.id !== 'string') continue;
+        if (!ficha || typeof ficha.id !== 'string' || ficha._sinteticaSala === true) continue;
         const json = JSON.stringify(ficha);
         const p = pendentes.get(ficha.id);
         if (p) { cancelar(p.timer); pendentes.delete(ficha.id); }

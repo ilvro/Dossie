@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { nomeDoDono, rotuloDoDono, donoDoPersonagem, jogadoresParaEntregar, decidirChegada, textoDoConflito, BOTAO_VER_DELE, BOTAO_MANTER_MINHA } from '../src/fichas-da-sala.js';
+import {
+  nomeDoDono, rotuloDoDono, donoDoPersonagem, jogadoresParaEntregar, decidirChegada,
+  textoDoConflito, BOTAO_VER_DELE, BOTAO_MANTER_MINHA, sinteticaFoiEditada, filtrarFichasParaSalvarNaSala,
+} from '../src/fichas-da-sala.js';
 
 const info = {
   eu: { discordId: '1', nome: 'Mestre' },
@@ -54,4 +57,15 @@ test('os textos do aviso de conflito', () => {
   assert.equal(textoDoConflito(null), 'O jogador mexeu nesta ficha');
   assert.equal(BOTAO_VER_DELE, 'Ver a versão dele');
   assert.equal(BOTAO_MANTER_MINHA, 'Manter a minha');
+});
+
+test('ficha sintética intacta não conta como editada e é filtrada antes de salvar na sala', () => {
+  const base = { id: 's1', name: 'AGENTE 1', pv: 10, viewMode: 'cinematic', cinematicCollapsed: { abilities: false }, _sinteticaSala: true };
+  assert.equal(sinteticaFoiEditada({ ...base, viewMode: 'traditional', cinematicCollapsed: { abilities: true } }, base), false);
+  assert.equal(sinteticaFoiEditada({ ...base, name: 'Kael' }, base), true);
+  assert.equal(sinteticaFoiEditada({ ...base, pv: 9 }, base), true);
+
+  const real = { id: 'r1', name: 'Muirenn' };
+  assert.deepEqual(filtrarFichasParaSalvarNaSala([base, real], 's1'), [real]);
+  assert.deepEqual(filtrarFichasParaSalvarNaSala([{ id: 's2', _sinteticaSala: true }, real], null), [real]);
 });

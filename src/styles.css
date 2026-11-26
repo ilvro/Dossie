@@ -7940,6 +7940,44 @@ body[data-modo-jogador="1"] .sheet-drawer-list .sheet-drawer-item {
 body[data-modo-jogador="1"] .sheet-drawer-list .sheet-drawer-item.active { border-color: var(--red, #e91d25); background: rgba(233,29,37,.14); }
 body[data-modo-jogador="1"] .sheet-drawer-list .sheet-drawer-item img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
 
+/* Projeção de ficha em tela cheia pelo mestre (somente leitura) */
+body[data-projecao-mesa="1"] {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+body[data-projecao-mesa="1"] .nav-rail,
+body[data-projecao-mesa="1"] .workspace-sidebar,
+body[data-projecao-mesa="1"] .workspace-navigator,
+body[data-projecao-mesa="1"] .view-mode-switch,
+body[data-projecao-mesa="1"] .floating,
+body[data-projecao-mesa="1"] .bottom-nav,
+body[data-projecao-mesa="1"] .mobile-bottom-nav,
+body[data-projecao-mesa="1"] .mobile-landscape-trigger,
+body[data-projecao-mesa="1"] .unsaved-bar,
+body[data-projecao-mesa="1"] .btn-expandir-ficha-online,
+body[data-projecao-mesa="1"] .vigilia-floating-dock,
+body[data-projecao-mesa="1"] .vigilia-dock,
+body[data-projecao-mesa="1"] .btn-collapse-switch,
+body[data-projecao-mesa="1"] [data-toggle-navigator] {
+  display: none !important;
+}
+body[data-projecao-mesa="1"] .page,
+body[data-projecao-mesa="1"] .traditional-dossier-page,
+body[data-projecao-mesa="1"] .threat-book-page,
+body[data-projecao-mesa="1"] .vigilia-page,
+body[data-projecao-mesa="1"] .cinematic-page {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  left: 0 !important;
+}
+body[data-projecao-mesa="1"] .cinematic-page .sheet-background-layer,
+body[data-projecao-mesa="1"] .vigilia-page .sheet-background-layer,
+body[data-projecao-mesa="1"] .threat-book-page .sheet-background-layer {
+  left: 0 !important;
+  width: 100% !important;
+}
+
 /* ===== Card do jogador na mesa online (?sala=<id>&vista=card; src/cartao-jogador.js) ===== */
 .cartao-jogador {
   --cj-fundo: #0b0a10;

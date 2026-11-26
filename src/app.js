@@ -19,7 +19,7 @@ if (typeof Uint8Array !== 'undefined') {
 
 import { DEFAULT_SHEETS } from './default-sheets.js';
 import { armazenamentoLocal, armazenamentoSala, armazenamentoCombinado, PASTA_SALA } from './armazenamento.js';
-import { jogadoresParaEntregar, rotuloDoDono, nomeDoDono, donoDoPersonagem, decidirChegada, textoDoConflito, BOTAO_VER_DELE, BOTAO_MANTER_MINHA } from './fichas-da-sala.js';
+import { jogadoresParaEntregar, rotuloDoDono, nomeDoDono, donoDoPersonagem, decidirChegada, textoDoConflito, BOTAO_VER_DELE, BOTAO_MANTER_MINHA, sinteticaFoiEditada, filtrarFichasParaSalvarNaSala } from './fichas-da-sala.js';
 import { iniciarMesa, criarBarramentoDaSala, criarBarramentoDoMestre, salaIdValido } from './mesa.js';
 import {
   DEFAULT_ORIGINAL_SHEET,
@@ -822,10 +822,13 @@ let activeSheetId=state.id;
 let lastRenderedSheetId=state.id;
 let _suppressVigiliaScrollFx=false;
 let fichaSinteticaSalaId=null;
+let fichaSinteticaBase=null;
 let inicializadoApp=false;
 let inicializadoModoJogador=false;
 let fichaPendenteJogador=null;
 let vistaPendenteJogador=null;
+let projecaoDaMesa=null;
+let projecaoPendenteJogador=null;
 const mudancasPendentesSala=[];
 const removidasPendentesSala=[];
 // A ligação com a mesa (src/mesa.js): começa vazia e vira a real quando a plataforma responde.
@@ -835,9 +838,46 @@ function removerSinteticaSeIntacta(novoIdAlvo){
  if(!fichaSinteticaSalaId||fichaSinteticaSalaId===novoIdAlvo)return;
  if(editMode&&state?.id===fichaSinteticaSalaId)return;
  if(dirtySheets.has(fichaSinteticaSalaId))return;
+ const atualSintetica=sheets.find(sheet=>sheet.id===fichaSinteticaSalaId);
+ if(atualSintetica&&fichaSinteticaBase&&sinteticaFoiEditada(atualSintetica,fichaSinteticaBase))return;
  if(!sheets.some(sheet=>sheet.id!==fichaSinteticaSalaId))return;
  sheets=sheets.filter(sheet=>sheet.id!==fichaSinteticaSalaId);
  fichaSinteticaSalaId=null;
+ fichaSinteticaBase=null;
+}
+
+function aplicarProjecaoDaMesa(fichaId,fichaBruta=null){
+ if(!inicializadoApp){
+  projecaoPendenteJogador=fichaId?{fichaId,ficha:fichaBruta}:null;
+  return;
+ }
+ if(fichaId){
+  const bruta=fichaBruta??sheets.find(sheet=>sheet.id===fichaId);
+  if(!bruta)return;
+  const alvo=normalizeSheet(clone(bruta));
+  if(alvo.systemMode!=='threat'&&alvo.viewMode!=='vigilia')alvo.viewMode='cinematic';
+  if(!projecaoDaMesa){
+   projecaoDaMesa={fichaId,antes:{stateId:state?.id??activeSheetId,editMode,presentationMode}};
+  }else{
+   projecaoDaMesa.fichaId=fichaId;
+  }
+  editMode=false;
+  presentationMode=false;
+  document.body.dataset.projecaoMesa='1';
+  state=alvo;
+  render();
+  return;
+ }
+ projecaoPendenteJogador=null;
+ if(!projecaoDaMesa)return;
+ const {antes}=projecaoDaMesa;
+ projecaoDaMesa=null;
+ delete document.body.dataset.projecaoMesa;
+ editMode=antes.editMode;
+ presentationMode=antes.presentationMode;
+ state=sheets.find(sheet=>sheet.id===antes.stateId)||sheets.find(sheet=>sheet.id===activeSheetId)||sheets[0];
+ activeSheetId=state.id;
+ render();
 }
 
 function aplicarVistaJogador(vista){
@@ -865,17 +905,24 @@ async function sincronizarFichasDaSala(){
    ||(ativaId&&sheets.some(sheet=>sheet.id===ativaId)?ativaId:null);
   if(desejado){
    fichaPendenteJogador=null;
-   state=sheets.find(sheet=>sheet.id===desejado)||state;
-   activeSheetId=state.id;
-   armazenamento.salvarAtiva(state.id);
-  }else if(state?.id===fichaSinteticaSalaId&&!editMode&&!dirtySheets.has(fichaSinteticaSalaId)){
+   if(!projecaoDaMesa){
+    state=sheets.find(sheet=>sheet.id===desejado)||state;
+    activeSheetId=state.id;
+    armazenamento.salvarAtiva(state.id);
+   }else{
+    activeSheetId=desejado;
+    projecaoDaMesa.antes.stateId=desejado;
+   }
+  }else if(!projecaoDaMesa&&state?.id===fichaSinteticaSalaId&&!editMode&&!dirtySheets.has(fichaSinteticaSalaId)){
    state=sheets.find(sheet=>sheet.id!==fichaSinteticaSalaId)||state;
    activeSheetId=state.id;
    armazenamento.salvarAtiva(state.id);
   }
-  removerSinteticaSeIntacta(state?.id);
-  if(state&&!sheets.some(sheet=>sheet.id===state.id)){state=sheets[0];activeSheetId=state.id;}
-  if(sheets.some(sheet=>sheet.id===state?.id))state=sheets.find(sheet=>sheet.id===state.id);
+  removerSinteticaSeIntacta(projecaoDaMesa?activeSheetId:state?.id);
+  if(!projecaoDaMesa){
+   if(state&&!sheets.some(sheet=>sheet.id===state.id)){state=sheets[0];activeSheetId=state.id;}
+   if(sheets.some(sheet=>sheet.id===state?.id))state=sheets.find(sheet=>sheet.id===state.id);
+  }
   render();
  })().finally(()=>{sincronizandoSala=null;});
  return sincronizandoSala;
@@ -913,10 +960,13 @@ async function loadInitialSheets(){
  if(modoJogador){
   if(!loaded||!loaded.length){
    const sintetica=normalizeSheet({name:'AGENTE 1',systemMode:'ordem2',folderId:'folder-characters',viewMode:'cinematic'});
+   sintetica._sinteticaSala=true;
    fichaSinteticaSalaId=sintetica.id;
+   fichaSinteticaBase=clone(sintetica);
    loaded=[sintetica];
   }else{
    fichaSinteticaSalaId=null;
+   fichaSinteticaBase=null;
   }
  }else
  // Fallback: fichas padrão embutidas no bundle (primeira visita ao site estático)
@@ -1708,7 +1758,7 @@ function render(){
             : (isCinematic?renderCinematic(trainingOptions,bgIsVideo):renderTraditional(trainingOptions,bgIsVideo,aptidaoOptions,aptidaoCount)))
     )
   }
-  ${modoJogador&&vistaJogador==='card'?`<button type="button" class="btn-expandir-ficha-online" data-cartao-completa title="Expandir ficha completa">${icon('presentation',14)} Expandir ficha</button>`:''}
+  ${modoJogador&&vistaJogador==='card'&&!projecaoDaMesa?`<button type="button" class="btn-expandir-ficha-online" data-cartao-completa title="Expandir ficha completa">${icon('presentation',14)} Expandir ficha</button>`:''}
 	 ${(isCinematic || state.viewMode === 'vigilia')?renderCriticalAtmosphere():''}
 	 ${state.systemMode==='threat'?'':`<div class="view-mode-switch ${viewSwitchCollapsed?'collapsed':'expanded'}">${viewSwitchCollapsed?`<button type="button" class="view-mode-trigger" data-toggle-view-switch title="Alternar modo de exibição (Clique para expandir)">${state.viewMode==='vigilia'?icon('shield',14):(isCinematic?icon('film',14):icon('grid',14))}<span>${state.viewMode==='vigilia'?'VIGÍLIA':(isCinematic?'CINEMA':'PADRÃO')}</span><i class="switch-arrow">▾</i></button>`:`<button type="button" class="${state.viewMode==='traditional'&&!presentationMode?'active':''}" data-display-mode="traditional">${icon('grid',14)}<span>TRADICIONAL</span></button><button type="button" class="${isCinematic&&!presentationMode?'active':''}" data-display-mode="cinematic">${icon('film',14)}<span>CINEMATOGRÁFICO</span></button><button type="button" class="${state.viewMode==='vigilia'?'active':''}" data-display-mode="vigilia">${icon('shield',14)}<span>A VIGÍLIA</span></button><button type="button" class="${presentationMode?'active':''}" data-open-presentation title="Modo de Apresentação">${icon('presentation',14)}<span>APRESENTAÇÃO</span></button><button type="button" class="btn-collapse-switch" data-toggle-view-switch title="Recolher menu">${icon('chevron',12)}</button>`}</div>`}
   ${editMode?`<div class="edit-status active"><span></span>MODO DE EDIÇÃO — TEMA ÂMBAR</div>`:''}<div class="floating"><button class="${editMode?'active':''}" data-toggle-edit title="${editMode?'Fechar edição':'Editar ficha'}">${editMode?icon('close'):icon('edit')}</button></div><div class="save-toast" id="save-toast">SALVO</div>
@@ -1877,17 +1927,23 @@ window.addEventListener('beforeunload',event=>{if(dirtySheets.size){event.preven
 /* Persistência (JSON de vários MB) é adiada e agrupada: cliques rápidos em PV/PD e transições de ficha não travam a thread principal. */
 let persistTimer=0;
 function persistSheetsNow(forceSync=false){
+ if(projecaoDaMesa)return;
  if(_glitchActive&&!forceSync){
   schedulePersist(280);
   return;
  }
  clearTimeout(persistTimer);persistTimer=0;
- const out=sheets.map(persistedSheet);
- armazenamento.salvar(out,{forcar:forceSync});
+ const baseOut=modoJogador?filtrarFichasParaSalvarNaSala(sheets,fichaSinteticaSalaId):sheets;
+ const out=baseOut.map(s=>{
+  const p=persistedSheet(s);
+  if(p&&'_sinteticaSala'in p){const{_sinteticaSala,...limpa}=p;return limpa;}
+  return p;
+ });
+ if(out.length||!modoJogador)armazenamento.salvar(out,{forcar:forceSync});
  if(!modoJogador)try{
   salvarPastas(folders, { idbSet });
  }catch{}
- armazenamento.salvarAtiva(state.id);
+ if(state?.id&&state.id!==fichaSinteticaSalaId)armazenamento.salvarAtiva(state.id);
 }
 function schedulePersist(delay=350){clearTimeout(persistTimer);persistTimer=setTimeout(()=>persistSheetsNow(false),delay)}
 window.addEventListener('pagehide',()=>{if(persistTimer)persistSheetsNow(true)});
@@ -1902,8 +1958,15 @@ function empurrarEstadoParaCampos(){
  });
 }
 function save(showToast=true,toastMsg='SALVO',commit=false){
+ if(projecaoDaMesa)return;
  collectActiveInputs();
- if(state?.id===fichaSinteticaSalaId)fichaSinteticaSalaId=null;
+ if(state?.id===fichaSinteticaSalaId){
+  const editada=!modoJogador||commit||dirtySheets.has(state.id)||sinteticaFoiEditada(state,fichaSinteticaBase);
+  if(!editada){syncUnsavedBar();return;}
+  fichaSinteticaSalaId=null;
+  fichaSinteticaBase=null;
+  delete state._sinteticaSala;
+ }
  const index=sheets.findIndex(sheet=>sheet.id===state.id);
  if(index>=0)sheets[index]=state; else sheets.push(state);
  if(commit){
@@ -3331,6 +3394,7 @@ function importJsonSheet(file){
    }else{
     throw new Error('Formato inválido');
    }
+   removerSinteticaSeIntacta(state.id);
    save(true,'FICHA IMPORTADA!');
    render();
   }catch(err){
@@ -3636,7 +3700,7 @@ function toggleFolderRailVisibility(folderId) {
 
 /** Cria e abre uma ficha nova (o caminho do clique em "nova ficha"). `raw` (ponte do assistente, só em DEV) completa/sobrepõe os dados e dispensa o tutorial e o wizard. */
 function criarFichaNova(mode,{raw,semAssistente=false}={}){
-      save(false);
+      if(state&&(!modoJogador||state.id!==fichaSinteticaSalaId||sinteticaFoiEditada(state,fichaSinteticaBase)))save(false);
       editMode=false;
       const currentMode=state.viewMode||'cinematic';
       const defaultFolderId=targetFolderForNewSheet||(mode==='threat'?'folder-threats':'folder-characters');
@@ -3646,11 +3710,12 @@ function criarFichaNova(mode,{raw,semAssistente=false}={}){
         :(mode==='threat'?{vd:60,elementos:['sangue'],pv:120,maxPv:120,fonte:'homebrew',isCustom:true}:{});
       const sheetName=mode==='threat'
         ?`AMEAÇA ${sheets.filter(isThreatSheet).length+1}`
-        :`AGENTE ${sheets.filter(isCharacterSheet).length+1}`;
+        :`AGENTE ${sheets.filter(s=>isCharacterSheet(s)&&s.id!==fichaSinteticaSalaId).length+1}`;
       const sheet=normalizeSheet({name:sheetName,systemMode:mode,folderId:defaultFolderId,viewMode:currentMode,...inicioOriginal,...raw});
       sheets.push(sheet);
       state=sheet;
       activeSheetId=sheet.id;
+      removerSinteticaSeIntacta(sheet.id);
       trackRecentSheet(sheet.id);
       if(semAssistente){
        fecharTutorial();
@@ -3681,7 +3746,7 @@ function criarFichaNova(mode,{raw,semAssistente=false}={}){
   return sheet;
 }
 function switchToSheet(targetId) {
- if (!targetId) return;
+ if (!targetId || projecaoDaMesa) return;
  trackRecentSheet(targetId);
  sheetDrawerOpen = false;
  if (!sidebarNavigatorPinned) {
@@ -5243,7 +5308,7 @@ async function entregarFicha(sheetId, discordId, nomeDoJogador) {
 function cloneSheet(sheetId) {
  const target = sheets.find(s => s.id === sheetId);
  if (!target) return;
- save(false);
+ if (state && (!modoJogador || state.id !== fichaSinteticaSalaId || sinteticaFoiEditada(state, fichaSinteticaBase))) save(false);
  const cloned = clone(target);
  cloned.id = makeId('sheet');
  if (cloned.folderId === PASTA_SALA) cloned.folderId = cloned.systemMode === 'threat' ? 'folder-threats' : 'folder-characters';   // a cópia é local
@@ -5414,6 +5479,7 @@ function bindSheetInteractions() {
 function parseRollExpression(expression){const vars=formulaVariables();let expanded=String(expression||'').replace(/@\{([^}]+)\}/g,(_,key)=>String(vars[formulaKey(key)]??0));const dice=[];expanded=expanded.replace(/(\d*)d(4|6|8|10|12|20)/gi,(_,count,sides)=>{for(let i=0;i<Math.min(12,Number(count)||1);i++)dice.push(Number(sides));return '0'});let modifier=0;try{if(/^[\d+\-*/().\s]+$/.test(expanded))modifier=Math.floor(Function(`"use strict";return (${expanded||0})`)())}catch{}return{dice,modifier}}
 let lastSheetRollTimestamp = 0;
 async function roll(name,sides,modifier=0,rollMode='sum',meta={}){
+ if (projecaoDaMesa) return null;
  const nowTime = Date.now();
  if (nowTime - lastSheetRollTimestamp < 350) return null;
  lastSheetRollTimestamp = nowTime;
@@ -5596,7 +5662,7 @@ async function rollExpression(name,expression){
 }
 
 async function rollOriginalAttribute(attrKey){
- if(presentationMode)return;
+ if(presentationMode||projecaoDaMesa)return;
  const attrInfo=ORIGINAL_ATRIBUTOS.find(a=>a.id===attrKey)||{nome:attrKey.toUpperCase(),abrev:attrKey.toUpperCase()};
  const attrVal=Number(state.atributos?.[attrKey]??1);
  const count=attrVal>0?attrVal:2;
@@ -6000,18 +6066,18 @@ function bind(){
   if(appSettings[key]){if(key==='cinematicAltRoll'){appSettings.rollScene=false;appSettings.manualThrow=false}else if(key==='rollScene'||key==='manualThrow'){appSettings.cinematicAltRoll=false}}
   saveAppSettings();document.querySelectorAll('[data-app-setting]').forEach(b=>{const on=Boolean(appSettings[b.dataset.appSetting]);b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));const label=b.querySelector('em');if(label)label.textContent=on?'ATIVO':'DESATIVADO'});syncAmbientFx()});
  document.querySelectorAll('[data-critical-effect]').forEach(button=>button.onclick=()=>{const key=button.dataset.criticalEffect;criticalEffects[key]=!criticalEffects[key];saveCriticalEffects();button.classList.toggle('active',criticalEffects[key]);button.setAttribute('aria-pressed',String(criticalEffects[key]));const label=button.querySelector('em');if(label)label.textContent=criticalEffects[key]?'ATIVO':'DESATIVADO';syncCriticalAtmosphere()});
- document.querySelectorAll('[data-field]').forEach(el=>el.onchange=e=>{if(presentationMode){notifyPresentationLocked();return;}const key=e.target.dataset.field;state[key]=key==='level'?Math.max(0,Number(e.target.value)||0):e.target.value;save(false);render()});
- document.querySelectorAll('[data-set-resource]').forEach(el=>el.onclick=()=>{if(presentationMode){notifyPresentationLocked();return;}const[key,val]=el.dataset.setResource.split(':'),previous=state[key];state[key]=state[key]===Number(val)?Number(val)-1:Number(val);if(key==='pv'||key==='pd')playResourceSound(state[key]>previous);save(false);updateResourceUi(key)});
-  document.querySelectorAll('[data-consume-temp]').forEach(el=>{el.onclick=e=>{e.preventDefault();e.stopPropagation();if(presentationMode){notifyPresentationLocked();return;}const[key,valStr]=el.dataset.consumeTemp.split(':'),tempKey=`${key}Temp`,current=Number(state[tempKey])||0;if(current<=0)return;const isBadge=el.classList.contains('temp-badge-btn'),val=Number(valStr);let next;if(isBadge){next=Math.max(0,current-1)}else{next=current===val?Math.max(0,val-1):Math.max(0,val)}if(next===current)next=Math.max(0,current-1);state[tempKey]=next;playResourceSound(false);save(false);render();const toast=document.querySelector('#save-toast');if(toast){toast.textContent=next===0?`${key.toUpperCase()} TEMPORÁRIO EXTINTO`:`${key.toUpperCase()} TEMPORÁRIO: +${next}`;toast.classList.add('show');setTimeout(()=>{toast.classList.remove('show');toast.textContent='SALVO'},1500)}};el.oncontextmenu=e=>{e.preventDefault();e.stopPropagation();if(presentationMode){notifyPresentationLocked();return;}const[key]=el.dataset.consumeTemp.split(':'),tempKey=`${key}Temp`,current=Number(state[tempKey])||0;if(current<=0)return;state[tempKey]=0;playResourceSound(false);save(false);render();const toast=document.querySelector('#save-toast');if(toast){toast.textContent=`${key.toUpperCase()} TEMPORÁRIO EXTINTO`;toast.classList.add('show');setTimeout(()=>{toast.classList.remove('show');toast.textContent='SALVO'},1500)}}});
+ document.querySelectorAll('[data-field]').forEach(el=>el.onchange=e=>{if(presentationMode||projecaoDaMesa){if(!projecaoDaMesa)notifyPresentationLocked();return;}const key=e.target.dataset.field;state[key]=key==='level'?Math.max(0,Number(e.target.value)||0):e.target.value;save(false);render()});
+ document.querySelectorAll('[data-set-resource]').forEach(el=>el.onclick=()=>{if(presentationMode||projecaoDaMesa){if(!projecaoDaMesa)notifyPresentationLocked();return;}const[key,val]=el.dataset.setResource.split(':'),previous=state[key];state[key]=state[key]===Number(val)?Number(val)-1:Number(val);if(key==='pv'||key==='pd')playResourceSound(state[key]>previous);save(false);updateResourceUi(key)});
+  document.querySelectorAll('[data-consume-temp]').forEach(el=>{el.onclick=e=>{e.preventDefault();e.stopPropagation();if(presentationMode||projecaoDaMesa){if(!projecaoDaMesa)notifyPresentationLocked();return;}const[key,valStr]=el.dataset.consumeTemp.split(':'),tempKey=`${key}Temp`,current=Number(state[tempKey])||0;if(current<=0)return;const isBadge=el.classList.contains('temp-badge-btn'),val=Number(valStr);let next;if(isBadge){next=Math.max(0,current-1)}else{next=current===val?Math.max(0,val-1):Math.max(0,val)}if(next===current)next=Math.max(0,current-1);state[tempKey]=next;playResourceSound(false);save(false);render();const toast=document.querySelector('#save-toast');if(toast){toast.textContent=next===0?`${key.toUpperCase()} TEMPORÁRIO EXTINTO`:`${key.toUpperCase()} TEMPORÁRIO: +${next}`;toast.classList.add('show');setTimeout(()=>{toast.classList.remove('show');toast.textContent='SALVO'},1500)}};el.oncontextmenu=e=>{e.preventDefault();e.stopPropagation();if(presentationMode){notifyPresentationLocked();return;}const[key]=el.dataset.consumeTemp.split(':'),tempKey=`${key}Temp`,current=Number(state[tempKey])||0;if(current<=0)return;state[tempKey]=0;playResourceSound(false);save(false);render();const toast=document.querySelector('#save-toast');if(toast){toast.textContent=`${key.toUpperCase()} TEMPORÁRIO EXTINTO`;toast.classList.add('show');setTimeout(()=>{toast.classList.remove('show');toast.textContent='SALVO'},1500)}}});
  document.querySelectorAll('[data-resource-adjust]').forEach(el=>el.onclick=()=>{if(presentationMode){notifyPresentationLocked();return;}const[key,delta]=el.dataset.resourceAdjust.split(':');state[key]=Math.max(0,Number(state[key]||0)+Number(delta));if(key==='maxPv')state.pv=Math.min(state.pv,state[key]);if(key==='maxPd')state.pd=Math.min(state.pd,state[key]);if(key.toLowerCase().includes('pv')||key.toLowerCase().includes('pd'))playResourceSound(Number(delta)>0);save(false);render()});
  document.querySelectorAll('[data-attribute-step]').forEach(el=>el.onclick=()=>{if(presentationMode){notifyPresentationLocked();return;}const[name,delta]=el.dataset.attributeStep.split(':'),at=DICE_STEPS.indexOf(state.attributes[name]);state.attributes[name]=DICE_STEPS[Math.max(0,Math.min(DICE_STEPS.length-1,at+Number(delta)))];save(false);render()});
  document.querySelectorAll('[data-skill-extra]').forEach(el=>el.onchange=()=>{const rawId=el.dataset.skillExtra,numIdx=Number(rawId);if(!isNaN(numIdx)&&state.skills&&state.skills[numIdx]){state.skills[numIdx].extra=Number(el.value)||0}else if(state.pericias&&state.pericias[rawId]){state.pericias[rawId].extra=Number(el.value)||0}save(false)});
  document.querySelectorAll('[data-roll]').forEach(el=>el.onclick=e=>{if(e.target.closest('.custom-select,.extra input,[data-skill-extra],.card-actions,.skill-info-button,[data-remove-aptidao],[data-add-aptidao],.btn-remove-aptidao'))return;if(presentationMode){notifyPresentationLocked();return;}const[name,sides,bonus]=el.dataset.roll.split('|');const bonusNum=Number(bonus)||0;const rawLabels=el.dataset.rollLabels;const dieLabels=rawLabels?rawLabels.split('|'):[];const modifierParts=bonusNum?[{label:'EXTRA',value:bonusNum}]:[];roll(name,sides,bonusNum,'sum',{dieLabels,modifierParts,scene:'full',skillName:name})});
   document.querySelectorAll('[data-expression]').forEach(el=>el.onclick=async()=>{if(presentationMode){notifyPresentationLocked();return;}const cardId=el.dataset.cardId,actionId=el.dataset.actionId,card=cardId?state.cards.find(c=>c.id===cardId):null,action=card?.actions?.find(a=>a.id===actionId),res=await rollExpression(el.dataset.rollTitle,el.dataset.expression);if(!res||!Array.isArray(res.values)||!card)return;const targetMarker=card.markers?.find(m=>m.id===action?.targetMarker)||card.markers?.find(m=>m.type==='slots');if(targetMarker&&targetMarker.type==='slots'){const max=markerMax(targetMarker);if(!Array.isArray(targetMarker.slots))targetMarker.slots=[];targetMarker.slots=res.values.slice(0,max);while(targetMarker.slots.length<max)targetMarker.slots.push(null);targetMarker.current=targetMarker.slots.filter(v=>v!==null&&v!==undefined&&v!=='').length;save(false);render();const toast=document.querySelector('#save-toast');if(toast){toast.textContent=`${(targetMarker.label||'Slots').toUpperCase()} PREENCHIDA COM [ ${targetMarker.slots.filter(v=>v!==null).join(', ')} ]!`;toast.classList.add('show');setTimeout(()=>{toast.classList.remove('show');toast.textContent='SALVO'},2200)}}});
-  document.querySelectorAll('[data-card-marker]').forEach(el=>el.onclick=()=>{if(presentationMode){notifyPresentationLocked();return;}const[cardId,markerId,action]=el.dataset.cardMarker.split(':'),marker=state.cards.find(c=>c.id===cardId)?.markers.find(m=>m.id===markerId);if(!marker)return;const max=markerMax(marker);marker.current=action==='toggle'?(marker.current?0:1):Math.max(0,Math.min(max||999,(Number(marker.current)||0)+Number(action)));save(false);updateMarkerUi(cardId,markerId)});
-  document.querySelectorAll('[data-card-marker-set]').forEach(el=>el.onclick=()=>{if(presentationMode){notifyPresentationLocked();return;}const[cardId,markerId,value]=el.dataset.cardMarkerSet.split(':'),marker=state.cards.find(c=>c.id===cardId)?.markers.find(m=>m.id===markerId);if(marker){marker.current=marker.current===Number(value)?Number(value)-1:Number(value);save(false);updateMarkerUi(cardId,markerId)}});
-  document.querySelectorAll('[data-use-slot]').forEach(el=>{el.onclick=()=>{if(presentationMode){notifyPresentationLocked();return;}const[cardId,markerId,slotIdxStr]=el.dataset.useSlot.split(':'),slotIndex=Number(slotIdxStr),card=state.cards.find(c=>c.id===cardId),marker=card?.markers.find(m=>m.id===markerId);if(!card||!marker)return;if(!Array.isArray(marker.slots))marker.slots=[];const val=marker.slots[slotIndex];if(val!==null&&val!==undefined&&val!==''){marker.slots[slotIndex]=null;marker.current=marker.slots.filter(v=>v!==null&&v!==undefined&&v!=='').length;playResourceSound(false);save(false);render();const toast=document.querySelector('#save-toast');if(toast){toast.textContent=`VALOR [ ${val} ] UTILIZADO!`;toast.classList.add('show');setTimeout(()=>{toast.classList.remove('show');toast.textContent='SALVO'},1800)}}else{openSlotModal(card,marker,slotIndex)}};el.oncontextmenu=e=>{e.preventDefault();if(presentationMode){notifyPresentationLocked();return;}const[cardId,markerId,slotIdxStr]=el.dataset.useSlot.split(':'),slotIndex=Number(slotIdxStr),card=state.cards.find(c=>c.id===cardId),marker=card?.markers.find(m=>m.id===markerId);if(card&&marker)openSlotModal(card,marker,slotIndex)}});
-  document.querySelectorAll('[data-fill-marker]').forEach(el=>el.onclick=()=>{if(presentationMode){notifyPresentationLocked();return;}const[cardId,markerId]=el.dataset.fillMarker.split(':'),card=state.cards.find(c=>c.id===cardId),marker=card?.markers.find(m=>m.id===markerId);if(!card||!marker)return;const max=markerMax(marker);if(!Array.isArray(marker.slots))marker.slots=[];let targetIdx=-1;for(let i=0;i<max;i++){if(marker.slots[i]===null||marker.slots[i]===undefined||marker.slots[i]===''){targetIdx=i;break}}if(targetIdx===-1)targetIdx=0;openSlotModal(card,marker,targetIdx)});
+  document.querySelectorAll('[data-card-marker]').forEach(el=>el.onclick=()=>{if(presentationMode||projecaoDaMesa){if(!projecaoDaMesa)notifyPresentationLocked();return;}const[cardId,markerId,action]=el.dataset.cardMarker.split(':'),marker=state.cards.find(c=>c.id===cardId)?.markers.find(m=>m.id===markerId);if(!marker)return;const max=markerMax(marker);marker.current=action==='toggle'?(marker.current?0:1):Math.max(0,Math.min(max||999,(Number(marker.current)||0)+Number(action)));save(false);updateMarkerUi(cardId,markerId)});
+  document.querySelectorAll('[data-card-marker-set]').forEach(el=>el.onclick=()=>{if(presentationMode||projecaoDaMesa){if(!projecaoDaMesa)notifyPresentationLocked();return;}const[cardId,markerId,value]=el.dataset.cardMarkerSet.split(':'),marker=state.cards.find(c=>c.id===cardId)?.markers.find(m=>m.id===markerId);if(marker){marker.current=marker.current===Number(value)?Number(value)-1:Number(value);save(false);updateMarkerUi(cardId,markerId)}});
+  document.querySelectorAll('[data-use-slot]').forEach(el=>{el.onclick=()=>{if(presentationMode||projecaoDaMesa){if(!projecaoDaMesa)notifyPresentationLocked();return;}const[cardId,markerId,slotIdxStr]=el.dataset.useSlot.split(':'),slotIndex=Number(slotIdxStr),card=state.cards.find(c=>c.id===cardId),marker=card?.markers.find(m=>m.id===markerId);if(!card||!marker)return;if(!Array.isArray(marker.slots))marker.slots=[];const val=marker.slots[slotIndex];if(val!==null&&val!==undefined&&val!==''){marker.slots[slotIndex]=null;marker.current=marker.slots.filter(v=>v!==null&&v!==undefined&&v!=='').length;playResourceSound(false);save(false);render();const toast=document.querySelector('#save-toast');if(toast){toast.textContent=`VALOR [ ${val} ] UTILIZADO!`;toast.classList.add('show');setTimeout(()=>{toast.classList.remove('show');toast.textContent='SALVO'},1800)}}else{openSlotModal(card,marker,slotIndex)}};el.oncontextmenu=e=>{e.preventDefault();if(presentationMode){notifyPresentationLocked();return;}const[cardId,markerId,slotIdxStr]=el.dataset.useSlot.split(':'),slotIndex=Number(slotIdxStr),card=state.cards.find(c=>c.id===cardId),marker=card?.markers.find(m=>m.id===markerId);if(card&&marker)openSlotModal(card,marker,slotIndex)}});
+  document.querySelectorAll('[data-fill-marker]').forEach(el=>el.onclick=()=>{if(presentationMode||projecaoDaMesa){if(!projecaoDaMesa)notifyPresentationLocked();return;}const[cardId,markerId]=el.dataset.fillMarker.split(':'),card=state.cards.find(c=>c.id===cardId),marker=card?.markers.find(m=>m.id===markerId);if(!card||!marker)return;const max=markerMax(marker);if(!Array.isArray(marker.slots))marker.slots=[];let targetIdx=-1;for(let i=0;i<max;i++){if(marker.slots[i]===null||marker.slots[i]===undefined||marker.slots[i]===''){targetIdx=i;break}}if(targetIdx===-1)targetIdx=0;openSlotModal(card,marker,targetIdx)});
   document.querySelectorAll('.slot-fill-close,.slot-fill-backdrop').forEach(el=>el.onclick=closeSlotModal);
   document.querySelectorAll('[data-pick-val]').forEach(el=>el.onclick=()=>applySlotValue(Number(el.dataset.pickVal)));
   const btnSlotRoll=document.querySelector('#btn-slot-roll-die');if(btnSlotRoll){btnSlotRoll.onclick=async()=>{const savedTarget=activeSlotTarget;document.querySelector('#slot-fill-modal')?.classList.remove('open');const res=await roll('Preencher Espaço',[6],0);if(res&&Array.isArray(res.values)&&res.values.length>0){activeSlotTarget=savedTarget;applySlotValue(res.values[0])}else{activeSlotTarget=null}}};
@@ -6023,6 +6089,7 @@ function bind(){
   document.querySelectorAll('[data-view]').forEach(el=>el.onclick=()=>{if(el.dataset.view===currentView)return;const old=document.querySelector(`#${currentView}-view`),next=document.querySelector(`#${el.dataset.view}-view`);document.querySelectorAll('[data-view]').forEach(x=>x.classList.toggle('active',x===el));old.classList.add('leaving');setTimeout(()=>{old.classList.remove('active','leaving');next.classList.add('active','entering');setTimeout(()=>next.classList.remove('entering'),300);currentView=el.dataset.view},180)});
   document.querySelectorAll('[data-toggle-edit]').forEach(el=>{
    el.onclick=()=>{
+    if(projecaoDaMesa) return;
     if(window.matchMedia('(max-width: 768px), ((orientation: landscape) and (max-height: 620px))').matches) return;
     if(presentationMode && state.systemMode !== 'threat'){notifyPresentationLocked();return;}
     editTransitionMode=editMode?'into-view':'into-edit';
@@ -6590,7 +6657,9 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   }
   window.addEventListener('message', ev => {
     if (ev.origin !== location.origin) return;
-    if (ev.data?.tipo === 'dossie:abrir-ficha' && ev.data.fichaId) {
+    if (ev.data?.tipo === 'dossie:projetar-ficha') {
+      aplicarProjecaoDaMesa(ev.data.fichaId ?? null, ev.data.ficha ?? null);
+    } else if (ev.data?.tipo === 'dossie:abrir-ficha' && ev.data.fichaId) {
       abrirFichaDaCasca(ev.data.fichaId);
     } else if (modoJogador && window.parent !== window && ev.source === window.parent && ev.data?.tipo === 'dossie.vista') {
       if (!inicializadoApp) vistaPendenteJogador = ev.data.vista;
@@ -6619,6 +6688,21 @@ const aplicarChegadaNaSala = ({ ficha, propria, autor }) => {
   armazenamento.marcarEnviada?.(nova);   // a versão normalizada é a que a sala tem: sem isto a próxima gravação a reenviaria, sem mudança nenhuma
   if (i >= 0) sheets[i] = nova; else sheets.push(nova);
   const alvoPendente = fichaPendenteJogador && sheets.some(sheet => sheet.id === fichaPendenteJogador) ? fichaPendenteJogador : null;
+  if (projecaoDaMesa) {
+    if (alvoPendente) {
+      fichaPendenteJogador = null;
+      activeSheetId = alvoPendente;
+      projecaoDaMesa.antes.stateId = alvoPendente;
+    }
+    if (projecaoDaMesa.fichaId === nova.id) {
+      const atualizada = normalizeSheet(clone(nova));
+      if (atualizada.systemMode !== 'threat' && atualizada.viewMode !== 'vigilia') atualizada.viewMode = 'cinematic';
+      state = atualizada;
+    }
+    removerSinteticaSeIntacta(activeSheetId);
+    render();
+    return;
+  }
   if (alvoPendente) {
     fichaPendenteJogador = null;
     state = sheets.find(sheet => sheet.id === alvoPendente) || nova;
@@ -6644,10 +6728,21 @@ const aplicarRemocaoNaSala = id => {
   dirtySheets.delete(id); draftBaseline.delete(id);
   if (!sheets.length) {
     const sintetica = normalizeSheet({ name: 'AGENTE 1', systemMode: 'ordem2', folderId: 'folder-characters', viewMode: 'cinematic' });
+    sintetica._sinteticaSala = true;
     fichaSinteticaSalaId = sintetica.id;
+    fichaSinteticaBase = clone(sintetica);
     sheets = [sintetica];
   }
-  if (state?.id === id) { state = sheets[0]; activeSheetId = state.id; armazenamento.salvarAtiva(state.id); }
+  if (projecaoDaMesa) {
+    if (projecaoDaMesa.antes.stateId === id) {
+      projecaoDaMesa.antes.stateId = sheets[0].id;
+      activeSheetId = sheets[0].id;
+      if (sheets[0].id !== fichaSinteticaSalaId) armazenamento.salvarAtiva(sheets[0].id);
+    }
+    render();
+    return;
+  }
+  if (state?.id === id) { state = sheets[0]; activeSheetId = state.id; if (state.id !== fichaSinteticaSalaId) armazenamento.salvarAtiva(state.id); }
   render();
   avisoDaSala(`${nome ? String(nome).toUpperCase() : 'UMA FICHA'} FOI ENTREGUE A OUTRO JOGADOR`);
 };
@@ -6696,6 +6791,7 @@ if (modoJogador) {
     ? ({ pv: originalCalcPvMax, pe: originalCalcPeMax, san: originalCalcSanMax }[chave]?.(state) ?? 0)
     : Number(state[`max${chave[0].toUpperCase()}${chave.slice(1)}`]) || 0;
   document.addEventListener('click', ev => {
+    if (projecaoDaMesa) return;
     const passo = ev.target.closest?.('[data-cartao-recurso]');
     if (passo) {
       const [chave, delta] = passo.dataset.cartaoRecurso.split(':');
@@ -6716,6 +6812,10 @@ if (modoJogador) {
   inicializadoModoJogador = true;
   while (mudancasPendentesSala.length) aplicarChegadaNaSala(mudancasPendentesSala.shift());
   while (removidasPendentesSala.length) aplicarRemocaoNaSala(removidasPendentesSala.shift());
+  if (projecaoPendenteJogador) {
+    aplicarProjecaoDaMesa(projecaoPendenteJogador.fichaId, projecaoPendenteJogador.ficha);
+    projecaoPendenteJogador = null;
+  }
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

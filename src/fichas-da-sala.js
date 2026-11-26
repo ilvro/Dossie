@@ -56,3 +56,25 @@ export function decidirChegada({ propria, conectada = true, existe, editando }) 
 export const textoDoConflito = nome => `${nome || 'O jogador'} mexeu nesta ficha`;
 export const BOTAO_VER_DELE = 'Ver a versão dele';
 export const BOTAO_MANTER_MINHA = 'Manter a minha';
+
+const CAMPOS_UI_SINTETICA = new Set(['viewMode', 'cinematicCollapsed', 'folderId', '_sinteticaSala']);
+const semCamposUi = ficha => {
+  if (!ficha || typeof ficha !== 'object') return null;
+  const copia = {};
+  for (const [k, v] of Object.entries(ficha)) {
+    if (!CAMPOS_UI_SINTETICA.has(k)) copia[k] = v;
+  }
+  return copia;
+};
+
+/** A ficha sintética inicial ("AGENTE 1") só deve ir para a sala se o usuário realmente a editou. */
+export function sinteticaFoiEditada(ficha, base) {
+  if (!ficha || !base) return false;
+  return JSON.stringify(semCamposUi(ficha)) !== JSON.stringify(semCamposUi(base));
+}
+
+/** Remove a ficha sintética intacta da lista antes de persistir na sala. */
+export function filtrarFichasParaSalvarNaSala(fichas, fichaSinteticaId) {
+  if (!Array.isArray(fichas)) return [];
+  return fichas.filter(f => f && f.id !== fichaSinteticaId && f._sinteticaSala !== true);
+}
