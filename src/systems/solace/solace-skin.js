@@ -72,8 +72,8 @@ export const SOLACE_SKIN = {
   pageClass: 'solace-page',
   defaultBg: `${DIR}solace-bg.webp`,
   art: renderArt,
-  // A palavra vetorial da Vigília vira máscara: a "tinta" é a cor de Solace, e a sombra fica no invólucro
-  attrWord: (key, label) => `<span class="solace-attr-shadow"><span class="attr-vector-word solace-attr-ink word-${key}" role="img" aria-label="${label}" style="--src:url('${VIG}attr-${key}.svg')"></span></span>`,
+  // A palavra vetorial da Vigília (#fff) tingida para o creme de Solace (#f9dcae) via CSS filter
+  attrWord: (key, label) => `<img src="${VIG}attr-${key}.svg" alt="${label}" class="attr-vector-word solace-attr-word word-${key}" draggable="false">`,
   chevron: () => `
           <svg class="atributos-chevron-ray" viewBox="0 0 36 174" aria-hidden="true">
             <defs>

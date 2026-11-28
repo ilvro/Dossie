@@ -100,20 +100,10 @@
   filter: drop-shadow(0 0 4px rgba(232, 160, 88, 0.55)) drop-shadow(0 2px 3px rgba(26, 13, 4, 0.8));
 }
 
-/* Palavras dos atributos: a forma vem do SVG da Vigília (máscara), a cor é a de Solace */
-.solace-attr-shadow {
-  display: inline-flex;
-  filter: drop-shadow(0 2px 4px rgba(26, 13, 4, 0.95));
+/* Palavras dos atributos: a arte branca da Vigília tingida para o creme de Solace */
+.solace-page .solace-attr-word {
+  filter: brightness(0.723) sepia(1) drop-shadow(0 2px 4px rgba(26, 13, 4, 0.95));
 }
-.solace-attr-ink {
-  display: block;
-  background: var(--sl-cream, #f9dcae);
-  -webkit-mask: var(--src) center / contain no-repeat;
-  mask: var(--src) center / contain no-repeat;
-}
-.solace-attr-ink.word-fisico { height: 38px; aspect-ratio: 129.04 / 54.14; }
-.solace-attr-ink.word-mente { height: 32px; aspect-ratio: 135.76 / 44.25; }
-.solace-attr-ink.word-emocao { height: 35px; aspect-ratio: 156.34 / 46.76; }
 
 /* ─── Textos ─── */
 .solace-page .vigilia-title-name .first-name,
@@ -459,9 +449,6 @@ body:has(.solace-page) .relation-option-btn { border-color: #7a5634; background:
     border-color: rgba(220, 157, 92, 0.3) !important;
   }
   .solace-page .resource-badge-group .res-tag { color: var(--sl-cream) !important; }
-  .solace-attr-ink.word-fisico { height: 18px; }
-  .solace-attr-ink.word-mente { height: 15px; }
-  .solace-attr-ink.word-emocao { height: 17px; }
 }
 
 /* No verso não há retrato: o texto ocupa a largura toda, então a vinheta também */
