@@ -8251,3 +8251,19 @@ body[data-modo-seletor="1"]{background:#08070d;color:#e9e7f2;overflow:auto}
 .sel-retrato{width:86px;height:86px;border-radius:50%;background:#1b1c2b center/cover no-repeat;border:2px solid var(--sel-cor);display:grid;place-items:center;font-size:30px;font-weight:800;color:var(--sel-cor)}
 .sel-nome{font-weight:800;font-size:14px;line-height:1.2;overflow-wrap:anywhere}.sel-sub{font-size:11px;color:#9a9db0;min-height:13px}
 .sel-recursos{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;font-size:11px;color:#c9cbd8}.sel-rec b{color:var(--sel-cor);margin-right:2px}
+
+/* Seletor: carrossel "Seleção de receptáculo" em escala de tela cheia */
+.sel-recept{display:flex;flex-direction:column;align-items:center;gap:18px;padding:10px 0 4px}
+.sel-recept .cp-dock-top{padding:6px 16px}.sel-recept .cp-dock-badge{font-size:12px}.sel-recept .cp-dock-hint,.sel-recept .cp-dock-counter{font-size:11px}.sel-recept .cp-dock-hint kbd{font-size:11px;padding:1px 5px}
+.sel-recept .cp-dock-carousel{--card-slide-step:0px;gap:18px;max-width:100%}
+.sel-recept .cp-card.card-side{width:clamp(110px,16vw,170px);height:auto;aspect-ratio:3/4}
+.sel-recept .cp-card.card-curr{width:clamp(210px,32vw,300px);height:auto;aspect-ratio:3/4.1}
+.sel-recept .cp-card-topbar{height:22px;padding:3px 8px}.sel-recept .cp-card-tag,.sel-recept .cp-card-profile{font-size:9px}
+.sel-recept .cp-avatar-ph{width:64px;height:64px;font-size:28px}
+.sel-recept .cp-card-summary{padding:8px 10px 10px;gap:5px}
+.sel-recept .cp-card-summary strong{font-size:15px}.sel-recept .cp-card.card-side .cp-card-summary strong{font-size:11px}
+.sel-recept .cp-card-summary small{font-size:11px}.sel-recept .cp-card.card-side .cp-card-summary small{font-size:9px}
+.sel-recept .cp-level-badge{font-size:11px}.sel-recept .cp-pill-row{display:flex;gap:4px;flex-wrap:wrap}.sel-recept .cp-res-pill{font-size:10.5px;padding:2px 7px;border-radius:4px;font-weight:700}
+.sel-recept .btn-select-cp-agent{height:30px;font-size:11px;margin-top:4px}
+.sel-recept .cp-arrow{width:34px;height:56px;font-size:26px;line-height:1}
+@media (max-width:520px){.sel-recept .cp-card.card-side{display:none}}
