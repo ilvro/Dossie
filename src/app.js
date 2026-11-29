@@ -6697,13 +6697,20 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   }
   window.addEventListener('message', ev => {
     if (ev.origin !== location.origin) return;
+    // Avisa a casca da Mesa quando a vista/projeção pedida já foi aplicada e pintada, para ela revelar o `iframe` sem salto.
+    const avisarVistaAplicada = () => {
+      if (window.parent === window || ev.source !== window.parent) return;
+      requestAnimationFrame(() => { try { window.parent.postMessage({ tipo: 'dossie.vista-aplicada' }, location.origin); } catch { /* sem casca */ } });
+    };
     if (ev.data?.tipo === 'dossie:projetar-ficha') {
       aplicarProjecaoDaMesa(ev.data.fichaId ?? null, ev.data.ficha ?? null);
+      avisarVistaAplicada();
     } else if (ev.data?.tipo === 'dossie:abrir-ficha' && ev.data.fichaId) {
       abrirFichaDaCasca(ev.data.fichaId);
     } else if (modoJogador && window.parent !== window && ev.source === window.parent && ev.data?.tipo === 'dossie.vista') {
       if (!inicializadoApp) vistaPendenteJogador = ev.data.vista;
       else aplicarVistaJogador(ev.data.vista);
+      avisarVistaAplicada();
     }
   });
 }
