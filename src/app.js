@@ -6720,19 +6720,20 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   window.addEventListener('message', ev => {
     if (ev.origin !== location.origin) return;
     // Avisa a casca da Mesa quando a vista/projeção pedida já foi aplicada e pintada, para ela revelar o `iframe` sem salto.
-    const avisarVistaAplicada = () => {
+    // Dois quadros: o primeiro aplica o layout, o segundo já o pintou; só então a casca revela o iframe.
+    const avisarVistaAplicada = vista => {
       if (window.parent === window || ev.source !== window.parent) return;
-      requestAnimationFrame(() => { try { window.parent.postMessage({ tipo: 'dossie.vista-aplicada' }, location.origin); } catch { /* sem casca */ } });
+      requestAnimationFrame(() => requestAnimationFrame(() => { try { window.parent.postMessage({ tipo: 'dossie.vista-aplicada', vista: vista === 'card' ? 'card' : 'completa' }, location.origin); } catch { /* sem casca */ } }));
     };
     if (ev.data?.tipo === 'dossie:projetar-ficha') {
       aplicarProjecaoDaMesa(ev.data.fichaId ?? null, ev.data.ficha ?? null);
-      avisarVistaAplicada();
+      avisarVistaAplicada('completa');
     } else if (ev.data?.tipo === 'dossie:abrir-ficha' && ev.data.fichaId) {
       abrirFichaDaCasca(ev.data.fichaId);
     } else if (modoJogador && window.parent !== window && ev.source === window.parent && ev.data?.tipo === 'dossie.vista') {
       if (!inicializadoApp) vistaPendenteJogador = ev.data.vista;
       else aplicarVistaJogador(ev.data.vista);
-      avisarVistaAplicada();
+      avisarVistaAplicada(ev.data.vista);
     }
   });
 }
