@@ -5,7 +5,14 @@ import { sincronizarComCofre, mesclarFichas } from './cofre-fichas.js';
 import { DEFAULT_FOLDERS, normalizeFolders, loadFoldersFromStorage } from './workspace/folders.js';
 
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const corSegura = c => (/^#[0-9a-f]{6}$/i.test(c || '') ? c : '#b00f2e');
+const COR_PERFIL = { Executor: '#e0150d', Analista: '#2162ff', Vigilante: '#2d863f' };
+const COR_CLASSE = { combatente: '#e0150d', especialista: '#2162ff', ocultista: '#a230ed', mundano: '#808080' };
+/** Mesma regra do Dossiê (`getSheetAccent`): cor tema da ficha, senão a da classe (Ordem) ou do perfil. */
+export function corDaFicha(f) {
+  if (/^#[0-9a-f]{6}$/i.test(f?.themeColor || '')) return f.themeColor;
+  if (f?.systemMode === 'original') return COR_CLASSE[f.classeId] || '#e0150d';
+  return COR_PERFIL[f?.profile] || COR_PERFIL.Executor;
+}
 const imagemSegura = u => (/^(data:image\/|blob:|https?:\/\/|\.?\/?[\w./%-]+$)/i.test(String(u || '').trim()) ? String(u).trim() : '');
 
 /** Só personagens (ameaças ficam de fora), com nome para busca, ordenadas pelo nome. */
@@ -44,6 +51,15 @@ export async function montarSeletor(raiz = document.querySelector('#app') || doc
   const pai = deps.pai ?? (window.parent !== window ? window.parent : null);
   const enviar = msg => { try { pai?.postMessage(msg, location.origin); } catch { /* sem casca */ } };
   document.body.dataset.modoSeletor = '1';
+  const fundo = document.createElement('div');
+  fundo.className = 'sel-fundo';
+  fundo.innerHTML = '<i class="sel-fundo-retrato"></i><i class="sel-fundo-brilho"></i><i class="sel-fundo-neblina"></i><i class="sel-fundo-brasas"></i><i class="sel-fundo-vinheta"></i>';
+  document.body.prepend(fundo);
+  const pintarFundo = f => {
+    fundo.style.setProperty('--sel-acento', f ? corDaFicha(f) : '#b00f2e');
+    const img = f ? imagemSegura(f.tokenImage) : '';
+    fundo.firstElementChild.style.backgroundImage = img ? `url('${img.replace(/'/g, '%27')}')` : 'none';
+  };
 
   let locais = [], fichas = [], pastas = normalizeFolders(DEFAULT_FOLDERS), busca = '', pasta = 'todas', indice = 0, direcao = 0, confirmando = false;
   const estado = { carregando: true };
@@ -51,12 +67,12 @@ export async function montarSeletor(raiz = document.querySelector('#app') || doc
   const carrossel = lista => {
     const n = lista.length, i = ((indice % n) + n) % n, mais = n > 1;
     const ant = lista[(i - 1 + n) % n], cur = lista[i], prox = lista[(i + 1) % n];
-    const cor = f => corSegura(f.themeColor);
+    const cor = corDaFicha;
     const topo = (f, rotulo) => `<div class="cp-card-topbar"><span class="cp-card-tag">${rotulo}</span><span class="cp-card-profile">${esc(f.systemMode === 'original' ? 'Ordem RPG' : (f.profile || f.classeId || 'Ficha'))}</span></div>`;
     const thumb = f => { const img = imagemSegura(f.tokenImage); return `<div class="cp-card-thumb">${img ? `<img src="${esc(img)}" alt="${esc(f.name)}" draggable="false">` : `<div class="cp-avatar-ph">${esc(String(f.name || '?').trim().charAt(0).toUpperCase())}</div>`}${confirmando ? '<div class="pcard-lockin-overlay"><div class="pcard-lockin-stamp"><strong>✓ RECEPTÁCULO CONFIRMADO</strong><small>SINCRONIZANDO FICHA...</small></div></div>' : ''}</div>`; };
     const lateral = (f, k, rotulo) => `<article class="cp-card card-side card-${k}" data-sel-ir="${k === 'prev' ? -1 : 1}" style="--agent-accent:${cor(f)}" title="Ver ${esc(f.name)}">${topo(f, rotulo)}${thumb(f)}<div class="cp-card-summary"><strong>${esc(f.name || 'Sem nome')}</strong><small>${esc(subtituloDaFicha(f))}</small></div></article>`;
     const pilulas = resumoDeRecursos(cur).map((r, k) => `<span class="cp-res-pill ${k === 0 ? 'pv' : 'pd'}">${r.rotulo} ${r.atual}/${r.max}</span>`).join('');
-    return `<section class="sel-recept"><header class="cp-dock-top"><span class="cp-dock-badge">SELEÇÃO DE RECEPTÁCULO</span><span class="cp-dock-hint"><kbd>←</kbd> <kbd>→</kbd> Navegar · <b>Duplo clique</b> para Confirmar</span><span class="cp-dock-counter">${i + 1} / ${n}</span></header>
+    return `<section class="sel-recept" style="--agent-accent:${cor(cur)}"><header class="cp-dock-top"><span class="cp-dock-badge">SELEÇÃO DE RECEPTÁCULO</span><span class="cp-dock-hint"><kbd>←</kbd> <kbd>→</kbd> Navegar · <b>Duplo clique</b> para Confirmar</span><span class="cp-dock-counter">${i + 1} / ${n}</span></header>
       <div class="cp-dock-carousel ${direcao === 1 ? 'dir-next' : direcao === -1 ? 'dir-prev' : ''}" style="--agent-accent:${cor(cur)}">
       ${mais ? `<button type="button" class="cp-arrow prev" data-sel-ir="-1" title="Receptáculo anterior (←)">‹</button>${lateral(ant, 'prev', 'ANTERIOR')}` : ''}
       <article class="cp-card card-curr ${confirmando ? 'locking-in' : ''}" data-sel-atual="${esc(cur.id)}" style="--agent-accent:${cor(cur)}">${topo(cur, 'DUPLO CLIQUE PARA CONFIRMAR')}${thumb(cur)}
@@ -74,6 +90,7 @@ export async function montarSeletor(raiz = document.querySelector('#app') || doc
   const desenhar = () => {
     const visiveis = fichas.filter(f => fichaCombinaBusca(f, busca) && (pasta === 'todas' || f.folderId === pasta));
     atuais = visiveis;
+    pintarFundo(visiveis.length ? visiveis[((indice % visiveis.length) + visiveis.length) % visiveis.length] : null);
     const usadas = pastas.filter(p => fichas.some(f => f.folderId === p.id));
     raiz.innerHTML = `<main class="sel">
       <header class="sel-topo"><h1>Escolher personagem</h1>

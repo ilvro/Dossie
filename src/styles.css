@@ -8267,3 +8267,29 @@ body[data-modo-seletor="1"]{background:#08070d;color:#e9e7f2;overflow:auto}
 .sel-recept .btn-select-cp-agent{height:30px;font-size:11px;margin-top:4px}
 .sel-recept .cp-arrow{width:34px;height:56px;font-size:26px;line-height:1}
 @media (max-width:520px){.sel-recept .cp-card.card-side{display:none}}
+
+/* Seletor: imersão — fundo vivo na cor do perfil da ficha em foco */
+html:has(body[data-modo-seletor="1"]){background:#050408}
+body[data-modo-seletor="1"]{background:transparent !important}
+body[data-modo-seletor="1"] #app{background:transparent !important;min-height:100vh}
+.sel-fundo{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;--sel-acento:#b00f2e}
+.sel-fundo i{position:absolute;inset:0;display:block}
+.sel-fundo-retrato{background:center 20%/cover no-repeat;filter:blur(38px) saturate(1.3) brightness(.38);transform:scale(1.25);opacity:.75;transition:background-image .5s}
+.sel-fundo-brilho{background:radial-gradient(ellipse 60% 55% at 50% 58%,color-mix(in srgb,var(--sel-acento),transparent 62%),transparent 70%),radial-gradient(ellipse 90% 40% at 50% 105%,color-mix(in srgb,var(--sel-acento),transparent 70%),transparent 70%);transition:background .6s;animation:selRespira 5.5s ease-in-out infinite}
+.sel-fundo-neblina{background:repeating-linear-gradient(100deg,transparent 0 120px,rgba(255,255,255,.035) 160px,transparent 230px);filter:blur(22px);animation:selNeblina 38s linear infinite;mix-blend-mode:screen}
+.sel-fundo-brasas{background-image:radial-gradient(circle,color-mix(in srgb,var(--sel-acento),#fff 35%) 0 1.4px,transparent 2.4px),radial-gradient(circle,rgba(255,255,255,.7) 0 1px,transparent 2px);background-size:170px 230px,111px 150px;background-position:0 0,40px 60px;opacity:.5;animation:selBrasas 26s linear infinite;-webkit-mask-image:linear-gradient(to top,#000,transparent 85%);mask-image:linear-gradient(to top,#000,transparent 85%)}
+.sel-fundo-vinheta{background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.78) 100%),repeating-linear-gradient(0deg,rgba(0,0,0,.14) 0 1px,transparent 1px 3px)}
+@keyframes selRespira{0%,100%{opacity:.75}50%{opacity:1}}
+@keyframes selNeblina{from{background-position:0 0}to{background-position:480px 0}}
+@keyframes selBrasas{from{background-position:0 0,40px 60px}to{background-position:-60px -230px,-20px -150px}}
+body[data-modo-seletor="1"] #app,body[data-modo-seletor="1"] .sel{position:relative;z-index:1}
+.sel-topo h1{text-shadow:0 0 18px color-mix(in srgb,var(--sel-acento,#b00f2e),transparent 40%)}
+.sel-recept .cp-card.card-curr{animation:selCartaFlutua 6s ease-in-out infinite;backdrop-filter:blur(6px)}
+.sel-recept .cp-card.card-curr.locking-in{animation:cpCardLockIn 0.42s cubic-bezier(0.12,0.8,0.32,1) forwards}
+.sel-recept .cp-card.card-curr .cp-card-thumb img{animation:selRespiraImg 6s ease-in-out infinite}
+.sel-recept .cp-card.card-curr::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.09) 50%,transparent 60%);background-size:250% 100%;animation:selBrilho 5s ease-in-out infinite}
+.sel-recept .cp-dock-top{background:rgba(6,6,10,.7)}
+@keyframes selCartaFlutua{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes selRespiraImg{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
+@keyframes selBrilho{0%,60%{background-position:150% 0}100%{background-position:-50% 0}}
+@media (prefers-reduced-motion:reduce){.sel-fundo i,.sel-recept .cp-card.card-curr,.sel-recept .cp-card.card-curr::after,.sel-recept .cp-card.card-curr .cp-card-thumb img{animation:none}}
