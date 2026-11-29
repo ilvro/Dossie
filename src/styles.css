@@ -8236,3 +8236,18 @@ body[data-vista="card"]:has(.vigilia-floating-dock) .cartao-jogador { padding-bo
 .unsaved-bar.conflito-sala{top:54px}
 .unsaved-bar.conflito-sala span,.unsaved-bar.conflito-sala button{text-transform:uppercase}
 @media (max-width:640px){.unsaved-bar.conflito-sala{top:auto;bottom:118px}}
+
+/* Seletor de fichas do Saguão (`?modo=seletor`) */
+body[data-modo-seletor="1"]{background:#08070d;color:#e9e7f2;overflow:auto}
+.sel{max-width:980px;margin:0 auto;padding:22px 20px 32px;display:flex;flex-direction:column;gap:16px;font-family:inherit}
+.sel-topo{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.sel-topo h1{margin:0;font-size:18px;letter-spacing:.12em;text-transform:uppercase}
+.sel-acoes{display:flex;gap:8px}.sel-btn{padding:8px 14px;border-radius:8px;border:1px solid #3d3f55;background:#17172a;color:#e9e7f2;font:700 12px inherit;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.sel-btn.destaque{background:#ee1943;border-color:#ee1943;color:#fff}.sel-btn.discreto{opacity:.7;font-weight:500}.sel-btn:hover{filter:brightness(1.15)}
+.sel-filtros{display:flex;gap:8px}.sel-busca,.sel-pasta{padding:8px 11px;border-radius:8px;border:1px solid #2e3044;background:#0f1019;color:#e9e7f2;font:inherit;font-size:13px}.sel-busca{flex:1;min-width:0}
+.sel-vazio{margin:30px 0;text-align:center;color:#8b8fa3;font-size:13px}
+.sel-grade{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px}
+.sel-cartao{width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 10px 12px;border-radius:12px;border:1px solid color-mix(in srgb,var(--sel-cor),#000 45%);background:linear-gradient(180deg,color-mix(in srgb,var(--sel-cor),#000 78%),#0c0d16);color:inherit;cursor:pointer;text-align:center;transition:transform .15s,border-color .15s,box-shadow .15s}
+.sel-cartao:hover,.sel-cartao:focus-visible{transform:translateY(-2px);border-color:var(--sel-cor);box-shadow:0 6px 20px color-mix(in srgb,var(--sel-cor),transparent 62%);outline:0}
+.sel-retrato{width:86px;height:86px;border-radius:50%;background:#1b1c2b center/cover no-repeat;border:2px solid var(--sel-cor);display:grid;place-items:center;font-size:30px;font-weight:800;color:var(--sel-cor)}
+.sel-nome{font-weight:800;font-size:14px;line-height:1.2;overflow-wrap:anywhere}.sel-sub{font-size:11px;color:#9a9db0;min-height:13px}
+.sel-recursos{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;font-size:11px;color:#c9cbd8}.sel-rec b{color:var(--sel-cor);margin-right:2px}
