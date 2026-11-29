@@ -18,6 +18,7 @@ if (typeof Uint8Array !== 'undefined') {
 }
 
 import { DEFAULT_SHEETS } from './default-sheets.js';
+import { comSincroniaDiscord, lerSessao, sairDaConta, iniciarLogin } from './conta-discord.js';
 import { armazenamentoLocal, armazenamentoSala, armazenamentoCombinado, PASTA_SALA } from './armazenamento.js';
 import { jogadoresParaEntregar, rotuloDoDono, nomeDoDono, donoDoPersonagem, decidirChegada, textoDoConflito, BOTAO_VER_DELE, BOTAO_MANTER_MINHA, sinteticaFoiEditada, filtrarFichasParaSalvarNaSala } from './fichas-da-sala.js';
 import { iniciarMesa, criarBarramentoDaSala, criarBarramentoDoMestre, salaIdValido } from './mesa.js';
@@ -814,6 +815,8 @@ else{
  armazenamento=armazenamentoLocal();
  try{barramentoDoMestre=criarBarramentoDoMestre();armazenamento=armazenamentoCombinado({local:armazenamento,barramento:barramentoDoMestre})}catch(erro){barramentoDoMestre=null;console.warn('Dossiê: sem o canal da Mesa',erro)}
 }
+// Com a conta do Discord conectada, cada salvamento também vai ao cofre de fichas da conta (em segundo plano).
+if(!modoJogador)armazenamento=comSincroniaDiscord(armazenamento);
 const salvarPastas=(lista,opcoes)=>persistFoldersToStorage(lista.filter(f=>f.id!==PASTA_SALA),opcoes);
 const {idbGet=()=>null,idbSet=()=>false}=armazenamento;
 let folders=normalizeFolders(DEFAULT_FOLDERS);
@@ -980,6 +983,7 @@ async function loadInitialSheets(){
   folders=normalizeFolders(DEFAULT_FOLDERS);
  }
  const {fichas:salvas,ativaId:storedActiveId}=await armazenamento.carregar();
+ if(!modoJogador&&salvas.length)armazenamento.sincronizarAgora?.(salvas);
  let loaded=salvas.length?salvas.map(normalizeSheet):null;
  // Na sala só existem as fichas do jogador: nada de fichas padrão. Sem nenhuma, nasce uma em branco (só vai à sala quando ele a editar).
  if(modoJogador){
@@ -1163,7 +1167,8 @@ function getCriticalState(){
 // A atmosfera vive fora de `#app` (filha de `body`): `render()` troca o `innerHTML` do app e não pode reiniciar vinheta, tentáculos nem batimento.
 function ensureCriticalAtmosphereEl(){let el=document.querySelector('[data-critical-atmosphere]');if(!el){document.body.insertAdjacentHTML('beforeend',renderCriticalAtmosphere());el=document.querySelector('[data-critical-atmosphere]')}return el}
 function renderCriticalAtmosphere(){return `<div class="critical-atmosphere" data-critical-atmosphere aria-hidden="true"><div class="critical-pd-darkness"></div><div class="critical-pv-vignette"></div><div class="critical-pd-vignette"></div><canvas class="critical-tendrils" data-critical-tendrils></canvas><div class="critical-distortion"></div></div>`}
-function renderCriticalSettings(){const row=(key,title,copy)=>`<div class="critical-setting-row"><span><b>${title}</b><small>${copy}</small></span><button type="button" class="critical-effect-toggle ${criticalEffects[key]?'active':''}" data-critical-effect="${key}" aria-pressed="${criticalEffects[key]}"><i></i><em>${criticalEffects[key]?'ATIVO':'DESATIVADO'}</em></button></div>`;const appRow=(key,title,copy,defaultTrue=true)=>{const val=appSettings[key];const isEnabled=defaultTrue?(val!==false):Boolean(val);return `<div class="critical-setting-row"><span><b>${title}</b><small>${copy}</small></span><button type="button" class="critical-effect-toggle ${isEnabled?'active':''}" data-app-setting="${key}" aria-pressed="${isEnabled}"><i></i><em>${isEnabled?'ATIVO':'DESATIVADO'}</em></button></div>`;};return `<div class="modal critical-settings-modal" id="critical-settings-modal"><div class="backdrop critical-settings-backdrop"></div><section><button type="button" class="critical-settings-close">${icon('close')}</button><small>IMERSÃO & ACESSIBILIDADE</small><h2>EFEITOS CRÍTICOS</h2><p>Escolha quais efeitos atmosféricos podem aparecer. As cores e bordas informativas de PV e PD continuam visíveis.</p>${row('pv','ESTADO CRÍTICO DE PV','Vinheta pulsante e batimento cardíaco sincronizado.')}${row('pd','ESTADO CRÍTICO DE PD','Escurecimento, vibração e formas paranormais.')}<h2 style="margin-top:22px">EXPERIÊNCIA DE JOGO</h2>${appRow('gameFx','ANIMAÇÕES DE JOGO','Efeitos visuais, contagem dinâmica de dados e partículas.')}${appRow('ambientFx','AMBIENTE VIVO','Névoa da Membrana, partículas e respiração sutil do retrato na ficha da Vigília.')}${appRow('cinematicAltRoll','ROLAGEM CINEMÁTICA ALTERNATIVA','Rolagem no estilo Baldur\'s Gate 3: dado 2.5D num anel dourado, Classe de Dificuldade no topo, bônus que voam até o dado e veredito de sucesso ou falha.')}${appRow('rollScene','CENA DE ROLAGEM','Os dados rolam num círculo em destaque e cada bônus voa até o total. Desligada, os dados rolam soltos sobre a ficha.')}${appRow('manualThrow','ARREMESSO MANUAL','Nos testes, os dados esperam na cena: pegue, arraste e solte para arremessar, ou clique para rolar. Desligado, rolam na hora.')}<h2 style="margin-top:22px">CRIAÇÃO DE FICHA</h2>${appRow('tutorialOriginal','TUTORIAL DE ORDEM PARANORMAL 1','Ao criar uma ficha, guia a escolha de aprimoramento, origem, atributos, perícias e poder geral.')}</section></div>`}
+function renderContaDiscord(){const conta=lerSessao();return `<h2 style="margin-top:22px">CONTA DISCORD</h2><div class="critical-setting-row"><span><b>${conta?`CONECTADO COMO ${safe(conta.eu.nome)}`:'SINCRONIZAR FICHAS'}</b><small>${conta?'Suas fichas de personagem seguem para o cofre da conta a cada salvamento e aparecem no Saguão da Mesa, inclusive na Activity do Discord.':'Entre com o Discord para ter suas fichas no Saguão da Mesa dentro da Activity. É opcional.'}</small></span><button type="button" class="critical-effect-toggle ${conta?'active':''}" data-discord-conta aria-pressed="${Boolean(conta)}"><i></i><em>${conta?'SAIR':'ENTRAR'}</em></button></div>`}
+function renderCriticalSettings(){const row=(key,title,copy)=>`<div class="critical-setting-row"><span><b>${title}</b><small>${copy}</small></span><button type="button" class="critical-effect-toggle ${criticalEffects[key]?'active':''}" data-critical-effect="${key}" aria-pressed="${criticalEffects[key]}"><i></i><em>${criticalEffects[key]?'ATIVO':'DESATIVADO'}</em></button></div>`;const appRow=(key,title,copy,defaultTrue=true)=>{const val=appSettings[key];const isEnabled=defaultTrue?(val!==false):Boolean(val);return `<div class="critical-setting-row"><span><b>${title}</b><small>${copy}</small></span><button type="button" class="critical-effect-toggle ${isEnabled?'active':''}" data-app-setting="${key}" aria-pressed="${isEnabled}"><i></i><em>${isEnabled?'ATIVO':'DESATIVADO'}</em></button></div>`;};return `<div class="modal critical-settings-modal" id="critical-settings-modal"><div class="backdrop critical-settings-backdrop"></div><section><button type="button" class="critical-settings-close">${icon('close')}</button><small>IMERSÃO & ACESSIBILIDADE</small><h2>EFEITOS CRÍTICOS</h2><p>Escolha quais efeitos atmosféricos podem aparecer. As cores e bordas informativas de PV e PD continuam visíveis.</p>${row('pv','ESTADO CRÍTICO DE PV','Vinheta pulsante e batimento cardíaco sincronizado.')}${row('pd','ESTADO CRÍTICO DE PD','Escurecimento, vibração e formas paranormais.')}<h2 style="margin-top:22px">EXPERIÊNCIA DE JOGO</h2>${appRow('gameFx','ANIMAÇÕES DE JOGO','Efeitos visuais, contagem dinâmica de dados e partículas.')}${appRow('ambientFx','AMBIENTE VIVO','Névoa da Membrana, partículas e respiração sutil do retrato na ficha da Vigília.')}${appRow('cinematicAltRoll','ROLAGEM CINEMÁTICA ALTERNATIVA','Rolagem no estilo Baldur\'s Gate 3: dado 2.5D num anel dourado, Classe de Dificuldade no topo, bônus que voam até o dado e veredito de sucesso ou falha.')}${appRow('rollScene','CENA DE ROLAGEM','Os dados rolam num círculo em destaque e cada bônus voa até o total. Desligada, os dados rolam soltos sobre a ficha.')}${appRow('manualThrow','ARREMESSO MANUAL','Nos testes, os dados esperam na cena: pegue, arraste e solte para arremessar, ou clique para rolar. Desligado, rolam na hora.')}${modoJogador?'':renderContaDiscord()}<h2 style="margin-top:22px">CRIAÇÃO DE FICHA</h2>${appRow('tutorialOriginal','TUTORIAL DE ORDEM PARANORMAL 1','Ao criar uma ficha, guia a escolha de aprimoramento, origem, atributos, perícias e poder geral.')}</section></div>`}
 
 function getCardCost(card){
  if(card.cost !== undefined && card.cost !== null) {
@@ -6121,6 +6126,7 @@ function bind(){
  document.querySelector('[data-install-app]')?.addEventListener('click',requestAppInstall);
  document.querySelector('[data-critical-settings]')?.addEventListener('click',()=>document.querySelector('#critical-settings-modal')?.classList.add('open'));
  document.querySelectorAll('.critical-settings-close,.critical-settings-backdrop').forEach(el=>el.onclick=()=>document.querySelector('#critical-settings-modal')?.classList.remove('open'));
+ document.querySelector('[data-discord-conta]')?.addEventListener('click',()=>{if(lerSessao()){sairDaConta();render();document.querySelector('#critical-settings-modal')?.classList.add('open')}else location.href=iniciarLogin()});
  document.querySelectorAll('[data-app-setting]').forEach(button=>button.onclick=()=>{const key=button.dataset.appSetting;appSettings[key]=!appSettings[key];
   // Rolagem alternativa (estilo BG3) não usa cena nem arremesso manual: ligar uma desliga as outras
   if(appSettings[key]){if(key==='cinematicAltRoll'){appSettings.rollScene=false;appSettings.manualThrow=false}else if(key==='rollScene'||key==='manualThrow'){appSettings.cinematicAltRoll=false;if(key==='manualThrow')appSettings.rollScene=true}}
@@ -6834,6 +6840,7 @@ if (modoJogador) {
 
 await loadInitialSheets();
 inicializadoApp = true;
+try{const aviso=sessionStorage.getItem('dossie:discord-aviso');if(aviso){sessionStorage.removeItem('dossie:discord-aviso');const toast=document.querySelector('#save-toast');if(toast){toast.textContent=aviso==='recusado'?'LOGIN DO DISCORD CANCELADO':'NÃO FOI POSSÍVEL ENTRAR COM O DISCORD';toast.classList.add('show');setTimeout(()=>{toast.classList.remove('show');toast.textContent='SALVO'},3200)}}}catch{}
 presentationMode = false;
 if (state.systemMode === 'threat') {
  state.viewMode = 'livro';
