@@ -1,6 +1,7 @@
 // Seletor de fichas do Saguão da Mesa (`?modo=seletor`): galeria visual dentro de um iframe da casca.
 // Lê as fichas de personagem do armazenamento local, e devolve a escolhida por `postMessage` à casca (mesma origem).
 import { armazenamentoLocal, fichaParaSala } from './armazenamento.js';
+import { sincronizarComCofre, mesclarFichas } from './cofre-fichas.js';
 import { DEFAULT_FOLDERS, normalizeFolders, loadFoldersFromStorage } from './workspace/folders.js';
 
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -44,7 +45,7 @@ export async function montarSeletor(raiz = document.querySelector('#app') || doc
   const enviar = msg => { try { pai?.postMessage(msg, location.origin); } catch { /* sem casca */ } };
   document.body.dataset.modoSeletor = '1';
 
-  let fichas = [], pastas = normalizeFolders(DEFAULT_FOLDERS), busca = '', pasta = 'todas';
+  let locais = [], fichas = [], pastas = normalizeFolders(DEFAULT_FOLDERS), busca = '', pasta = 'todas';
   const estado = { carregando: true };
   const desenhar = () => {
     const visiveis = fichas.filter(f => fichaCombinaBusca(f, busca) && (pasta === 'todas' || f.folderId === pasta));
@@ -80,11 +81,22 @@ export async function montarSeletor(raiz = document.querySelector('#app') || doc
   desenhar();
   try {
     const { fichas: salvas } = await armazenamento.carregar();
-    fichas = fichasDePersonagem(salvas);
+    locais = fichasDePersonagem(salvas);
+    fichas = locais;
     try { pastas = normalizeFolders(await loadFoldersFromStorage({ idbGet: armazenamento.idbGet })); } catch { /* pastas padrão */ }
   } catch (e) { console.warn('Seletor: sem fichas locais', e); }
   estado.carregando = false;
   desenhar();
+  // A casca manda a sessão do Discord (nunca na URL): o seletor envia as fichas locais ao cofre da conta e lista as de lá também.
+  const aoMensagem = async ev => {
+    if (!pai || ev.source !== pai || ev.origin !== location.origin) return;
+    const d = ev.data;
+    if (!d || d.tipo !== 'mesa.seletor-sessao' || typeof d.sessao !== 'string' || typeof d.baseSala !== 'string') return;
+    const { remotas } = await (deps.sincronizar || sincronizarComCofre)({ sessao: d.sessao, baseSala: d.baseSala, locais });
+    fichas = fichasDePersonagem(mesclarFichas(locais, remotas));
+    desenhar();
+  };
+  addEventListener('message', aoMensagem);
   enviar({ tipo: 'dossie.seletor-pronto' });
   return { recarregar: async () => { fichas = fichasDePersonagem((await armazenamento.carregar()).fichas); desenhar(); }, fichas: () => fichas };
 }
