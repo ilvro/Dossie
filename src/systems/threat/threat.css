@@ -4916,3 +4916,22 @@ body.threat-exporting .threat-edit-tools { display: none !important; }
 .recal-list { display: flex !important; width: 100%; }
 .recal-lists { max-height: none !important; overflow: visible !important; padding-right: 0 !important; }
 .recal-list { height: auto !important; min-height: 0 !important; }
+
+/* Largura estreita (card do Atlas, celular): os cinco atributos cabem sem cortar o último e o texto quebra em vez de vazar. */
+@media (max-width: 520px) {
+  .threat-book-attr-row {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 10px;
+    max-width: 100%;
+  }
+  .threat-book-attr-col { gap: 3px; }
+  .threat-book-attr-col .attr-label { font-size: 12px; letter-spacing: 0.2px; }
+  .threat-book-attr-col .attr-hex { width: 24px; height: 22px; min-width: 24px; font-size: 13px; }
+  .threat-book-page,
+  .threat-dossier-card {
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: anywhere;
+  }
+}

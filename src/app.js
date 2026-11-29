@@ -1504,7 +1504,7 @@ function readMedia(file,key){if(!file)return;const type=file.type;if(type.starts
 
 
 function renderBottomNav(){
- if(presentationMode) return '';
+ if(presentationMode||state.systemMode==='threat') return '';   // ficha de ameaça não tem essas abas
  const isVigilia=state.viewMode==='vigilia';
  const isCinematic=state.viewMode==='cinematic';
  if(isVigilia){
