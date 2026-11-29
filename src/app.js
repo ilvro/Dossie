@@ -1043,8 +1043,15 @@ let appSettings={
   threatFiltersOpen:true,
   virtualGroupsCollapsed:{}
 };
-try{appSettings={...appSettings,...JSON.parse(localStorage.getItem(APP_SETTINGS_KEY)||'{}')}}catch{}
+let _migrarRolagem=false;
+try{
+  const salvo=JSON.parse(localStorage.getItem(APP_SETTINGS_KEY)||'{}');
+  appSettings={...appSettings,...salvo};
+  // Migração única: o padrão passou a ser a rolagem 2.5D e preferências antigas (cinematicAltRoll: false) a escondiam.
+  if(!salvo.rollModeMigratedV2){Object.assign(appSettings,{cinematicAltRoll:true,rollScene:false,manualThrow:false,rollModeMigratedV2:true});_migrarRolagem=true}
+}catch{}
 function saveAppSettings(){try{localStorage.setItem(APP_SETTINGS_KEY,JSON.stringify(appSettings))}catch{}}
+if(_migrarRolagem)saveAppSettings();
 setFxEnabledGetter(()=>appSettings.gameFx!==false);
 setRollSceneGetter(()=>appSettings.rollScene!==false);
 setManualThrowGetter(()=>appSettings.manualThrow!==false);
@@ -2046,7 +2053,7 @@ function bindThreatBookEvents() {
    const count = attrVal > 0 ? attrVal : 2;
    const rollMode = attrVal > 0 ? 'highest' : 'lowest';
    const attrNames = { agi: 'Agilidade', for: 'Força', int: 'Intelecto', pre: 'Presença', vig: 'Vigor' };
-   roll(`Atributo: ${attrNames[attrKey] || attrKey.toUpperCase()} [${safe(state.name)}]`, Array(count).fill(20), 0, rollMode);
+   roll(`Atributo: ${attrNames[attrKey] || attrKey.toUpperCase()} [${safe(state.name)}]`, Array(count).fill(20), 0, rollMode, { scene: 'full' });
   };
  });
 
@@ -2059,7 +2066,7 @@ function bindThreatBookEvents() {
    const dados = Math.max(1, Number(saveObj.dados) || 1);
    const bonus = Number(saveObj.bonus) || 0;
    const saveNames = { fortitude: 'Fortitude', reflexos: 'Reflexos', vontade: 'Vontade' };
-   roll(`Resistência: ${saveNames[key] || key.toUpperCase()} [${safe(state.name)}]`, Array(dados).fill(20), bonus, 'highest');
+   roll(`Resistência: ${saveNames[key] || key.toUpperCase()} [${safe(state.name)}]`, Array(dados).fill(20), bonus, 'highest', { scene: 'full' });
   };
  });
 
@@ -2072,7 +2079,7 @@ function bindThreatBookEvents() {
    const dados = Math.max(1, Number(senseObj.dados) || 1);
    const bonus = Number(senseObj.bonus) || 0;
    const senseNames = { percepcao: 'Percepção', iniciativa: 'Iniciativa' };
-   roll(`Sentidos: ${senseNames[key] || key.toUpperCase()} [${safe(state.name)}]`, Array(dados).fill(20), bonus, 'highest');
+   roll(`Sentidos: ${senseNames[key] || key.toUpperCase()} [${safe(state.name)}]`, Array(dados).fill(20), bonus, 'highest', { scene: 'full' });
   };
  });
 
@@ -2094,7 +2101,7 @@ function bindThreatBookEvents() {
    if (!attack) return;
    const dados = Math.max(1, Number(attack.teste?.dados) || 1);
    const bonus = Number(attack.teste?.bonus) || 0;
-   roll(`Ataque: ${attack.nome || action.nome} [${safe(state.name)}]`, Array(dados).fill(20), bonus, 'highest');
+   roll(`Ataque: ${attack.nome || action.nome} [${safe(state.name)}]`, Array(dados).fill(20), bonus, 'highest', { scene: 'full' });
   };
  });
 
@@ -2117,7 +2124,7 @@ function bindThreatBookEvents() {
    if (!p) return;
    const dados = Math.max(1, Number(p.dados) || 1);
    const bonus = Number(p.bonus) || 0;
-   roll(`Perícia: ${p.nome} [${safe(state.name)}]`, Array(dados).fill(20), bonus, 'highest');
+   roll(`Perícia: ${p.nome} [${safe(state.name)}]`, Array(dados).fill(20), bonus, 'highest', { scene: 'full' });
   };
  });
 
@@ -6116,7 +6123,9 @@ function bind(){
  document.querySelectorAll('.critical-settings-close,.critical-settings-backdrop').forEach(el=>el.onclick=()=>document.querySelector('#critical-settings-modal')?.classList.remove('open'));
  document.querySelectorAll('[data-app-setting]').forEach(button=>button.onclick=()=>{const key=button.dataset.appSetting;appSettings[key]=!appSettings[key];
   // Rolagem alternativa (estilo BG3) não usa cena nem arremesso manual: ligar uma desliga as outras
-  if(appSettings[key]){if(key==='cinematicAltRoll'){appSettings.rollScene=false;appSettings.manualThrow=false}else if(key==='rollScene'||key==='manualThrow'){appSettings.cinematicAltRoll=false}}
+  if(appSettings[key]){if(key==='cinematicAltRoll'){appSettings.rollScene=false;appSettings.manualThrow=false}else if(key==='rollScene'||key==='manualThrow'){appSettings.cinematicAltRoll=false;if(key==='manualThrow')appSettings.rollScene=true}}
+  // Sem a rolagem 2.5D, o 3D abre com a cena e o arremesso manual (dependência de createDiceHand).
+  else if(key==='cinematicAltRoll'&&!appSettings.rollScene&&!appSettings.manualThrow){appSettings.rollScene=true;appSettings.manualThrow=true}
   saveAppSettings();document.querySelectorAll('[data-app-setting]').forEach(b=>{const on=Boolean(appSettings[b.dataset.appSetting]);b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));const label=b.querySelector('em');if(label)label.textContent=on?'ATIVO':'DESATIVADO'});syncAmbientFx()});
  document.querySelectorAll('[data-critical-effect]').forEach(button=>button.onclick=()=>{const key=button.dataset.criticalEffect;criticalEffects[key]=!criticalEffects[key];saveCriticalEffects();button.classList.toggle('active',criticalEffects[key]);button.setAttribute('aria-pressed',String(criticalEffects[key]));const label=button.querySelector('em');if(label)label.textContent=criticalEffects[key]?'ATIVO':'DESATIVADO';syncCriticalAtmosphere()});
  document.querySelectorAll('[data-field]').forEach(el=>el.onchange=e=>{if(presentationMode||projecaoDaMesa){if(!projecaoDaMesa)notifyPresentationLocked();return;}const key=e.target.dataset.field;state[key]=key==='level'?Math.max(0,Number(e.target.value)||0):e.target.value;save(false);render()});
