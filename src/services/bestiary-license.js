@@ -255,3 +255,17 @@ export async function verifyPdfFile(file, onProgress = () => {}) {
     license
   };
 }
+
+/**
+ * Outra aba ou card da mesma origem (ex.: vários iframes do Dossiê dentro da Mesa) validou ou bloqueou o livro:
+ * avisa esta janela com `bestiary-license-sync`, para ela redesenhar sem recarregar.
+ */
+export function observarLicencaEmOutrasJanelas(aoMudar) {
+  if (typeof window === 'undefined') return () => {};
+  const ouvir = e => {
+    if (e.key !== null && e.key !== BESTIARY_LICENSE_STORAGE_KEY) return;
+    aoMudar(getBestiaryLicense());
+  };
+  window.addEventListener('storage', ouvir);
+  return () => window.removeEventListener('storage', ouvir);
+}

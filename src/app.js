@@ -156,7 +156,8 @@ import {
   getBestiaryLicense,
   isBestiaryUnlocked,
   revokeBestiaryLicense,
-  verifyPdfFile
+  verifyPdfFile,
+  observarLicencaEmOutrasJanelas
 } from './services/bestiary-license.js';
 import {
   renderBestiaryUnlockModalHtml,
@@ -6992,6 +6993,7 @@ if(!modoJogador&&barramentoDoMestre&&armazenamento.conectar){
  });
 }
 
+observarLicencaEmOutrasJanelas(()=>render());   // validar o livro em outro card/aba desbloqueia este sem recarregar
 render();
 if (modoJogador && typeof window !== 'undefined' && window.parent !== window) {
   window.parent.postMessage({ tipo: 'dossie.pronto' }, location.origin);
