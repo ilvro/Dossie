@@ -3666,15 +3666,14 @@ function showFolderContextMenu(e, folderId) {
   <div class="custom-context-menu-header">${safe(folder.name)}</div>
   <button type="button" data-action="new-sheet-folder">${icon('plus', 13)} <span>Nova ficha nesta pasta</span></button>
   <button type="button" data-action="toggle-rail-visibility">${icon(isVisibleInRail ? 'eye-off' : 'eye', 13)} <span>${isVisibleInRail ? 'Ocultar no Rail lateral' : 'Exibir no Rail lateral'}</span></button>
-  ${!folder.system ? `
-    <div class="custom-context-menu-separator"></div>
-    <button type="button" data-action="rename-folder">${icon('edit', 13)} <span>Renomear pasta</span></button>
-    <button type="button" data-action="delete-folder" class="menu-danger">${icon('trash', 13)} <span>Excluir pasta</span></button>
-  ` : ''}
+  <button type="button" data-action="new-subfolder">${icon('folder-plus', 13)} <span>Nova subpasta aqui</span></button>
+  <div class="custom-context-menu-separator"></div>
+  <button type="button" data-action="rename-folder">${icon('edit', 13)} <span>Editar pasta (nome, cor, ícone)</span></button>
+  ${!folder.system ? `<button type="button" data-action="delete-folder" class="menu-danger">${icon('trash', 13)} <span>Excluir pasta</span></button>` : ''}
  `;
  menu.hidden = false;
- const x = Math.min(window.innerWidth - 190, Math.max(10, e.clientX + 4));
- const y = Math.min(window.innerHeight - 170, Math.max(10, e.clientY + 4));
+ const x = Math.min(window.innerWidth - 220, Math.max(10, e.clientX + 4));
+ const y = Math.min(window.innerHeight - 210, Math.max(10, e.clientY + 4));
  menu.style.left = `${x}px`;
  menu.style.top = `${y}px`;
 
@@ -3697,14 +3696,15 @@ function showFolderContextMenu(e, folderId) {
   btnRename.onclick = (ev) => {
    ev.stopPropagation();
    closeFolderContextMenu();
-   const newName = prompt('Novo nome para a pasta:', folder.name);
-   if (newName && newName.trim() && newName.trim() !== folder.name) {
-    folders = updateFolder(folders, folderId, { name: newName.trim() });
-    salvarPastas(folders, { idbSet });
-    render();
-   }
+   openFolderDialog({ folder });
   };
  }
+
+ menu.querySelector('[data-action="new-subfolder"]').onclick = (ev) => {
+  ev.stopPropagation();
+  closeFolderContextMenu();
+  openFolderDialog({ parentId: folderId });
+ };
 
  const btnDelete = menu.querySelector('[data-action="delete-folder"]');
  if (btnDelete) {
@@ -3721,6 +3721,94 @@ function showFolderContextMenu(e, folderId) {
    }
   };
  }
+}
+
+const FOLDER_DIALOG_COLORS = ['#3187ff', '#ee1943', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#06b6d4', '#8b5cf6', '#ec4899', '#a16207', '#94a3b8', '#f8fafc'];
+const FOLDER_DIALOG_ICONS = ['folder', 'shield', 'skull', 'user', 'sun', 'star', 'book', 'heart', 'zap', 'crosshair', 'd20', 'globe', 'lock', 'pin', 'sparkles', 'eye', 'dossier', 'threat-sigil'];
+
+// Diálogo único para criar (parentId opcional) ou editar (folder) uma pasta: nome, cor e ícone.
+function openFolderDialog({ folder = null, parentId = null } = {}) {
+ document.querySelector('#folder-dialog')?.remove();
+ const editing = Boolean(folder);
+ let color = folder?.color || '#3187ff';
+ let iconName = folder?.icon || (folder?.id === 'folder-threats' ? 'skull' : (folder?.id?.includes('vigilia') ? 'shield' : 'folder'));
+ const parent = parentId ? folders.find(f => f.id === parentId) : null;
+ const modal = document.createElement('div');
+ modal.className = 'modal folder-dialog';
+ modal.id = 'folder-dialog';
+ modal.style.display = 'flex';
+ modal.innerHTML = `<div class="backdrop" data-fd-cancel></div><section>
+  <small class="fd-kicker">${editing ? 'EDITAR PASTA' : (parent ? 'NOVA SUBPASTA' : 'NOVA PASTA')}</small>
+  <h2>${editing ? 'Nome, cor e ícone' : (parent ? `Dentro de ${safe(parent.name)}` : 'Organize suas fichas')}</h2>
+  <div class="fd-preview"><span class="fd-preview-icon"></span><span class="fd-preview-name"></span></div>
+  <label class="fd-label">Nome<input type="text" class="fd-name" maxlength="60" placeholder="Nome da pasta"></label>
+  <div class="fd-label">Cor</div>
+  <div class="fd-colors">${FOLDER_DIALOG_COLORS.map(c => `<button type="button" class="fd-swatch" data-fd-color="${c}" style="background:${c}" title="${c}"></button>`).join('')}<input type="color" class="fd-color-free" title="Cor livre"></div>
+  <div class="fd-label">Ícone</div>
+  <div class="fd-icons">${FOLDER_DIALOG_ICONS.map(n => `<button type="button" class="fd-icon-btn" data-fd-icon="${n}" title="${n}">${icon(n, 16)}</button>`).join('')}</div>
+  ${editing && !folder.system ? `<p class="fd-note">Excluir a pasta não apaga as fichas: elas vão para a pasta padrão.</p>` : ''}
+  <div class="fd-actions">
+   ${editing && !folder.system ? `<button type="button" class="fd-delete" data-fd-delete>${icon('trash', 13)} Excluir</button>` : ''}
+   <span class="fd-spacer"></span>
+   <button type="button" data-fd-cancel>Cancelar</button>
+   <button type="button" class="fd-ok" data-fd-ok>${editing ? 'Salvar' : 'Criar'}</button>
+  </div></section>`;
+ document.body.appendChild(modal);
+ const nameInput = modal.querySelector('.fd-name');
+ nameInput.value = folder?.name || '';
+ const refresh = () => {
+  modal.querySelector('.fd-preview-icon').innerHTML = icon(iconName, 18);
+  modal.querySelector('.fd-preview-icon').style.color = color;
+  modal.querySelector('.fd-preview').style.setProperty('--folder-color', color);
+  modal.querySelector('.fd-preview-name').textContent = nameInput.value.trim() || 'Nova pasta';
+  modal.querySelectorAll('[data-fd-color]').forEach(b => b.classList.toggle('on', b.dataset.fdColor.toLowerCase() === color.toLowerCase()));
+  modal.querySelectorAll('[data-fd-icon]').forEach(b => b.classList.toggle('on', b.dataset.fdIcon === iconName));
+  const free = modal.querySelector('.fd-color-free');
+  if (/^#[0-9a-f]{6}$/i.test(color)) free.value = color;
+ };
+ const close = () => { modal.remove(); document.removeEventListener('keydown', onKey, true); };
+ const confirmar = () => {
+  const name = nameInput.value.trim();
+  if (!name) { nameInput.focus(); return; }
+  if (editing) {
+   folders = updateFolder(folders, folder.id, { name, color, icon: iconName });
+  } else {
+   folders = createFolder(folders, { name, parentId, color, icon: iconName }).folders;
+   if (parent && parent.collapsed) folders = updateFolder(folders, parent.id, { collapsed: false });
+  }
+  salvarPastas(folders, { idbSet });
+  close();
+  render();
+ };
+ const onKey = (ev) => {
+  if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); close(); }
+  else if (ev.key === 'Enter' && !ev.target.closest?.('button')) { ev.preventDefault(); ev.stopPropagation(); confirmar(); }
+ };
+ document.addEventListener('keydown', onKey, true);
+ modal.addEventListener('click', (ev) => {
+  const t = ev.target.closest('button, .backdrop');
+  if (!t) return;
+  if (t.dataset.fdColor) { color = t.dataset.fdColor; refresh(); }
+  else if (t.dataset.fdIcon) { iconName = t.dataset.fdIcon; refresh(); }
+  else if ('fdCancel' in t.dataset) close();
+  else if ('fdOk' in t.dataset) confirmar();
+  else if ('fdDelete' in t.dataset) {
+   if (confirm(`Excluir a pasta "${folder.name}"? As fichas não serão apagadas: elas vão para a pasta padrão.`)) {
+    const res = deleteFolder(folders, sheets, folder.id);
+    folders = res.folders;
+    sheets = res.sheets;
+    salvarPastas(folders, { idbSet });
+    save(false);
+    close();
+    render();
+   }
+  }
+ });
+ modal.querySelector('.fd-color-free').oninput = (ev) => { color = ev.target.value; refresh(); };
+ nameInput.oninput = refresh;
+ refresh();
+ nameInput.focus();
+ nameInput.select();
 }
 
 function closeFolderContextMenu() {
@@ -5169,16 +5257,8 @@ function bindWorkspaceSidebarEvents() {
   };
  });
 
- document.querySelectorAll('[data-nav-create-folder]').forEach(btn => {
-  btn.onclick = () => {
-   const name = prompt('Nome da nova pasta:');
-   if (name && name.trim()) {
-    const res = createFolder(folders, { name: name.trim() });
-    folders = res.folders;
-    salvarPastas(folders, { idbSet });
-    render();
-   }
-  };
+ document.querySelectorAll('[data-nav-create-folder], [data-rail-new-folder]').forEach(btn => {
+  btn.onclick = () => openFolderDialog();
  });
 
  document.querySelectorAll('[data-nav-collapse-all]').forEach(btn => {
@@ -5443,6 +5523,9 @@ let draggedSheetId = null;
 let isDraggingSheet = false;
 
 function bindSheetInteractions() {
+ document.querySelectorAll('.rail-folder-btn').forEach(el => {
+  el.oncontextmenu = (e) => showFolderContextMenu(e, el.dataset.toggleFolderId);
+ });
  const avatars = document.querySelectorAll('.sheet-avatar');
  avatars.forEach(avatar => {
   avatar.oncontextmenu = (e) => showSheetContextMenu(e, avatar.dataset.sheetId);

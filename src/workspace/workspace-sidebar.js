@@ -193,7 +193,7 @@ export function renderRailSwitcher(sheets = [], folders = [], activeSheetId = ''
         <button type="button" 
           class="rail-folder-btn ${isCollapsed ? 'collapsed' : 'expanded'} ${hasActive ? 'active-folder' : ''} ${isMist ? 'mist-btn' : ''} depth-${depth}" 
           data-toggle-folder-id="${folder.id}" 
-          title="${safe(folder.name)} (${node.totalSheets} fichas · Clique para ${isCollapsed ? 'expandir' : 'recolher'})"
+          title="${safe(folder.name)} (${node.totalSheets} fichas · Clique para ${isCollapsed ? 'expandir' : 'recolher'} · botão direito para editar)"
           aria-label="${safe(folder.name)}">
           <span class="rail-folder-icon" style="color:${safe(folder.color || '#3187ff')};">
             ${icon(folderIconName, depth > 0 ? 11 : 13)}
@@ -223,6 +223,9 @@ export function renderRailSwitcher(sheets = [], folders = [], activeSheetId = ''
       <button class="nav-btn dashed" data-new-sheet title="Adicionar ficha (+)">
         ${icon('plus')}
       </button>
+      ${semPastas ? '' : `<button class="nav-btn dashed rail-new-folder" data-rail-new-folder title="Nova pasta" aria-label="Nova pasta">
+        ${icon('folder-plus')}
+      </button>`}
     </div>
   `;
 }
