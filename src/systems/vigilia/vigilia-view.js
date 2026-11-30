@@ -243,11 +243,16 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
   ` : '';
 
   // Encontra marcadores de ímpeto e análise se presentes
-  const impetoCard = cards.find(c => c.id === 'impeto' || c.title?.toUpperCase().includes('ÍMPETO'));
+  // O card do poder de perfil: pelo id, senão pelo título exato. Títulos que só contêm a palavra
+  // (ex.: ÍMPETO FERVILHANTE) não ganham uma segunda barra.
+  const findProfileCard = (id, title) => cards.find(c => c.id === id)
+    || cards.find(c => String(c.title || '').trim().toUpperCase() === title)
+    || cards.find(c => String(c.title || '').toUpperCase().includes(title));
+  const impetoCard = findProfileCard('impeto', 'ÍMPETO');
   const impetoMarker = impetoCard?.markers?.find(m => m.id === 'impeto-m') || impetoCard?.markers?.[0];
   const impetoCurrent = impetoMarker?.current ?? 0;
 
-  const analiseCard = cards.find(c => c.id === 'analise' || c.title?.toUpperCase().includes('ANÁLISE'));
+  const analiseCard = findProfileCard('analise', 'ANÁLISE');
   const analiseMarker = analiseCard?.markers?.find(m => m.id === 'analise-m') || analiseCard?.markers?.[0];
   const analiseCurrent = analiseMarker?.current ?? 0;
 
@@ -445,8 +450,8 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
           <!-- Cards de Habilidades -->
           <div class="vigilia-abilities-list">
             ${abilities.map(card => {
-              const isImpeto = card.id === 'impeto' || card.title?.toUpperCase().includes('ÍMPETO');
-              const isAnalise = card.id === 'analise' || card.title?.toUpperCase().includes('ANÁLISE');
+              const isImpeto = card === impetoCard;
+              const isAnalise = card === analiseCard;
               const isProntidao = card.id === 'prontidao' || card.title?.toUpperCase().includes('PRONTIDÃO');
               const isCondition = card.isCondition || card.type === 'Lesão' || card.type === 'Trauma' || card.type === 'Condição';
 
