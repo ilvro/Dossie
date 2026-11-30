@@ -3673,7 +3673,7 @@ function showFolderContextMenu(e, folderId) {
  `;
  menu.hidden = false;
  const x = Math.min(window.innerWidth - 220, Math.max(10, e.clientX + 4));
- const y = Math.min(window.innerHeight - 210, Math.max(10, e.clientY + 4));
+ const y = Math.max(10, Math.min(window.innerHeight - menu.offsetHeight - 10, e.clientY + 4));
  menu.style.left = `${x}px`;
  menu.style.top = `${y}px`;
 
@@ -4118,6 +4118,14 @@ function bindNavigatorTreeEvents(container = document) {
   el.oncontextmenu = (e) => {
    e.stopPropagation();
    showSheetContextMenu(e, el.dataset.navSheetRow);
+  };
+ });
+
+ container.querySelectorAll('[data-folder-edit-btn]').forEach(el => {
+  el.onclick = (e) => {
+   e.stopPropagation();
+   const folder = folders.find(f => f.id === el.dataset.folderEditBtn);
+   if (folder) openFolderDialog({ folder });
   };
  });
 
@@ -5523,6 +5531,9 @@ let draggedSheetId = null;
 let isDraggingSheet = false;
 
 function bindSheetInteractions() {
+ document.querySelectorAll('[data-rail-folder-menu]').forEach(el => {
+  el.onclick = (e) => showFolderContextMenu(e, el.dataset.railFolderMenu);
+ });
  document.querySelectorAll('.rail-folder-btn').forEach(el => {
   el.oncontextmenu = (e) => showFolderContextMenu(e, el.dataset.toggleFolderId);
  });

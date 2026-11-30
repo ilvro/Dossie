@@ -8315,3 +8315,8 @@ body[data-modo-seletor="1"] #app,body[data-modo-seletor="1"] .sel{position:relat
 .folder-dialog .fd-actions .fd-ok{background:#ee1943;border-color:#ee1943;color:#fff}
 .folder-dialog .fd-actions .fd-delete{color:#ff6b7f;border-color:#5a2230}
 .folder-dialog{align-items:center;justify-content:center}
+/* "⋮" da pasta no rail: aparece ao passar o mouse; em toque fica sempre à vista */
+.rail-folder-more{position:absolute;top:3px;right:1px;width:15px;height:21px;padding:0;display:grid;place-items:center;background:transparent;border:0;border-radius:4px;color:#7d8392;cursor:pointer;opacity:0;transition:opacity .12s ease}
+.rail-folder-more:hover{color:#fff;background:#242535}
+.rail-folder-btn:hover+.rail-folder-more,.rail-folder-more:hover,.rail-folder-more:focus-visible{opacity:1}
+@media (hover:none){.rail-folder-more{opacity:.7}}

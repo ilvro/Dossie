@@ -201,6 +201,9 @@ export function renderRailSwitcher(sheets = [], folders = [], activeSheetId = ''
           <span class="rail-folder-badge">${node.totalSheets}</span>
           <span class="rail-folder-chevron">${icon('chevron-right', 8)}</span>
         </button>
+        <button type="button" class="rail-folder-more" data-rail-folder-menu="${folder.id}" title="Opções da pasta ${safe(folder.name)}" aria-label="Opções da pasta">
+          ${icon('more-vertical', 11)}
+        </button>
         ${!isCollapsed ? `
           <div class="rail-folder-sheets depth-${depth}">
             ${children.length > 0 ? children.map(c => renderRailNode(c, depth + 1)).join('') : ''}
@@ -790,6 +793,9 @@ function renderTreeNodes(nodes = [], activeSheetId = '', visibleFolderIds = [], 
               data-toggle-visibility-folder="${folder.id}" 
               title="${isVisibleInRail ? 'Visível no rail lateral (Clique para ocultar)' : 'Oculto no rail (Clique para exibir)'}">
               ${icon(isVisibleInRail ? 'eye' : 'eye-off', 12)}
+            </button>
+            <button type="button" class="nav-folder-action-btn" data-folder-edit-btn="${folder.id}" title="Editar pasta: nome, cor, ícone">
+              ${icon('edit', 12)}
             </button>
             <button type="button" class="nav-folder-action-btn" data-folder-menu-btn="${folder.id}" title="Mais opções da pasta">
               ${icon('more-vertical', 12)}
