@@ -46,11 +46,13 @@ export default defineConfig({
               res.end(JSON.stringify({ error: 'sheets.json not found' }));
             }
           } else if (req.method === 'POST') {
-            let body = '';
-            req.on('data', chunk => { body += chunk; });
+            // Junta os bytes antes de decodificar: somar pedaços como texto parte os acentos
+            // que caem na divisa entre dois pedaços e grava "�" no lugar deles
+            const chunks = [];
+            req.on('data', chunk => { chunks.push(chunk); });
             req.on('end', () => {
               try {
-                const parsed = JSON.parse(body);
+                const parsed = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
                 fs.writeFileSync(filePath, JSON.stringify(parsed, null, 2), 'utf-8');
                 res.setHeader('Content-Type', 'application/json');
                 res.end(JSON.stringify({ ok: true, count: Array.isArray(parsed) ? parsed.length : 1 }));
@@ -82,11 +84,13 @@ export default defineConfig({
               res.end(JSON.stringify([]));
             }
           } else if (req.method === 'POST') {
-            let body = '';
-            req.on('data', chunk => { body += chunk; });
+            // Junta os bytes antes de decodificar: somar pedaços como texto parte os acentos
+            // que caem na divisa entre dois pedaços e grava "�" no lugar deles
+            const chunks = [];
+            req.on('data', chunk => { chunks.push(chunk); });
             req.on('end', () => {
               try {
-                const parsed = JSON.parse(body);
+                const parsed = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
                 fs.writeFileSync(foldersPath, JSON.stringify(parsed, null, 2), 'utf-8');
                 res.setHeader('Content-Type', 'application/json');
                 res.end(JSON.stringify({ ok: true, count: Array.isArray(parsed) ? parsed.length : 1 }));
