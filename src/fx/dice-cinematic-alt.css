@@ -54,21 +54,20 @@
 }
 
 .bg3-stage.theme-solace {
-  --frame: #e6d6b4;
-  --frame-soft: rgba(230, 214, 180, .35);
-  --fill-top: #3a2216;
-  --fill-bot: #1b100b;
-  --gem-fill: #2a1810;
-  --glow: #d9823c;
-  --text: #f1e5ca;
-  --muted: #c9ae86;
-  --ok: #9fd6c4;
+  --frame: #e2cba0;
+  --frame-soft: rgba(226, 203, 160, .35);
+  --fill-top: #3a2616;
+  --fill-bot: #1e120a;
+  --gem-fill: #2a1a0e;
+  --glow: #c9965a;
+  --text: #f4e5c6;
+  --muted: #b59a72;
+  --ok: #d9e8b0;
   --bad: #e0825e;
-  --title-font: 'Marcellus SC', 'Cinzel', Georgia, serif;
-  --label-font: 'Philosopher', 'Cinzel', Georgia, serif;
+  --title-font: 'CartaMarina-Bold', 'Cinzel', Georgia, serif;
+  --label-font: 'Wak-Bold', 'Cinzel', Georgia, serif;
 }
-.theme-solace .bg3-frame .f-sun { fill: #a84830; stroke: none; }
-.theme-solace .bg3-frame .f-gem { fill: #a84830; }
+.theme-solace .bg3-frame .f-sun { fill: #8a5a30; stroke: none; }
 
 /* Como no jogo: o mundo continua visível, só uma vinheta suave */
 .bg3-shade {
@@ -287,9 +286,8 @@
   clip-path: polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% 50%, calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 50%);
   background: var(--frame);
   color: var(--text);
-  font-family: 'Philosopher', Georgia, serif;
-  font-weight: 700;
-  letter-spacing: .12em;
+  font-family: 'CartaMarina-Bold', Georgia, serif;
+  letter-spacing: .1em;
   box-shadow: none;
   isolation: isolate;
 }
@@ -299,7 +297,7 @@
   inset: 1.5px 2px;
   z-index: -1;
   clip-path: inherit;
-  background: #2a1810;
+  background: linear-gradient(180deg, #3e2817, #1e120a);
 }
 .theme-solace .bg3-sub span {
   background: none;
@@ -311,7 +309,7 @@
   color: var(--muted);
   text-shadow: 0 1px 6px #000;
 }
-.theme-solace .bg3-card-gem { background: #a84830; border-radius: 50%; transform: none; }
+.theme-solace .bg3-card-gem { background: rgba(201, 150, 90, .25); border-radius: 50%; transform: none; }
 
 /* Vigília: placa de pedra chanfrada com borda dupla */
 .theme-vigilia .bg3-roll-btn {

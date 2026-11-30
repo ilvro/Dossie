@@ -1,12 +1,3 @@
-=================== marcellus sc ===================
-Copyright 2012 The Marcellus Project Authors (https://github.com/googlefonts/marcellus)
-
-=================== philosopher ===================
-Copyright 2011 The Philosopher Project Authors (https://github.com/alexeiva/philosopher)
-
-=================== spectral ===================
-Copyright 2017 The Spectral Project Authors (https://github.com/productiontype/spectral)
-
 =================== barlow ===================
 Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow)
 
