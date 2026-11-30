@@ -1,8 +1,11 @@
-=================== el messiri ===================
-Copyright 2014 The El Messiri Project Authors (https://github.com/Gue3bara/El-Messiri)
+=================== marcellus sc ===================
+Copyright 2012 The Marcellus Project Authors (https://github.com/googlefonts/marcellus)
 
-=================== amiri ===================
-Copyright 2010-2022 The Amiri Project Authors (https://github.com/aliftype/amiri)
+=================== philosopher ===================
+Copyright 2011 The Philosopher Project Authors (https://github.com/alexeiva/philosopher)
+
+=================== spectral ===================
+Copyright 2017 The Spectral Project Authors (https://github.com/productiontype/spectral)
 
 =================== barlow ===================
 Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow)

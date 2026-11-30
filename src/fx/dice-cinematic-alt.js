@@ -692,16 +692,8 @@ function triquetra(cx, cy, r) {
   return `<path class="f-knot" d="${lens(pts[0], pts[1])} ${lens(pts[1], pts[2])} ${lens(pts[2], pts[0])}"/><circle class="f-knot" cx="${cx}" cy="${cy}" r="${(r * 0.62).toFixed(2)}"/>`;
 }
 
-// estrela de oito pontas (dois quadrados sobrepostos), o ornamento de Solace
-function star8(cx, cy, R, rot = 0) {
-  const r = R * Math.cos(Math.PI / 4) / Math.cos(Math.PI / 8);
-  const pts = Array.from({ length: 16 }, (_, k) => {
-    const a = rot + k * Math.PI / 8 - Math.PI / 2;
-    const rad = k % 2 ? r : R;
-    return `${(cx + rad * Math.cos(a)).toFixed(2)} ${(cy + rad * Math.sin(a)).toFixed(2)}`;
-  });
-  return `M${pts.join(' L')}Z`;
-}
+// disco solar (contorno de círculo como path), o ornamento de Solace
+const sunDisc = (cx, cy, r) => `M${cx - r} ${cy} A${r} ${r} 0 1 0 ${cx + r} ${cy} A${r} ${r} 0 1 0 ${cx - r} ${cy} Z`;
 
 // voluta nos "ombros" do arco
 const SCROLL = 'c0 -16 12 -24 24 -19 c8 3.5 6 13 -1.5 13 c-6 0 -6.5 -7.5 -.5 -7.5';
@@ -714,14 +706,14 @@ function frameSvg(theme, uid) {
   const knotDivider = vig
     ? `<path class="f-thin" d="M66 142 H146 M194 142 H274"/>${triquetra(170, 142, 9)}`
     : sol
-      ? `<path class="f-thin" d="M66 142 H152 M188 142 H274"/><path class="f-gem" d="${star8(170, 142, 10)}"/><path class="f-orn" d="${star8(170, 142, 4, Math.PI / 8)}"/><path class="f-orn" d="${star8(146, 142, 2.6)}"/><path class="f-orn" d="${star8(194, 142, 2.6)}"/>`
+      ? `<path class="f-thin" d="M66 142 H152 M188 142 H274"/><path class="f-gem" d="${sunDisc(170, 142, 9)}"/><path class="f-sun" d="${sunDisc(170, 142, 5)}"/><path class="f-orn" d="${diamond(146, 142, 3)}"/><path class="f-orn" d="${diamond(194, 142, 3)}"/>`
       : `<path class="f-thin" d="M66 142 H150 M190 142 H274"/><path class="f-gem" d="${diamond(170, 142, 7)}"/><circle class="f-orn" cx="156" cy="142" r="1.8"/><circle class="f-orn" cx="184" cy="142" r="1.8"/>`;
   const finial = vig
     ? `${triquetra(170, -8, 13)}`
     : sol
-      ? `<path class="f-gem f-glow" d="${star8(170, -6, 15)}"/><path class="f-thin" d="${star8(170, -6, 10, Math.PI / 8)}"/><path class="f-orn" d="${star8(170, -6, 4)}"/><path class="f-thin" d="M140 -6 H152 M188 -6 H200"/>`
+      ? `<path class="f-gem" d="${sunDisc(170, -6, 13)}"/><path class="f-sun" d="${sunDisc(170, -6, 8)}"/><path class="f-line" d="M132 -4 C142 -12 150 -12 156 -6 M208 -4 C198 -12 190 -12 184 -6"/>`
       : `<path class="f-gem f-glow" d="${diamond(170, -6, 12)}"/><path class="f-thin" d="M146 -6 H156 M184 -6 H194"/>`;
-  const gem = (cx, cy, r) => sol ? star8(cx, cy, r * 1.15) : diamond(cx, cy, r);
+  const gem = (cx, cy, r) => sol ? sunDisc(cx, cy, r * 0.8) : diamond(cx, cy, r);
   return `
   <svg class="bg3-frame" viewBox="0 ${FY} ${FW} ${FH}" preserveAspectRatio="none" aria-hidden="true">
     <defs>
