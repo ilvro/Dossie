@@ -1034,6 +1034,10 @@ export function renderMobileSheetDrawer(sheets = [], folders = [], activeSheetId
             ${icon('shield', 15)}
             <span>A VIGÍLIA</span>
           </button>
+          <button type="button" class="drawer-mode-card ${viewMode === 'solace' ? 'active' : ''}" data-display-mode="solace">
+            ${icon('sun', 15)}
+            <span>SOLACE</span>
+          </button>
         </div>
       </div>
 

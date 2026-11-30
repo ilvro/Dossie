@@ -1,3 +1,9 @@
+=================== el messiri ===================
+Copyright 2014 The El Messiri Project Authors (https://github.com/Gue3bara/El-Messiri)
+
+=================== amiri ===================
+Copyright 2010-2022 The Amiri Project Authors (https://github.com/aliftype/amiri)
+
 =================== barlow ===================
 Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow)
 

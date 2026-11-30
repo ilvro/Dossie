@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
+<defs><linearGradient id="br" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#f6dea2"/><stop offset=".45" stop-color="#c99b4f"/><stop offset=".55" stop-color="#a87b37"/><stop offset="1" stop-color="#e7c27b"/></linearGradient><radialGradient id="c" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="#3a2b3a"/><stop offset="1" stop-color="#0e0b14"/></radialGradient></defs>
+<path d="M41.33 24.55L43.42 24.82M40.02 29.46L41.96 30.27M37.47 33.87L39.14 35.15M33.87 37.47L35.15 39.14M29.46 40.02L30.27 41.96M24.55 41.33L24.82 43.42M19.45 41.33L19.18 43.42M14.54 40.02L13.73 41.96M10.13 37.47L8.85 39.14M6.53 33.87L4.86 35.15M3.98 29.46L2.04 30.27M2.67 24.55L0.58 24.82M2.67 19.45L0.58 19.18M3.98 14.54L2.04 13.73M6.53 10.13L4.86 8.85M10.13 6.53L8.85 4.86M14.54 3.98L13.73 2.04M19.45 2.67L19.18 0.58M24.55 2.67L24.82 0.58M29.46 3.98L30.27 2.04M33.87 6.53L35.15 4.86M37.47 10.13L39.14 8.85M40.02 14.54L41.96 13.73M41.33 19.45L43.42 19.18" stroke="#c99b4f" stroke-opacity=".6" stroke-width=".9"/>
+<path d="M22 3 L27.56 8.56 L35.44 8.56 L35.44 16.44 L41 22 L35.44 27.56 L35.44 35.44 L27.56 35.44 L22 41 L16.44 35.44 L8.56 35.44 L8.56 27.56 L3 22 L8.56 16.44 L8.56 8.56 L16.44 8.56Z" fill="url(#c)" stroke="url(#br)" stroke-width="1.6"/>
+<circle cx="22" cy="22" r="12.2" fill="none" stroke="#c99b4f" stroke-opacity=".6" stroke-width=".7"/>
+</svg>

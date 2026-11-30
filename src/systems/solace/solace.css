@@ -1,0 +1,703 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   SOLACE — skin desértica do layout de Ordem II (frente e verso)
+   Noite índigo sobre dunas, latão, azulejo turquesa e cornalina.
+   Tudo escopado em .solace-page (a página continua sendo .vigilia-page, então
+   a mecânica, os estados de PV/PD e as transições continuam valendo).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.solace-page {
+  --sl-ink: #0d0a12;
+  --sl-night: #15111f;
+  --sl-plate: #17121f;
+  --sl-brass: #c99b4f;
+  --sl-brass-hi: #f2d79b;
+  --sl-brass-lo: #7d5c2c;
+  --sl-sand: #e9d3a6;
+  --sl-parch: #f5e8cc;
+  --sl-text: #e7dac0;
+  --sl-muted: #ab916a;
+  --sl-turq: #4fb8ad;
+  --sl-turq-hi: #93e3d7;
+  --sl-carnelian: #d0603f;
+  --sl-carnelian-hi: #f39a75;
+  --sl-title: 'El Messiri', 'Cinzel', serif;
+  --sl-body: 'Amiri', Georgia, serif;
+  --sl-brass-text: linear-gradient(180deg, #fbeac0 0%, #e8c27a 48%, #b98a40 52%, #f1d595 100%);
+
+  background-color: var(--sl-ink);
+  color: var(--sl-text);
+  font-family: var(--sl-body);
+}
+
+/* ─── Moldura: linhas de latão, faixa em ziguezague e cantos com estrela de oito pontas ─── */
+.solace-frame {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.solace-frame-lines {
+  position: absolute;
+  inset: 12px;
+  border: 1.5px solid rgba(201, 155, 79, 0.62);
+  box-shadow: inset 0 0 0 5px rgba(13, 10, 18, 0.35), inset 0 0 0 6px rgba(201, 155, 79, 0.28), 0 0 24px rgba(0, 0, 0, 0.5);
+}
+.solace-frame-band {
+  position: absolute;
+  left: 150px;
+  right: 150px;
+  height: 14px;
+  background: url('/assets/solace/frame-band.svg') repeat-x center / auto 14px;
+  opacity: 0.8;
+}
+.solace-frame-band.band-top { top: 21px; }
+.solace-frame-band.band-bottom { bottom: 21px; }
+.solace-frame-corner {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
+}
+.solace-frame-corner.tl { top: 6px; left: 6px; }
+.solace-frame-corner.tr { top: 6px; right: 6px; transform: scaleX(-1); }
+.solace-frame-corner.bl { bottom: 6px; left: 6px; transform: scaleY(-1); }
+.solace-frame-corner.br { bottom: 6px; right: 6px; transform: scale(-1, -1); }
+
+/* ─── Ambiente: areia ao vento, poeira rasteira e estrelas cintilando ─── */
+.solace-ambient .solace-haze {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% + 1280px);
+  height: 100%;
+  background-image: var(--vg-mist, none);
+  /* A textura da névoa é verde-gelo: o filtro a transforma em poeira cor de areia */
+  filter: sepia(1) saturate(2.4) hue-rotate(-12deg) brightness(0.92);
+}
+.solace-ambient .haze-far {
+  background-size: 1280px 1280px;
+  opacity: 0.09;
+  animation: solace-wind-far 160s linear infinite;
+  animation-delay: var(--amb-t, 0s);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 30%, #000 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 30%, #000 70%, transparent 100%);
+}
+.solace-ambient .haze-ground {
+  background-size: 640px 320px;
+  opacity: 0.28;
+  animation: solace-wind-ground 38s linear infinite;
+  animation-delay: var(--amb-t, 0s);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 70%, #000 92%);
+  mask-image: linear-gradient(to bottom, transparent 70%, #000 92%);
+}
+@keyframes solace-wind-far {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-1280px, 0, 0); }
+}
+@keyframes solace-wind-ground {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-640px, 0, 0); }
+}
+
+.solace-grains i {
+  position: absolute;
+  left: 100%;
+  top: var(--y);
+  width: calc(var(--s) * 2.6);
+  height: var(--s);
+  border-radius: 50%;
+  background: rgba(240, 214, 160, 0.95);
+  box-shadow: 0 0 4px rgba(233, 190, 120, 0.5);
+  opacity: 0;
+  animation: solace-grain var(--d) linear infinite;
+  animation-delay: calc(var(--amb-t, 0s) + var(--o));
+  will-change: transform, opacity;
+}
+@keyframes solace-grain {
+  0% { opacity: 0; transform: translate3d(0, 0, 0); }
+  8% { opacity: var(--a); }
+  50% { transform: translate3d(-55vw, var(--w), 0); }
+  88% { opacity: calc(var(--a) * 0.7); }
+  100% { opacity: 0; transform: translate3d(-110vw, calc(var(--w) * -0.5), 0); }
+}
+
+.solace-stars b {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #fff4dc;
+  box-shadow: 0 0 6px 1px rgba(255, 236, 190, 0.7);
+  animation: solace-twinkle var(--d) ease-in-out infinite;
+  animation-delay: calc(var(--amb-t, 0s) + var(--o));
+}
+@keyframes solace-twinkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.7); }
+  50% { opacity: 0.9; transform: scale(1.25); }
+}
+
+.solace-moon,
+.solace-bracket {
+  stroke: none; /* o svg{} global do app traça tudo com currentColor */
+}
+.solace-moon {
+  position: absolute;
+  left: calc(50% + 250px);
+  top: 140px;
+  width: 200px;
+  height: 200px;
+  transform: translateX(-50%);
+}
+.solace-moon-halo {
+  animation: solace-moon-glow 9s ease-in-out infinite alternate;
+  animation-delay: var(--amb-t, 0s);
+  transform-origin: center;
+}
+@keyframes solace-moon-glow {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
+}
+.solace-page.view-back .solace-moon { display: none; }
+
+/* Estados críticos: a poeira esquenta (PV) ou esfria em azul-lápis (PD) */
+body.critical-pv-state .solace-page .solace-ambient { filter: hue-rotate(-18deg) saturate(1.8) brightness(0.95); }
+body.critical-pd-state .solace-page .solace-ambient { filter: hue-rotate(170deg) saturate(1.4) brightness(0.75); }
+
+@media (prefers-reduced-motion: reduce) {
+  .solace-grains { display: none !important; }
+  .solace-ambient .solace-haze,
+  .solace-stars b { animation: none !important; }
+}
+
+/* ─── Cartelas (as faixas da Vigília viram placas de latão em 9 fatias) ─── */
+.solace-page .profile-banner-wrap,
+.solace-page .banner-atributos-wrap,
+.solace-page .banner-pericias-wrap,
+.solace-page .power-banner-wrap,
+.solace-page .banner-relacoes-wrap {
+  border-style: solid;
+  border-width: 0 var(--cap, 34px);
+  border-image: url('/assets/solace/cartouche.svg') 0 48 fill / 0 var(--cap, 34px) / 0 stretch;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.75));
+}
+.solace-page .profile-banner-wrap { --cap: 36px; height: 38px; padding: 0 4px; }
+.solace-page .banner-atributos-wrap { --cap: 38px; height: 42px; padding: 0 4px; transform: none; }
+.solace-page .banner-pericias-wrap { --cap: 34px; height: 36px; padding: 0 4px; }
+.solace-page .power-banner-wrap {
+  --cap: 34px;
+  height: 36px;
+  min-width: 0;
+  padding: 0 4px;
+  margin-left: -4px;
+  gap: 10px;
+}
+.solace-page .banner-relacoes-wrap { --cap: 40px; height: 38px; padding: 0 6px; }
+
+.solace-page .profile-text,
+.solace-page .banner-atributos-wrap .banner-text,
+.solace-page .banner-pericias-wrap .banner-text,
+.solace-page .power-title,
+.solace-page .banner-relacoes-title {
+  font-family: var(--sl-title);
+  font-weight: 700;
+  color: var(--sl-parch);
+  letter-spacing: 0.16em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.9), 0 0 10px rgba(201, 155, 79, 0.25);
+  line-height: 1;
+  padding-top: 2px;
+}
+.solace-page .profile-text { font-size: 16px; }
+.solace-page .banner-atributos-wrap .banner-text { font-size: 16px; }
+.solace-page .banner-pericias-wrap .banner-text { font-size: 15px; }
+.solace-page .power-title { font-size: 15.5px; margin-right: 0; }
+.solace-page .banner-relacoes-title { font-size: 15px; }
+
+.solace-page .power-banner-wrap:hover,
+.solace-page .profile-banner-wrap:hover,
+.solace-page .banner-atributos-wrap:hover,
+.solace-page .banner-pericias-wrap:hover,
+.solace-page .banner-relacoes-wrap:hover {
+  filter: brightness(1.12) drop-shadow(0 3px 8px rgba(201, 155, 79, 0.25));
+}
+
+/* ─── Cabeçalho ─── */
+.solace-page .vigilia-title-name .first-name {
+  font-family: var(--sl-title);
+  font-size: 62px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: var(--sl-brass-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.9));
+  text-shadow: none;
+}
+.solace-page .vigilia-title-name .last-name {
+  font-family: var(--sl-title);
+  font-size: 27px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--sl-sand);
+}
+.solace-page .vigilia-identity-badge { font-family: var(--sl-title); }
+.solace-page .vigilia-identity-badge .id-dot {
+  font-size: 0;
+  width: 7px;
+  height: 7px;
+  background: var(--sl-brass);
+  transform: rotate(45deg);
+  box-shadow: 0 0 6px rgba(201, 155, 79, 0.6);
+}
+.solace-page .vigilia-identity-badge .occupation-text {
+  font-family: var(--sl-title);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--sl-sand);
+}
+.solace-page .vigilia-identity-badge .level-label {
+  font-family: var(--sl-title);
+  color: var(--sl-muted);
+  letter-spacing: 0.14em;
+}
+.solace-page .level-badge-wrap { width: 50px; height: 50px; }
+.solace-page .level-badge-wrap .level-num {
+  font-family: var(--sl-title);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--sl-brass-hi);
+  text-shadow: 0 0 8px rgba(242, 215, 155, 0.45);
+  padding-top: 3px;
+}
+
+.solace-page .vigilia-header-divider {
+  height: 14px;
+  background:
+    url('/assets/solace/frame-band.svg') repeat-x center / auto 10px,
+    linear-gradient(90deg, transparent 0%, rgba(201, 155, 79, 0.9) 18%, rgba(242, 215, 155, 0.9) 50%, rgba(201, 155, 79, 0.4) 100%) center / 100% 1px no-repeat;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 85%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 85%, transparent);
+  opacity: 0.85;
+  margin-bottom: 10px;
+}
+
+/* ─── Atributos ─── */
+.solace-page .solace-bracket {
+  width: 30px;
+  height: 128px;
+  margin-left: -2px;
+  margin-right: 4px;
+  filter: drop-shadow(0 0 4px rgba(242, 215, 155, 0.45));
+}
+.solace-attr-word {
+  display: inline-block;
+  font-family: 'El Messiri', 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  background: linear-gradient(180deg, #fff3d6 0%, #f0d08e 50%, #c79446 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.95));
+  min-width: 118px;
+  text-align: right;
+  padding-top: 4px;
+}
+.solace-attr-word.word-mente { font-size: 31px; }
+.solace-page .vigilia-attr-row { gap: 14px; }
+
+/* ─── Dados (polígonos Polymath): latão no atributo, areia nas perícias ─── */
+.solace-page .vigilia-poly-die.attr-die {
+  color: var(--sl-brass-hi);
+  filter: drop-shadow(0 0 6px rgba(242, 215, 155, 0.35)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.95));
+}
+.solace-page .vigilia-poly-die.skill-die { color: var(--sl-parch); }
+.solace-page .vigilia-skill-row.is-trained .vigilia-poly-die.skill-die { color: var(--sl-brass-hi); }
+.solace-page .vigilia-poly-die.skill-attr-die { color: #b8a27e; }
+.solace-page .vigilia-poly-die.inline-die,
+.solace-page .vigilia-poly-die.action-die { color: var(--sl-brass-hi); }
+
+/* ─── PV e PD: medalhões de estrela e pastilhas de azulejo ─── */
+.solace-page .resource-badge-group .res-tag {
+  font-family: var(--sl-title);
+  font-size: 22px;
+  font-weight: 700;
+  left: 16px;
+  color: var(--sl-parch);
+  letter-spacing: 0.1em;
+  padding-top: 3px;
+}
+.solace-page .resource-badge-group .res-num {
+  font-family: var(--sl-title);
+  font-size: 27px;
+  font-weight: 700;
+  color: #fff6e2;
+  padding-top: 3px;
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.9), 0 2px 3px #000;
+}
+.solace-page .vigilia-pips-grid { gap: 6px; }
+.solace-page .vigilia-pips-row { gap: 6px; }
+.solace-page .vigilia-pip {
+  width: 13px;
+  height: 13px;
+  transform: rotate(45deg);
+  background: rgba(13, 10, 18, 0.85);
+  border: 1.4px solid rgba(201, 155, 79, 0.75);
+  border-radius: 2px;
+  margin: 1px 2px;
+}
+.solace-page .vigilia-pip:hover {
+  border-color: var(--sl-brass-hi);
+  transform: rotate(45deg) scale(1.2);
+}
+.solace-page .resource-pv .vigilia-pip.filled {
+  background: radial-gradient(circle at 35% 30%, #ffc9a8 0%, #e0714b 45%, #9a3a22 100%) !important;
+  border-color: #f2d79b !important;
+  box-shadow: 0 0 7px rgba(232, 112, 72, 0.65);
+}
+.solace-page .resource-pd .vigilia-pip.filled {
+  background: radial-gradient(circle at 35% 30%, #d4fff8 0%, #4fc4b6 45%, #1d6c66 100%) !important;
+  border-color: #f2d79b !important;
+  box-shadow: 0 0 7px rgba(79, 196, 182, 0.65);
+}
+.solace-page .vigilia-pip.temp-pip.filled {
+  background: radial-gradient(circle at 35% 30%, #fff6dd 0%, #f0d08e 50%, #a7782f 100%) !important;
+}
+
+/* ─── Perícias ─── */
+.solace-page .vigilia-skill-row .skill-name {
+  font-family: var(--sl-title);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--sl-parch);
+  padding-top: 2px;
+}
+.solace-page .vigilia-skill-row:not(.is-trained) .skill-name { color: #cdbb98; }
+.solace-page .vigilia-skill-row .skill-plus-col { color: var(--sl-brass); font-family: var(--sl-title); }
+.solace-page .vigilia-skill-row .skill-attr-name {
+  font-family: var(--sl-title);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--sl-muted);
+}
+.solace-page .vigilia-skill-row .skill-extra { color: var(--sl-brass-hi); }
+.solace-page .vigilia-skill-row:hover {
+  background: linear-gradient(90deg, transparent, rgba(201, 155, 79, 0.14) 30%, rgba(201, 155, 79, 0.06));
+}
+.solace-page .vigilia-skills-table.is-scrolling,
+.solace-page .vigilia-abilities-list.is-scrolling { scrollbar-color: rgba(201, 155, 79, 0.55) transparent; }
+.solace-page .vigilia-skills-table.is-scrolling::-webkit-scrollbar-thumb,
+.solace-page .vigilia-abilities-list.is-scrolling::-webkit-scrollbar-thumb { background: rgba(201, 155, 79, 0.55); }
+
+/* ─── Habilidades e equipamento ─── */
+.solace-page .power-content,
+.solace-page .equipment-content {
+  font-family: var(--sl-body);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--sl-text);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+.solace-page .power-content strong,
+.solace-page .equipment-content strong { color: #fff3da; }
+.solace-page .vigilia-diamond { color: var(--sl-brass); font-size: 10px; vertical-align: 2px; }
+
+/* Barra de Ímpeto: cinco pastilhas de cornalina num trilho de latão */
+.solace-page .impeto-track-bar {
+  background: rgba(13, 10, 18, 0.9);
+  border: 1px solid rgba(201, 155, 79, 0.7);
+  border-radius: 3px;
+  height: 22px;
+  padding: 3px 4px;
+  margin-left: 0;
+  gap: 3px;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+.solace-page .impeto-segment {
+  width: 24px;
+  height: 14px;
+  background: #1d1622;
+  border: 1px solid #4a3a2a;
+  border-radius: 2px;
+  clip-path: polygon(14% 0, 86% 0, 100% 50%, 86% 100%, 14% 100%, 0 50%);
+}
+.solace-page .impeto-segment:hover { background: #2c2230; border-color: var(--sl-brass); }
+.solace-page .impeto-segment.filled {
+  background: linear-gradient(180deg, #ffd1a3 0%, #e0714b 55%, #a34226 100%) !important;
+  border-color: #f2d79b !important;
+  box-shadow: 0 0 10px rgba(240, 130, 80, 0.85);
+}
+
+/* Marcadores de Análise: pastilhas turquesa */
+.solace-page .analise-slot-pip {
+  width: 11px;
+  height: 11px;
+  transform: rotate(45deg);
+  border: 1.3px solid rgba(201, 155, 79, 0.8);
+  background: rgba(13, 10, 18, 0.85);
+  margin: 0 2px;
+}
+.solace-page .analise-slot-pip:hover { transform: rotate(45deg) scale(1.2); }
+.solace-page .analise-slot-pip.filled {
+  background: radial-gradient(circle at 35% 30%, #d4fff8, #4fc4b6 50%, #1d6c66) !important;
+  border-color: #f2d79b !important;
+  box-shadow: 0 0 7px rgba(79, 196, 182, 0.8);
+}
+
+.solace-page .btn-vigilia-prontidao,
+.solace-page .vigilia-action-btn,
+.solace-page .btn-invoke-relation,
+.solace-page .btn-reset-relations {
+  font-family: var(--sl-title);
+  letter-spacing: 0.08em;
+  background: linear-gradient(180deg, rgba(42, 33, 50, 0.95), rgba(19, 15, 26, 0.95));
+  border: 1px solid rgba(201, 155, 79, 0.55);
+  color: var(--sl-parch);
+  border-radius: 3px;
+  box-shadow: inset 0 1px 0 rgba(242, 215, 155, 0.12), 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.solace-page .vigilia-action-btn { font-size: 12px; padding: 5px 12px 4px; }
+.solace-page .btn-vigilia-prontidao:hover,
+.solace-page .vigilia-action-btn:hover,
+.solace-page .btn-invoke-relation:hover,
+.solace-page .btn-reset-relations:hover {
+  background: linear-gradient(180deg, rgba(74, 55, 40, 0.95), rgba(36, 26, 24, 0.95));
+  border-color: var(--sl-brass-hi);
+  color: #fff;
+}
+.solace-page .btn-invoke-relation { color: var(--sl-turq-hi); }
+.solace-page .btn-invoke-relation.invoked { color: var(--sl-muted); opacity: 0.8; }
+
+.solace-page .equip-armor-pill .btn-armor-spend,
+.solace-page .armor-stepper-inline button {
+  font-family: var(--sl-title);
+  background: rgba(19, 15, 26, 0.9);
+  border-color: rgba(201, 155, 79, 0.5);
+  color: var(--sl-sand);
+}
+
+/* Condições (lesões e traumas) no tom de Solace */
+.solace-page .vigilia-power-card.is-condition .condition-card-title { font-family: var(--sl-title); letter-spacing: 0.08em; }
+
+/* ─── Retrato: luar frio na borda e calor da fogueira por baixo ─── */
+.solace-page .vigilia-character-portrait {
+  filter:
+    drop-shadow(0 0 1px rgba(242, 215, 155, 0.45))
+    drop-shadow(-6px -4px 14px rgba(170, 160, 220, 0.16))
+    drop-shadow(0 22px 34px rgba(0, 0, 0, 0.95));
+}
+.solace-page .vigilia-portrait-placeholder { color: var(--sl-muted); border-color: rgba(201, 155, 79, 0.35); }
+
+/* ─── Verso ─── */
+.solace-page .back-first-name {
+  font-family: var(--sl-title);
+  font-size: 54px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: var(--sl-brass-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.9));
+}
+.solace-page .back-last-name {
+  font-family: var(--sl-title);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--sl-sand);
+}
+.solace-page .back-bio-summary {
+  font-family: var(--sl-body);
+  font-size: 16px;
+  font-style: italic;
+  color: var(--sl-sand);
+}
+.solace-page .vigilia-back-divider { margin: 8px 0 18px; }
+.solace-page .vigilia-back-divider img { height: 28px; opacity: 1; }
+.solace-page .vigilia-history-paragraphs {
+  font-family: var(--sl-body);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--sl-text);
+}
+.solace-page .vigilia-history-paragraphs p:first-child::first-letter {
+  font-family: var(--sl-title);
+  font-weight: 700;
+  float: left;
+  font-size: 3.4em;
+  line-height: 0.85;
+  padding: 6px 8px 0 0;
+  color: var(--sl-brass-hi);
+  text-shadow: 0 0 12px rgba(242, 215, 155, 0.35);
+}
+.solace-page .vigilia-relation-row { border-bottom-color: rgba(201, 155, 79, 0.16); }
+.solace-page .vigilia-relation-row:hover { background: rgba(201, 155, 79, 0.06); }
+.solace-page .relation-target-name {
+  font-family: var(--sl-title);
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  color: var(--sl-parch);
+}
+.solace-page .relation-desc-block { font-family: var(--sl-body); font-size: 15px; color: #d4c4a4; }
+.solace-page .relation-desc-block .relation-feeling { font-family: var(--sl-title); font-size: 13px; letter-spacing: 0.1em; color: var(--sl-brass-hi); }
+.solace-page .relation-pip-btn .pip-outer {
+  border: 1.4px solid rgba(201, 155, 79, 0.75);
+  border-radius: 2px;
+  transform: rotate(45deg);
+  width: 13px;
+  height: 13px;
+  margin: 0 2px;
+}
+.solace-page .relation-pip-btn .pip-inner { border-radius: 1px; width: 6px; height: 6px; }
+.solace-page .relation-pip-btn.active .pip-outer { border-color: var(--sl-brass-hi); }
+.solace-page .relation-pip-btn.active .pip-inner {
+  background: var(--sl-turq-hi);
+  box-shadow: 0 0 6px rgba(79, 196, 182, 0.9);
+}
+.solace-page .vigilia-history-edit,
+.solace-page.is-editing textarea {
+  background: rgba(19, 15, 26, 0.92);
+  border-color: rgba(201, 155, 79, 0.4);
+  font-family: var(--sl-body);
+  font-size: 15px;
+}
+
+/* ─── Alternador frente/verso e ferramentas de edição ─── */
+.solace-page .vigilia-side-switch {
+  background: rgba(13, 10, 18, 0.92);
+  border: 1px solid rgba(201, 155, 79, 0.45);
+  border-radius: 4px;
+}
+.solace-page .vigilia-side-switch .side-btn {
+  font-family: var(--sl-title);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--sl-muted);
+  border-radius: 2px;
+}
+.solace-page .vigilia-side-switch .side-btn:hover { color: var(--sl-parch); background: rgba(201, 155, 79, 0.08); }
+.solace-page .vigilia-side-switch .side-btn.active {
+  background: linear-gradient(180deg, #3a2c22, #1e1620);
+  border: 1px solid rgba(242, 215, 155, 0.6);
+  color: var(--sl-parch);
+  box-shadow: 0 0 14px rgba(201, 155, 79, 0.25);
+}
+.solace-page .vigilia-edit-tools {
+  background: rgba(13, 10, 18, 0.94);
+  border-color: rgba(201, 155, 79, 0.4);
+}
+.solace-page .vet-title { color: var(--sl-brass-hi); font-family: var(--sl-title); letter-spacing: 0.12em; }
+.solace-page .vet-btn { border-color: rgba(201, 155, 79, 0.35); color: var(--sl-sand); }
+.solace-page .vet-btn.active { border-color: var(--sl-brass-hi); color: #fff; background: rgba(201, 155, 79, 0.18); }
+.solace-page .vigilia-add-card-btn { border-color: rgba(201, 155, 79, 0.45); color: var(--sl-sand); }
+.solace-page .vigilia-name-edit input,
+.solace-page .vigilia-occupation-input,
+.solace-page .vigilia-level-input { font-family: var(--sl-title); }
+
+/* ─── Fora da página: dock de pavor/lesões e modais de regras ─── */
+body:has(.solace-page) .vigilia-floating-dock {
+  background: rgba(13, 10, 18, 0.92);
+  border-color: rgba(201, 155, 79, 0.4);
+}
+body:has(.solace-page) .vigilia-floating-dock .dock-pill-btn {
+  font-family: 'El Messiri', 'Cinzel', serif;
+  letter-spacing: 0.1em;
+  border-color: rgba(201, 155, 79, 0.45);
+  color: #e9d3a6;
+  background: rgba(30, 23, 34, 0.9);
+}
+body:has(.solace-page) .vigilia-floating-dock .dock-pill-btn:hover { border-color: #f2d79b; color: #fff; }
+body:has(.solace-page) .vigilia-modal-box {
+  background: linear-gradient(180deg, #1b1522, #0f0b14);
+  border-color: rgba(201, 155, 79, 0.5);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8), inset 0 0 0 4px rgba(13, 10, 18, 0.6), inset 0 0 0 5px rgba(201, 155, 79, 0.2);
+}
+body:has(.solace-page) .vigilia-modal-title { font-family: 'El Messiri', 'Cinzel', serif; color: #f2d79b; letter-spacing: 0.12em; }
+body:has(.solace-page) .vigilia-modal-head { border-bottom-color: rgba(201, 155, 79, 0.3); }
+body:has(.solace-page) .btn-vigilia-modal-roll,
+body:has(.solace-page) .btn-vigilia-table-roll,
+body:has(.solace-page) .btn-choose-entry,
+body:has(.solace-page) .relation-option-btn {
+  border-color: rgba(201, 155, 79, 0.55);
+  background: rgba(42, 33, 50, 0.9);
+  color: #f5e8cc;
+}
+body:has(.solace-page) .vigilia-mechanics-table th { color: #f2d79b; border-color: rgba(201, 155, 79, 0.3); }
+body:has(.solace-page) .vigilia-mechanics-table td { border-color: rgba(201, 155, 79, 0.12); }
+
+/* ─── Modo de edição ─── */
+.solace-page.is-editing .solace-moon { display: none; }
+.solace-page .power-title { white-space: nowrap; }
+.solace-page.is-editing input:not([type="range"]):not([type="file"]),
+.solace-page.is-editing .select-trigger {
+  background: rgba(19, 15, 26, 0.9);
+  border: 1px solid rgba(201, 155, 79, 0.4);
+  border-radius: 3px;
+  color: var(--sl-parch);
+}
+.solace-page.is-editing input:not([type="range"]):focus,
+.solace-page.is-editing .custom-select.open .select-trigger {
+  border-color: var(--sl-brass-hi);
+  box-shadow: 0 0 0 2px rgba(201, 155, 79, 0.18);
+  outline: none;
+}
+.solace-page .vigilia-name-edit .first-name-input {
+  font-family: var(--sl-title) !important;
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--sl-brass-hi);
+  letter-spacing: 0.05em;
+}
+.solace-page .vigilia-name-edit .last-name-input,
+.solace-page .vigilia-occupation-input,
+.solace-page .vigilia-skill-row .skill-name-input {
+  font-family: var(--sl-title);
+  letter-spacing: 0.08em;
+}
+.solace-page .vigilia-level-input { background: rgba(13, 10, 18, 0.7) !important; color: var(--sl-brass-hi); }
+.solace-page .vigilia-profile-select .select-trigger { font-family: var(--sl-title); font-weight: 700; }
+.solace-page .vet-range input[type="range"] { accent-color: var(--sl-brass); }
+
+/* ─── Celular: os cartões do layout móvel da Vigília (verde) ganham o tom de Solace ─── */
+@media (max-width: 768px) {
+  .solace-page .vigilia-resource-block,
+  .solace-page .vigilia-power-card,
+  .solace-page .vigilia-skill-row {
+    background: rgba(19, 15, 26, 0.78) !important;
+    border-color: rgba(201, 155, 79, 0.22) !important;
+  }
+  .solace-page .vigilia-portrait-container {
+    background: radial-gradient(circle at 50% 38%, rgba(120, 78, 52, 0.4) 0%, rgba(13, 10, 18, 0.94) 100%) !important;
+    border-color: rgba(201, 155, 79, 0.3) !important;
+  }
+  .solace-page .resource-badge-group {
+    max-width: 118px !important;
+    height: 72px !important;
+  }
+  /* O número fica no centro da estrela (69,6% da largura do medalhão) */
+  .solace-page .resource-badge-group .res-num {
+    left: 49.6% !important;
+    right: auto !important;
+    width: 40% !important;
+    text-align: center;
+    font-size: 19px !important;
+    font-weight: 700 !important;
+  }
+  .solace-page .resource-badge-group .res-tag {
+    left: 9% !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: var(--sl-parch) !important;
+  }
+  .solace-page .solace-attr-word { font-size: 30px; min-width: 0; }
+  .solace-page .solace-moon { display: none; }
+  .solace-frame-corner { width: 90px; height: 90px; }
+  .solace-frame-band { display: none; }
+}

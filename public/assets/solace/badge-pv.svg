@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="138" height="84" viewBox="0 0 138 84">
+<defs><linearGradient id="br" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#f6dea2"/><stop offset=".45" stop-color="#c99b4f"/><stop offset=".55" stop-color="#a87b37"/><stop offset="1" stop-color="#e7c27b"/></linearGradient><linearGradient id="pl" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#2a2132"/><stop offset=".5" stop-color="#17121f"/><stop offset="1" stop-color="#0e0b14"/></linearGradient>
+<radialGradient id="core" cx="50%" cy="42%" r="60%"><stop offset="0" stop-color="#c8553a" stop-opacity=".55"/><stop offset=".7" stop-color="#140f1c" stop-opacity=".95"/><stop offset="1" stop-color="#0d0a12"/></radialGradient></defs>
+<path d="M2 42 C10 36 12 24 26 22 L74 22 L74 62 L26 62 C12 60 10 48 2 42Z" fill="url(#pl)" stroke="url(#br)" stroke-width="1.5"/>
+<path d="M8 42 C14 38 16 29 27 27 L72 27 M8 42 C14 46 16 55 27 57 L72 57" fill="none" stroke="#c99b4f" stroke-opacity=".5" stroke-width=".8"/>
+<path d="M96 2 L107.72 13.72 L124.28 13.72 L124.28 30.28 L136 42 L124.28 53.72 L124.28 70.28 L107.72 70.28 L96 82 L84.28 70.28 L67.72 70.28 L67.72 53.72 L56 42 L67.72 30.28 L67.72 13.72 L84.28 13.72Z" fill="#0e0b14" stroke="url(#br)" stroke-width="2"/>
+<path d="M96 7.5 L106.1 17.6 L120.4 17.6 L120.4 31.9 L130.5 42 L120.4 52.1 L120.4 66.4 L106.1 66.4 L96 76.5 L85.9 66.4 L71.6 66.4 L71.6 52.1 L61.5 42 L71.6 31.9 L71.6 17.6 L85.9 17.6Z" fill="url(#core)" stroke="#c99b4f" stroke-opacity=".7" stroke-width=".9"/>
+<path d="M109.2 10.13 L114.67 23.33 L127.87 28.8 L122.41 42 L127.87 55.2 L114.67 60.67 L109.2 73.87 L96 68.41 L82.8 73.87 L77.33 60.67 L64.13 55.2 L69.59 42 L64.13 28.8 L77.33 23.33 L82.8 10.13 L96 15.59Z" fill="none" stroke="#f0a27f" stroke-opacity=".28" stroke-width=".8"/>
+<circle cx="96" cy="42" r="21" fill="none" stroke="#c99b4f" stroke-opacity=".55" stroke-width=".8"/>
+<path d="M119 42L123 42M118.56 46.49L122.48 47.27M117.25 50.8L120.94 52.33M115.12 54.78L118.45 57M112.26 58.26L115.09 61.09M108.78 61.12L111 64.45M104.8 63.25L106.33 66.94M100.49 64.56L101.27 68.48M96 65L96 69M91.51 64.56L90.73 68.48M87.2 63.25L85.67 66.94M83.22 61.12L81 64.45M79.74 58.26L76.91 61.09M76.88 54.78L73.55 57M74.75 50.8L71.06 52.33M73.44 46.49L69.52 47.27M73 42L69 42M73.44 37.51L69.52 36.73M74.75 33.2L71.06 31.67M76.88 29.22L73.55 27M79.74 25.74L76.91 22.91M83.22 22.88L81 19.55M87.2 20.75L85.67 17.06M91.51 19.44L90.73 15.52M96 19L96 15M100.49 19.44L101.27 15.52M104.8 20.75L106.33 17.06M108.78 22.88L111 19.55M112.26 25.74L115.09 22.91M115.12 29.22L118.45 27M117.25 33.2L120.94 31.67M118.56 37.51L122.48 36.73" stroke="#c99b4f" stroke-opacity=".45" stroke-width=".8"/>
+</svg>

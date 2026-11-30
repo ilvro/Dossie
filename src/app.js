@@ -61,7 +61,7 @@ import { die } from './dice-icon.js';
 import { enhanceSelects } from './custom-select.js';
 import { abrirTutorial, fecharTutorial } from './systems/original/original-wizard.js';
 import { icon } from './icons.js';
-import { renderVigiliaSheet, setVigiliaSide, getVigiliaSide, VIGILIA_SKILL_GRADES, renderVigiliaDock, renderVigiliaModals } from './systems/vigilia/vigilia-view.js';
+import { renderVigiliaSheet, setVigiliaSide, getVigiliaSide, VIGILIA_SKILL_GRADES, renderVigiliaDock, renderVigiliaModals, isVigiliaLayout } from './systems/vigilia/vigilia-view.js';
 import {
   LESOES_TABLE,
   TRAUMAS_TABLE,
@@ -780,7 +780,7 @@ function normalizeSheet(raw={}){
  sheet.cards=(Array.isArray(raw.cards)?raw.cards:clone(defaultCards)).map(normalizeCard);
  ensureProfileAbility(sheet);
  ['pv','maxPv','pvTemp','pd','maxPd','pdTemp','level'].forEach(key=>sheet[key]=Math.max(0,Number(sheet[key])||0));
- sheet.viewMode=['cinematic','traditional','vigilia'].includes(sheet.viewMode)?sheet.viewMode:'traditional';sheet.cinematicTokenX=Math.max(0,Math.min(100,Number(sheet.cinematicTokenX)||50));sheet.cinematicTokenY=Math.max(0,Math.min(100,Number(sheet.cinematicTokenY)||52));sheet.cinematicTokenScale=Math.max(45,Math.min(220,Number(sheet.cinematicTokenScale)||100));
+ sheet.viewMode=['cinematic','traditional','vigilia','solace'].includes(sheet.viewMode)?sheet.viewMode:'traditional';sheet.cinematicTokenX=Math.max(0,Math.min(100,Number(sheet.cinematicTokenX)||50));sheet.cinematicTokenY=Math.max(0,Math.min(100,Number(sheet.cinematicTokenY)||52));sheet.cinematicTokenScale=Math.max(45,Math.min(220,Number(sheet.cinematicTokenScale)||100));
  sheet.cinematicOutlineSide=['left','right','both','none'].includes(raw.cinematicOutlineSide)?raw.cinematicOutlineSide:(raw.profile==='Executor'?'right':'left');
  sheet.cinematicOutlineIntensity=Math.max(0,Math.min(1,Number(raw.cinematicOutlineIntensity??0.5)));
  sheet.cinematicOutlineWidth=Math.max(0,Math.min(10,Number(raw.cinematicOutlineWidth??1.8)));sheet.cinematicOutlineFade=Math.max(0,Math.min(10,Number(raw.cinematicOutlineFade??1.5)));
@@ -868,7 +868,7 @@ function aplicarProjecaoDaMesa(fichaId,fichaBruta=null){
   }
   projecaoPendenteJogador=null;
   const alvo=normalizeSheet(clone(bruta));
-  if(alvo.systemMode!=='threat'&&alvo.viewMode!=='vigilia')alvo.viewMode='cinematic';
+  if(alvo.systemMode!=='threat'&&!isVigiliaLayout(alvo.viewMode))alvo.viewMode='cinematic';
   if(!projecaoDaMesa){
    projecaoDaMesa={fichaId,antes:{stateId:state?.id??activeSheetId,editMode,presentationMode,vigiliaSide:getVigiliaSide()}};
   }else{
@@ -1520,7 +1520,7 @@ function readMedia(file,key){if(!file)return;const type=file.type;if(type.starts
 
 function renderBottomNav(){
  if(presentationMode||state.systemMode==='threat') return '';   // ficha de ameaça não tem essas abas
- const isVigilia=state.viewMode==='vigilia';
+ const isVigilia=isVigiliaLayout(state.viewMode);
  const isCinematic=state.viewMode==='cinematic';
  if(isVigilia){
   const currentSide=getVigiliaSide();
@@ -1803,13 +1803,13 @@ function render(){
     ? renderThreatBook(state, editMode, { safeUrl, renderBackgroundLayer })
     : (state.systemMode==='original'
         ? (isCinematic?renderCinematicOriginal(state,editMode,{safeUrl,renderBackgroundLayer,presentationMode,renderPresentationDock,die,accent:getSheetAccent(state),resourceShift:currentResourceShift,pageClass:`cinematic-tab-${cinematicMobileTab} ${presentationMode?'presentation-active':''} ${presentationLockingIn?'presentation-locking-in':''} ${presentationEntering?'presentation-entering':''} ${editTransitionMode?`edit-trans-${editTransitionMode}`:''} ${modeJustChanged?'mode-enter':''}`}):renderTraditionalOriginal(state,editMode,{accent:getSheetAccent(state),currentRight:currentOriginalTab,filterQuery:originalSkillsFilter,safeUrl,renderBackgroundLayer}))
-        : (state.viewMode==='vigilia'
+        : (isVigiliaLayout(state.viewMode)
             ? renderVigiliaSheet(state, editMode, { safeUrl, renderBackgroundLayer, modeJustChanged, customSelect, aptidaoOptions, renderMarker, emProjecao })
             : (isCinematic?renderCinematic(trainingOptions,bgIsVideo):renderTraditional(trainingOptions,bgIsVideo,aptidaoOptions,aptidaoCount)))
     )
   }
   ${modoJogador&&vistaJogador==='card'&&!emProjecao?`<button type="button" class="btn-expandir-ficha-online" data-cartao-completa title="Expandir ficha completa">${icon('presentation',14)} Expandir ficha</button>`:''}
-	 ${emProjecao||state.systemMode==='threat'?'':`<div class="view-mode-switch ${viewSwitchCollapsed?'collapsed':'expanded'}">${viewSwitchCollapsed?`<button type="button" class="view-mode-trigger" data-toggle-view-switch title="Alternar modo de exibição (Clique para expandir)">${state.viewMode==='vigilia'?icon('shield',14):(isCinematic?icon('film',14):icon('grid',14))}<span>${state.viewMode==='vigilia'?'VIGÍLIA':(isCinematic?'CINEMA':'PADRÃO')}</span><i class="switch-arrow">▾</i></button>`:`<button type="button" class="${state.viewMode==='traditional'&&!presentationMode?'active':''}" data-display-mode="traditional">${icon('grid',14)}<span>TRADICIONAL</span></button><button type="button" class="${isCinematic&&!presentationMode?'active':''}" data-display-mode="cinematic">${icon('film',14)}<span>CINEMATOGRÁFICO</span></button><button type="button" class="${state.viewMode==='vigilia'?'active':''}" data-display-mode="vigilia">${icon('shield',14)}<span>A VIGÍLIA</span></button><button type="button" class="${presentationMode?'active':''}" data-open-presentation title="Modo de Apresentação">${icon('presentation',14)}<span>APRESENTAÇÃO</span></button><button type="button" class="btn-collapse-switch" data-toggle-view-switch title="Recolher menu">${icon('chevron',12)}</button>`}</div>`}
+	 ${emProjecao||state.systemMode==='threat'?'':`<div class="view-mode-switch ${viewSwitchCollapsed?'collapsed':'expanded'}">${viewSwitchCollapsed?`<button type="button" class="view-mode-trigger" data-toggle-view-switch title="Alternar modo de exibição (Clique para expandir)">${state.viewMode==='vigilia'?icon('shield',14):state.viewMode==='solace'?icon('sun',14):(isCinematic?icon('film',14):icon('grid',14))}<span>${state.viewMode==='vigilia'?'VIGÍLIA':state.viewMode==='solace'?'SOLACE':(isCinematic?'CINEMA':'PADRÃO')}</span><i class="switch-arrow">▾</i></button>`:`<button type="button" class="${state.viewMode==='traditional'&&!presentationMode?'active':''}" data-display-mode="traditional">${icon('grid',14)}<span>TRADICIONAL</span></button><button type="button" class="${isCinematic&&!presentationMode?'active':''}" data-display-mode="cinematic">${icon('film',14)}<span>CINEMATOGRÁFICO</span></button><button type="button" class="${state.viewMode==='vigilia'?'active':''}" data-display-mode="vigilia">${icon('shield',14)}<span>A VIGÍLIA</span></button><button type="button" class="${state.viewMode==='solace'?'active':''}" data-display-mode="solace">${icon('sun',14)}<span>SOLACE</span></button><button type="button" class="${presentationMode?'active':''}" data-open-presentation title="Modo de Apresentação">${icon('presentation',14)}<span>APRESENTAÇÃO</span></button><button type="button" class="btn-collapse-switch" data-toggle-view-switch title="Recolher menu">${icon('chevron',12)}</button>`}</div>`}
   ${emProjecao?'':`${editMode?`<div class="edit-status active"><span></span>MODO DE EDIÇÃO — TEMA ÂMBAR</div>`:''}<div class="floating"><button class="${editMode?'active':''}" data-toggle-edit title="${editMode?'Fechar edição':'Editar ficha'}">${editMode?icon('close'):icon('edit')}</button></div>`}<div class="save-toast" id="save-toast">SALVO</div>
 
   <div id="dice-stage"><canvas id="dice-canvas"></canvas><div class="stage-fumble-desat" aria-hidden="true"></div><div id="dice-stage-result"></div></div>
@@ -3820,7 +3820,7 @@ function switchToSheet(targetId) {
     presentationMode = false;
    } else {
     presentationIndex = Math.max(0, getPresentationSheets().findIndex(s => s.id === state.id));
-    if (state.viewMode !== 'vigilia') {
+    if (!isVigiliaLayout(state.viewMode)) {
      state.viewMode = 'cinematic';
     }
    }
@@ -3828,7 +3828,7 @@ function switchToSheet(targetId) {
   render();
  };
  const targetSheet = sheets.find(sh => sh.id === targetId);
- const isVigilia = state.viewMode === 'vigilia' || targetSheet?.viewMode === 'vigilia';
+ const isVigilia = isVigiliaLayout(state.viewMode) || isVigiliaLayout(targetSheet?.viewMode);
  if (state.viewMode === 'cinematic' || isVigilia || presentationMode || state.systemMode === 'threat' || targetSheet?.systemMode === 'threat') {
   triggerGlitchTransition(doSwitch);
  } else {
@@ -4347,7 +4347,7 @@ function bindVigiliaEditEvents() {
 }
 
 function bindVigiliaEvents() {
- if (state.viewMode !== 'vigilia') return;
+ if (!isVigiliaLayout(state.viewMode)) return;
 
  bindVigiliaEditEvents();
 
@@ -5544,7 +5544,7 @@ async function roll(name,sides,modifier=0,rollMode='sum',meta={}){
  let dreadIndex = -1;
  const dieLabels = Array.isArray(meta?.dieLabels) ? meta.dieLabels : [];
  const diceConfigs = list.map((side, i) => ({ sides: side, color, label: dieLabels[i] || '' }));
- if (state.viewMode === 'vigilia' && state.dadoPavor && !name.includes('Pavor') && !name.includes('Tabela') && !name.includes('Lesão') && !name.includes('Trauma') && !name.includes('Falha') && list.length >= 2) {
+ if (isVigiliaLayout(state.viewMode) && state.dadoPavor && !name.includes('Pavor') && !name.includes('Tabela') && !name.includes('Lesão') && !name.includes('Trauma') && !name.includes('Falha') && list.length >= 2) {
   if (state.pavorEmbraced) {
    diceConfigs.push({ sides: state.dadoPavor, color: '#f43f5e', label: 'PAVOR ABRAÇADO' });
    state.pavorEmbraced = false;
@@ -5676,7 +5676,7 @@ async function roll(name,sides,modifier=0,rollMode='sum',meta={}){
   throw: throwVec
  };
  const res = appSettings.cinematicAltRoll
-  ? await (await import('./fx/dice-cinematic-alt.js')).rollDiceCinematicAlt(diceConfigs, name, finalNumMod, soundContext, rollMode, { ...options, theme: state.viewMode === 'vigilia' ? 'vigilia' : 'cinematic', accent: getSheetAccent(state) })
+  ? await (await import('./fx/dice-cinematic-alt.js')).rollDiceCinematicAlt(diceConfigs, name, finalNumMod, soundContext, rollMode, { ...options, theme: isVigiliaLayout(state.viewMode) ? state.viewMode : 'cinematic', accent: getSheetAccent(state) })
   : await rollDice3d(diceConfigs, name, finalNumMod, soundContext, rollMode, options);
  if (appSettings.cinematicAltRoll) {
   render();
@@ -5955,7 +5955,7 @@ function emitirAtmosferaCritica(critical){
  try{window.parent.postMessage(msg,location.origin)}catch{}
 }
 function syncCriticalAtmosphere(){
- const critical=getCriticalState(),isVigilia=state.viewMode==='vigilia',cinematic=state.viewMode==='cinematic'||isVigilia,visible=!document.hidden,naCasca=atmosferaNaCasca(),semAtmosfera=Boolean(projecaoDaMesa);
+ const critical=getCriticalState(),isVigilia=isVigiliaLayout(state.viewMode),cinematic=state.viewMode==='cinematic'||isVigilia,visible=!document.hidden,naCasca=atmosferaNaCasca(),semAtmosfera=Boolean(projecaoDaMesa);
  document.body.style.setProperty('--pv-warning-strength',(.18+critical.pv.warningIntensity*.35).toFixed(3));document.body.style.setProperty('--pd-warning-strength',(.18+critical.pd.warningIntensity*.35).toFixed(3));
  document.body.classList.toggle('warning-pv-state',critical.pv.warning);document.body.classList.toggle('warning-pd-state',critical.pd.warning);document.body.classList.toggle('critical-pv-state',critical.pv.special);document.body.classList.toggle('critical-pd-state',critical.pd.special);document.body.classList.toggle('critical-pd-effects',!isVigilia&&cinematic&&criticalEffects.pd&&critical.pd.special);document.body.classList.toggle('critical-pv-zero',critical.pv.special&&critical.pv.value===0);document.body.classList.toggle('critical-pd-zero',critical.pd.special&&critical.pd.value===0);
  const atmosphere=semAtmosfera?document.querySelector('[data-critical-atmosphere]'):ensureCriticalAtmosphereEl();
@@ -6211,7 +6211,7 @@ function bind(){
     document.querySelectorAll('#json-file-input').forEach(input=>{input.onchange=()=>{if(input.files[0])importJsonSheet(input.files[0]);input.value=''}});
     document.querySelectorAll('[data-compendium]').forEach(el=>el.onclick=()=>{const toast=document.querySelector('#save-toast');if(toast){toast.textContent='COMPÊNDIO — EM BREVE';toast.classList.add('show');setTimeout(()=>{toast.classList.remove('show');toast.textContent='SALVO'},1300)}});
 
-  document.querySelectorAll('[data-display-mode]').forEach(el=>el.onclick=()=>{if(el.dataset.displayMode===state.viewMode){sheetDrawerOpen=false;render();return;}state.viewMode=el.dataset.displayMode;sheetDrawerOpen=false;if(state.viewMode==='cinematic')viewSwitchCollapsed=true;if(state.viewMode==='traditional'||state.viewMode==='vigilia')presentationMode=false;modeJustChanged=true;render()});
+  document.querySelectorAll('[data-display-mode]').forEach(el=>el.onclick=()=>{if(el.dataset.displayMode===state.viewMode){sheetDrawerOpen=false;render();return;}state.viewMode=el.dataset.displayMode;sheetDrawerOpen=false;if(state.viewMode==='cinematic')viewSwitchCollapsed=true;if(state.viewMode==='traditional'||isVigiliaLayout(state.viewMode))presentationMode=false;modeJustChanged=true;render()});
   document.querySelectorAll('[data-toggle-view-switch]').forEach(el=>el.onclick=e=>{e.stopPropagation();viewSwitchCollapsed=!viewSwitchCollapsed;render()});
 
   // ── Modo de Apresentação (Dossiês de Agentes) ───────────────────────────────
@@ -6615,7 +6615,7 @@ function bind(){
  runPostRenderFx();
  syncLivePortrait({enabled:appSettings.ambientFx!==false});
 }
-document.addEventListener('click',e=>{closeSheetContextMenu();closeFolderContextMenu();if(!viewSwitchCollapsed&&!e.target.closest('.view-mode-switch')){viewSwitchCollapsed=true;const sw=document.querySelector('.view-mode-switch');if(sw){sw.className='view-mode-switch collapsed';sw.innerHTML=`<button type="button" class="view-mode-trigger" data-toggle-view-switch title="Alternar modo de exibição (Clique para expandir)">${state.viewMode==='vigilia'?icon('shield',14):(state.viewMode==='cinematic'?icon('film',14):icon('grid',14))}<span>${state.viewMode==='vigilia'?'VIGÍLIA':(state.viewMode==='cinematic'?'CINEMA':'PADRÃO')}</span><i class="switch-arrow">▾</i></button>`;const trig=sw.querySelector('[data-toggle-view-switch]');if(trig)trig.onclick=ev=>{ev.stopPropagation();viewSwitchCollapsed=!viewSwitchCollapsed;render()}}}});
+document.addEventListener('click',e=>{closeSheetContextMenu();closeFolderContextMenu();if(!viewSwitchCollapsed&&!e.target.closest('.view-mode-switch')){viewSwitchCollapsed=true;const sw=document.querySelector('.view-mode-switch');if(sw){sw.className='view-mode-switch collapsed';sw.innerHTML=`<button type="button" class="view-mode-trigger" data-toggle-view-switch title="Alternar modo de exibição (Clique para expandir)">${state.viewMode==='vigilia'?icon('shield',14):state.viewMode==='solace'?icon('sun',14):(state.viewMode==='cinematic'?icon('film',14):icon('grid',14))}<span>${state.viewMode==='vigilia'?'VIGÍLIA':state.viewMode==='solace'?'SOLACE':(state.viewMode==='cinematic'?'CINEMA':'PADRÃO')}</span><i class="switch-arrow">▾</i></button>`;const trig=sw.querySelector('[data-toggle-view-switch]');if(trig)trig.onclick=ev=>{ev.stopPropagation();viewSwitchCollapsed=!viewSwitchCollapsed;render()}}}});
 
 document.addEventListener('keydown',e=>{
  if((e.ctrlKey||e.metaKey)&&(e.key==='k'||e.key==='K')){
@@ -6776,7 +6776,7 @@ const aplicarChegadaNaSala = ({ ficha, propria, autor }) => {
     }
     if (projecaoDaMesa.fichaId === nova.id) {
       const atualizada = normalizeSheet(clone(nova));
-      if (atualizada.systemMode !== 'threat' && atualizada.viewMode !== 'vigilia') atualizada.viewMode = 'cinematic';
+      if (atualizada.systemMode !== 'threat' && !isVigiliaLayout(atualizada.viewMode)) atualizada.viewMode = 'cinematic';
       state = atualizada;
     }
     removerSinteticaSeIntacta(activeSheetId);

@@ -5,6 +5,7 @@
 
 import { icon } from '../../icons.js';
 import { installMistTexture } from '../../fx/mist-texture.js';
+import { SOLACE_SKIN } from '../solace/solace-skin.js';
 import {
   LESOES_TABLE,
   TRAUMAS_TABLE,
@@ -14,6 +15,45 @@ import {
 } from './vigilia-mechanics.js';
 
 let currentVigiliaSide = 'front'; // 'front' | 'back'
+
+/** Modos de visão que usam este layout (frente e verso com a mecânica de Ordem II). */
+export const VIGILIA_LAYOUT_MODES = ['vigilia', 'solace'];
+export function isVigiliaLayout(mode) {
+  return VIGILIA_LAYOUT_MODES.includes(mode);
+}
+
+/*
+ * Skin: a arte que veste o layout. A Vigília usa os recortes do PDF oficial;
+ * o Solace (src/systems/solace/solace-skin.js) troca a arte, a moldura e o ambiente.
+ * Definida no início de cada renderVigiliaSheet (o render é síncrono).
+ */
+const VIGILIA_SKIN = {
+  id: 'vigilia',
+  pageClass: '',
+  defaultBg: './assets/vigilia/vigilia-bg.png',
+  art: (file, cls = '', alt = '') => `<img src="./assets/vigilia/${file}" alt="${alt}"${cls ? ` class="${cls}"` : ''} draggable="false">`,
+  attrWord: (key, label) => `<img src="./assets/vigilia/attr-${key}.svg" alt="${label}" class="attr-vector-word word-${key}" draggable="false">`,
+  chevron: () => `
+          <svg class="atributos-chevron-ray" viewBox="0 0 36 174" aria-hidden="true">
+            <defs>
+              <linearGradient id="vg-chevron-specular" x1="50%" y1="0%" x2="50%" y2="100%">
+                <stop offset="0%" stop-color="#76847d" stop-opacity="0.3" />
+                <stop offset="25%" stop-color="#c2d1ca" stop-opacity="0.85" />
+                <stop offset="48%" stop-color="#ffffff" stop-opacity="1" />
+                <stop offset="52%" stop-color="#ffffff" stop-opacity="1" />
+                <stop offset="75%" stop-color="#c2d1ca" stop-opacity="0.85" />
+                <stop offset="100%" stop-color="#76847d" stop-opacity="0.3" />
+              </linearGradient>
+            </defs>
+            <path fill="url(#vg-chevron-specular)" d="M27.70,173.73L2.96,85.95L35.07,0.00L0.00,86.40L1.49,86.22L0.04,86.57Z" />
+          </svg>`,
+  frame: () => `
+      <div class="vigilia-frame-layer">
+        <img src="./assets/vigilia/vigilia-frame.png" alt="" class="vigilia-frame-img" draggable="false">
+      </div>`,
+  ambient: () => renderVigiliaAmbient()
+};
+let skin = VIGILIA_SKIN;
 
 // Graus de dado das perícias (d4 = destreinado ... d12 = grão-mestre)
 export const VIGILIA_SKILL_GRADES = [
@@ -231,7 +271,7 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
 
         <div class="vigilia-identity-badge ${editMode ? 'is-editing' : ''}">
           <div class="profile-banner-wrap">
-            <img src="./assets/vigilia/banner-profile.png" alt="" class="profile-banner-img" draggable="false">
+            ${skin.art('banner-profile.png', 'profile-banner-img')}
             ${editMode && customSelect
               ? customSelect({ value: sheet.profile || 'Analista', options: ['Executor', 'Analista', 'Vigilante'].map(v => ({ value: v, label: v.toUpperCase() })), id: 'profile', className: 'vigilia-profile-select' })
               : `<span class="profile-text">${safe(profile)}</span>`}
@@ -243,7 +283,7 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
           <span class="id-dot">•</span>
           <span class="level-label">NÍVEL</span>
           <div class="level-badge-wrap">
-            <img src="./assets/vigilia/badge-level.png" alt="" class="level-badge-img" draggable="false">
+            ${skin.art('badge-level.png', 'level-badge-img')}
             ${editMode
               ? `<input class="vigilia-level-input" data-field="level" value="${level}" inputmode="numeric">`
               : `<span class="level-num">${level}</span>`}
@@ -258,27 +298,15 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
         <!-- Bloco Atributos com Raio Refletido em Espelho -->
         <div class="vigilia-attributes-block">
           <div class="banner-atributos-wrap">
-            <img src="./assets/vigilia/banner-atributos.png" alt="ATRIBUTOS" class="banner-atributos-img" draggable="false">
+            ${skin.art('banner-atributos.png', 'banner-atributos-img', 'ATRIBUTOS')}
             <span class="banner-text">ATRIBUTOS</span>
           </div>
 
-          <svg class="atributos-chevron-ray" viewBox="0 0 36 174" aria-hidden="true">
-            <defs>
-              <linearGradient id="vg-chevron-specular" x1="50%" y1="0%" x2="50%" y2="100%">
-                <stop offset="0%" stop-color="#76847d" stop-opacity="0.3" />
-                <stop offset="25%" stop-color="#c2d1ca" stop-opacity="0.85" />
-                <stop offset="48%" stop-color="#ffffff" stop-opacity="1" />
-                <stop offset="52%" stop-color="#ffffff" stop-opacity="1" />
-                <stop offset="75%" stop-color="#c2d1ca" stop-opacity="0.85" />
-                <stop offset="100%" stop-color="#76847d" stop-opacity="0.3" />
-              </linearGradient>
-            </defs>
-            <path fill="url(#vg-chevron-specular)" d="M27.70,173.73L2.96,85.95L35.07,0.00L0.00,86.40L1.49,86.22L0.04,86.57Z" />
-          </svg>
+          ${skin.chevron()}
 
           <div class="vigilia-attributes-list">
             <div class="vigilia-attr-row attr-fisico" data-roll="Físico|${attrs.Físico || 6}" data-roll-labels="FÍSICO">
-              <img src="./assets/vigilia/attr-fisico.svg" alt="FÍSICO" class="attr-vector-word word-fisico" draggable="false">
+              ${skin.attrWord('fisico', 'FÍSICO')}
               ${renderVigiliaDie(attrs.Físico || 6, 'attr')}
               ${editMode ? `
                 <div class="attr-step-btns">
@@ -289,7 +317,7 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
             </div>
 
             <div class="vigilia-attr-row attr-mente" data-roll="Mente|${attrs.Mente || 6}" data-roll-labels="MENTE">
-              <img src="./assets/vigilia/attr-mente.svg" alt="MENTE" class="attr-vector-word word-mente" draggable="false">
+              ${skin.attrWord('mente', 'MENTE')}
               ${renderVigiliaDie(attrs.Mente || 6, 'attr')}
               ${editMode ? `
                 <div class="attr-step-btns">
@@ -300,7 +328,7 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
             </div>
 
             <div class="vigilia-attr-row attr-emocao" data-roll="Emoção|${attrs.Emoção || 6}" data-roll-labels="EMOÇÃO">
-              <img src="./assets/vigilia/attr-emocao.svg" alt="EMOÇÃO" class="attr-vector-word word-emocao" draggable="false">
+              ${skin.attrWord('emocao', 'EMOÇÃO')}
               ${renderVigiliaDie(attrs.Emoção || 6, 'attr')}
               ${editMode ? `
                 <div class="attr-step-btns">
@@ -317,7 +345,7 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
           <!-- PV -->
           <div class="vigilia-resource-block resource-pv" data-resource-key="pv">
             <div class="resource-badge-group" title="Clique para definir PV atual">
-              <img src="./assets/vigilia/badge-pv.png" alt="PV" class="badge-res-img" draggable="false">
+              ${skin.art('badge-pv.png', 'badge-res-img', 'PV')}
               <span class="res-tag">PV</span>
               <span class="res-num">${sheet.pv}</span>
             </div>
@@ -339,7 +367,7 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
           <!-- PD -->
           <div class="vigilia-resource-block resource-pd" data-resource-key="pd">
             <div class="resource-badge-group" title="Clique para definir PD atual">
-              <img src="./assets/vigilia/badge-pd.png" alt="PD" class="badge-res-img" draggable="false">
+              ${skin.art('badge-pd.png', 'badge-res-img', 'PD')}
               <span class="res-tag">PD</span>
               <span class="res-num">${sheet.pd}</span>
             </div>
@@ -366,7 +394,7 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
         <!-- COLUNA 1: PERÍCIAS (20 perícias ocupando verticalmente a altura) -->
         <div class="vigilia-col-skills">
           <div class="banner-pericias-wrap">
-            <img src="./assets/vigilia/banner-pericias.png" alt="PERÍCIAS" class="banner-pericias-img" draggable="false">
+            ${skin.art('banner-pericias.png', 'banner-pericias-img', 'PERÍCIAS')}
             <span class="banner-text">PERÍCIAS</span>
           </div>
 
@@ -482,7 +510,7 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
               return `
                 <article class="vigilia-power-card">
                   <div class="power-banner-wrap">
-                    <img src="./assets/vigilia/banner-power.png" alt="" class="power-banner-img" draggable="false">
+                    ${skin.art('banner-power.png', 'power-banner-img')}
                     <span class="power-title">${safe(card.title)}</span>
                     ${extraBannerControl}
                     ${editCardBtn(card)}
@@ -520,7 +548,7 @@ function renderVigiliaFront(sheet, editMode, options = {}) {
             <!-- Bloco de Equipamento (Dentro da rolagem coesa de habilidades) -->
             <div class="vigilia-equipment-section">
               <div class="power-banner-wrap">
-                <img src="./assets/vigilia/banner-power.png" alt="" class="power-banner-img" draggable="false">
+                ${skin.art('banner-power.png', 'power-banner-img')}
                 <span class="power-title">EQUIPAMENTO</span>
                 <div class="equip-armor-pill ${armorPoints > 0 ? 'active' : 'zero'}">
                   <button type="button" class="btn-armor-spend" data-spend-armor title="Gastar 1 Ponto de Armadura (Ação Livre: reduz dano em 10)">
@@ -623,7 +651,7 @@ function renderVigiliaBack(sheet, editMode, options) {
       </header>
 
       <div class="vigilia-back-divider">
-        <img src="./assets/vigilia/divider-celtic.png" alt="" draggable="false">
+        ${skin.art('divider-celtic.png')}
       </div>
 
       <!-- TEXTO DA HISTÓRIA / BIOGRAFIA -->
@@ -640,7 +668,7 @@ function renderVigiliaBack(sheet, editMode, options) {
       <!-- SEÇÃO DE RELAÇÕES -->
       <div class="vigilia-relations-section">
         <div class="banner-relacoes-wrap">
-          <img src="./assets/vigilia/banner-relacoes.png" alt="RELAÇÕES" class="banner-relacoes-img" draggable="false">
+          ${skin.art('banner-relacoes.png', 'banner-relacoes-img', 'RELAÇÕES')}
           <span class="banner-relacoes-title">RELAÇÕES</span>
           <button type="button" class="btn-reset-relations" data-reset-relations title="Reiniciar invocações para uma nova missão">
             NOVA MISSÃO (RESET)
@@ -906,6 +934,7 @@ function renderVigiliaAmbient() {
  * Função Principal: Renderiza a Ficha no Modo "A Vigília"
  */
 export function renderVigiliaSheet(sheet, editMode, options = {}) {
+  skin = sheet.viewMode === 'solace' ? SOLACE_SKIN : VIGILIA_SKIN;
   const emProjecao = Boolean(options.emProjecao);
   const isBack = !emProjecao && currentVigiliaSide === 'back';
   const armorPoints = sheet.armorPoints ?? (sheet.pontosArmadura ?? 0);
@@ -918,7 +947,7 @@ export function renderVigiliaSheet(sheet, editMode, options = {}) {
   // Personalização visual (fundo, moldura e retrato) — aceita vigiliaBackground ou backgroundImage da ficha
   const rawBg = sheet.vigiliaBackground || (sheet.backgroundImage && !String(sheet.backgroundImage).startsWith('data:video/') ? sheet.backgroundImage : '');
   const customBg = rawBg ? safeUrl(rawBg) : '';
-  const bgUrl = customBg || './assets/vigilia/vigilia-bg.png';
+  const bgUrl = customBg || skin.defaultBg;
   const bgBlur = Number(sheet.vigiliaBgBlur ?? sheet.backgroundBlur) || 0;
   const bgZoom = Number(sheet.vigiliaBgZoom ?? sheet.backgroundZoom) || 100;
   const bgDim = Number(sheet.vigiliaBgDim) || 0;
@@ -938,7 +967,7 @@ export function renderVigiliaSheet(sheet, editMode, options = {}) {
   ].join(';');
 
   const editTools = editMode ? `
-    <aside class="vigilia-edit-tools" aria-label="Personalização do layout Vigília">
+    <aside class="vigilia-edit-tools" aria-label="Personalização do layout ${skin.id === 'solace' ? 'Solace' : 'Vigília'}">
       <div class="vet-group">
         <span class="vet-title">${icon('user', 13)} RETRATO</span>
         <label class="vet-btn">${icon('image', 13)} TROCAR<input id="token-upload-cinematic" type="file" accept="image/*"></label>
@@ -969,17 +998,14 @@ export function renderVigiliaSheet(sheet, editMode, options = {}) {
   ` : '';
 
   return `
-    <main class="vigilia-page ${isBack ? 'view-back' : 'view-front'} ${editMode ? 'is-editing' : ''} ${modeJustChanged ? 'mode-enter' : ''}" style="${pageStyle}">
+    <main class="vigilia-page ${skin.pageClass} ${isBack ? 'view-back' : 'view-front'} ${editMode ? 'is-editing' : ''} ${modeJustChanged ? 'mode-enter' : ''}" style="${pageStyle}">
       <!-- FUNDO E MOLDURA CELTA OFICIAL (personalizáveis no modo de edição) -->
       <div class="vigilia-bg-clip">
         <div class="vigilia-bg-layer ${customBg ? 'is-custom' : ''}" style="background-image: url('${bgUrl}');"></div>
         <div class="vigilia-bg-dim"></div>
-        ${renderVigiliaAmbient()}
+        ${skin.ambient()}
       </div>
-      ${frameHidden ? '' : `
-      <div class="vigilia-frame-layer">
-        <img src="./assets/vigilia/vigilia-frame.png" alt="" class="vigilia-frame-img" draggable="false">
-      </div>`}
+      ${frameHidden ? '' : skin.frame()}
 
       <!-- BARRA DE CONTROLE SUPERIOR (FLIP ENTRE FRENTE E VERSO) -->
       ${emProjecao ? '' : `
