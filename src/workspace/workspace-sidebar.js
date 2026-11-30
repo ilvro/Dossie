@@ -794,7 +794,7 @@ function renderTreeNodes(nodes = [], activeSheetId = '', visibleFolderIds = [], 
               title="${isVisibleInRail ? 'Visível no rail lateral (Clique para ocultar)' : 'Oculto no rail (Clique para exibir)'}">
               ${icon(isVisibleInRail ? 'eye' : 'eye-off', 12)}
             </button>
-            <button type="button" class="nav-folder-action-btn" data-folder-edit-btn="${folder.id}" title="Editar pasta: nome, cor, ícone">
+            <button type="button" class="nav-folder-action-btn" data-folder-edit-btn="${folder.id}" title="Editar pasta: nome, cor, ícone, modo das fichas">
               ${icon('edit', 12)}
             </button>
             <button type="button" class="nav-folder-action-btn" data-folder-menu-btn="${folder.id}" title="Mais opções da pasta">

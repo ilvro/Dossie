@@ -173,7 +173,8 @@ import {
   createFolder,
   updateFolder,
   deleteFolder,
-  moveFolder
+  moveFolder,
+  applyFolderViewMode
 } from './workspace/folders.js';
 import { visibleSheets, buildFolderTree, isCharacterSheet, isThreatSheet } from './workspace/selectors.js';
 import {
@@ -3425,7 +3426,9 @@ function importJsonSheet(file){
       item.systemMode='original';
      }
     }
-    return normalizeSheet(item);
+    const sheet=normalizeSheet(item);
+    if(!modoJogador)applyFolderViewMode(folders,sheet);
+    return sheet;
    };
    if(Array.isArray(parsed)){
     if(!parsed.length)throw new Error('Arquivo vazio');
@@ -3604,6 +3607,7 @@ function showSheetContextMenu(e, sheetId) {
     const newFldId = btn.dataset.moveToFld;
     if (target && target.folderId !== newFldId) {
      target.folderId = newFldId;
+     if (applyFolderViewMode(folders, target) && target.id === state.id) ajustarTelaAoModoDaPasta();
      save(true, 'FICHA MOVIDA PARA PASTA');
      render();
     }
@@ -3668,7 +3672,7 @@ function showFolderContextMenu(e, folderId) {
   <button type="button" data-action="toggle-rail-visibility">${icon(isVisibleInRail ? 'eye-off' : 'eye', 13)} <span>${isVisibleInRail ? 'Ocultar no Rail lateral' : 'Exibir no Rail lateral'}</span></button>
   <button type="button" data-action="new-subfolder">${icon('folder-plus', 13)} <span>Nova subpasta aqui</span></button>
   <div class="custom-context-menu-separator"></div>
-  <button type="button" data-action="rename-folder">${icon('edit', 13)} <span>Editar pasta (nome, cor, ícone)</span></button>
+  <button type="button" data-action="rename-folder">${icon('edit', 13)} <span>Editar pasta (nome, cor, ícone, modo)</span></button>
   ${!folder.system ? `<button type="button" data-action="delete-folder" class="menu-danger">${icon('trash', 13)} <span>Excluir pasta</span></button>` : ''}
  `;
  menu.hidden = false;
@@ -3724,28 +3728,41 @@ function showFolderContextMenu(e, folderId) {
 }
 
 const FOLDER_DIALOG_COLORS = ['#3187ff', '#ee1943', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#06b6d4', '#8b5cf6', '#ec4899', '#a16207', '#94a3b8', '#f8fafc'];
+const FOLDER_DIALOG_MODES = [['', 'Sem padrão', 'folder'], ['traditional', 'Tradicional', 'grid'], ['cinematic', 'Cinematográfico', 'film'], ['vigilia', 'A Vigília', 'shield'], ['solace', 'Solace', 'sun']];
+
+// A ficha aberta mudou de modo por causa da pasta: mesmos ajustes do seletor de modo.
+function ajustarTelaAoModoDaPasta() {
+ if (state.viewMode !== 'cinematic') presentationMode = false;
+ modeJustChanged = true;
+}
+
 const FOLDER_DIALOG_ICONS = ['folder', 'shield', 'skull', 'user', 'sun', 'star', 'book', 'heart', 'zap', 'crosshair', 'd20', 'globe', 'lock', 'pin', 'sparkles', 'eye', 'dossier', 'threat-sigil'];
 
-// Diálogo único para criar (parentId opcional) ou editar (folder) uma pasta: nome, cor e ícone.
+// Diálogo único para criar (parentId opcional) ou editar (folder) uma pasta: nome, cor, ícone e modo das fichas.
 function openFolderDialog({ folder = null, parentId = null } = {}) {
  document.querySelector('#folder-dialog')?.remove();
  const editing = Boolean(folder);
  let color = folder?.color || '#3187ff';
  let iconName = folder?.icon || (folder?.id === 'folder-threats' ? 'skull' : (folder?.id?.includes('vigilia') ? 'shield' : 'folder'));
  const parent = parentId ? folders.find(f => f.id === parentId) : null;
+ let viewMode = folder?.viewMode || '';
+ const comModo = folder?.kind !== 'threats';
  const modal = document.createElement('div');
  modal.className = 'modal folder-dialog';
  modal.id = 'folder-dialog';
  modal.style.display = 'flex';
  modal.innerHTML = `<div class="backdrop" data-fd-cancel></div><section>
   <small class="fd-kicker">${editing ? 'EDITAR PASTA' : (parent ? 'NOVA SUBPASTA' : 'NOVA PASTA')}</small>
-  <h2>${editing ? 'Nome, cor e ícone' : (parent ? `Dentro de ${safe(parent.name)}` : 'Organize suas fichas')}</h2>
+  <h2>${editing ? 'Nome, cor, ícone e modo' : (parent ? `Dentro de ${safe(parent.name)}` : 'Organize suas fichas')}</h2>
   <div class="fd-preview"><span class="fd-preview-icon"></span><span class="fd-preview-name"></span></div>
   <label class="fd-label">Nome<input type="text" class="fd-name" maxlength="60" placeholder="Nome da pasta"></label>
   <div class="fd-label">Cor</div>
   <div class="fd-colors">${FOLDER_DIALOG_COLORS.map(c => `<button type="button" class="fd-swatch" data-fd-color="${c}" style="background:${c}" title="${c}"></button>`).join('')}<input type="color" class="fd-color-free" title="Cor livre"></div>
   <div class="fd-label">Ícone</div>
   <div class="fd-icons">${FOLDER_DIALOG_ICONS.map(n => `<button type="button" class="fd-icon-btn" data-fd-icon="${n}" title="${n}">${icon(n, 16)}</button>`).join('')}</div>
+  ${comModo ? `<div class="fd-label">Modo das fichas</div>
+  <div class="fd-modes">${FOLDER_DIALOG_MODES.map(([m, label, ic]) => `<button type="button" class="fd-mode-btn" data-fd-mode="${m}">${m ? icon(ic, 13) : ''}<span>${label}</span></button>`).join('')}</div>
+  <p class="fd-note">As fichas desta pasta e das subpastas sem modo próprio passam a abrir e nascer neste modo. Fichas de Ordem RPG só têm Tradicional e Cinematográfico.</p>` : ''}
   ${editing && !folder.system ? `<p class="fd-note">Excluir a pasta não apaga as fichas: elas vão para a pasta padrão.</p>` : ''}
   <div class="fd-actions">
    ${editing && !folder.system ? `<button type="button" class="fd-delete" data-fd-delete>${icon('trash', 13)} Excluir</button>` : ''}
@@ -3763,6 +3780,7 @@ function openFolderDialog({ folder = null, parentId = null } = {}) {
   modal.querySelector('.fd-preview-name').textContent = nameInput.value.trim() || 'Nova pasta';
   modal.querySelectorAll('[data-fd-color]').forEach(b => b.classList.toggle('on', b.dataset.fdColor.toLowerCase() === color.toLowerCase()));
   modal.querySelectorAll('[data-fd-icon]').forEach(b => b.classList.toggle('on', b.dataset.fdIcon === iconName));
+  modal.querySelectorAll('[data-fd-mode]').forEach(b => b.classList.toggle('on', b.dataset.fdMode === viewMode));
   const free = modal.querySelector('.fd-color-free');
   if (/^#[0-9a-f]{6}$/i.test(color)) free.value = color;
  };
@@ -3771,9 +3789,18 @@ function openFolderDialog({ folder = null, parentId = null } = {}) {
   const name = nameInput.value.trim();
   if (!name) { nameInput.focus(); return; }
   if (editing) {
-   folders = updateFolder(folders, folder.id, { name, color, icon: iconName });
+   const modoMudou = (folder.viewMode || '') !== viewMode;
+   folders = updateFolder(folders, folder.id, { name, color, icon: iconName, viewMode: viewMode || null });
+   if (modoMudou) {
+    // Só ao trocar o modo, para não desfazer escolhas por ficha quando se muda apenas nome ou cor
+    const mudadas = sheets.filter(s => s.folderId !== PASTA_SALA && applyFolderViewMode(folders, s));
+    if (mudadas.length) {
+     if (mudadas.some(s => s.id === state.id)) ajustarTelaAoModoDaPasta();
+     save(false);
+    }
+   }
   } else {
-   folders = createFolder(folders, { name, parentId, color, icon: iconName }).folders;
+   folders = createFolder(folders, { name, parentId, color, icon: iconName, viewMode: viewMode || null }).folders;
    if (parent && parent.collapsed) folders = updateFolder(folders, parent.id, { collapsed: false });
   }
   salvarPastas(folders, { idbSet });
@@ -3790,6 +3817,7 @@ function openFolderDialog({ folder = null, parentId = null } = {}) {
   if (!t) return;
   if (t.dataset.fdColor) { color = t.dataset.fdColor; refresh(); }
   else if (t.dataset.fdIcon) { iconName = t.dataset.fdIcon; refresh(); }
+  else if ('fdMode' in t.dataset) { viewMode = t.dataset.fdMode; refresh(); }
   else if ('fdCancel' in t.dataset) close();
   else if ('fdOk' in t.dataset) confirmar();
   else if ('fdDelete' in t.dataset) {
@@ -3849,6 +3877,8 @@ function criarFichaNova(mode,{raw,semAssistente=false}={}){
         ?`AMEAÇA ${sheets.filter(isThreatSheet).length+1}`
         :`AGENTE ${sheets.filter(s=>isCharacterSheet(s)&&s.id!==fichaSinteticaSalaId).length+1}`;
       const sheet=normalizeSheet({name:sheetName,systemMode:mode,folderId:defaultFolderId,viewMode:currentMode,...inicioOriginal,...raw});
+      if(!raw?.viewMode)applyFolderViewMode(folders,sheet);
+      if(sheet.viewMode!=='cinematic'&&sheet.systemMode!=='threat')presentationMode=false;
       sheets.push(sheet);
       state=sheet;
       activeSheetId=sheet.id;
@@ -4185,6 +4215,7 @@ function bindNavigatorTreeEvents(container = document) {
     const sheet = sheets.find(s => s.id === sheetId);
     if (sheet && sheet.folderId !== targetFolderId && sheet.folderId !== PASTA_SALA && targetFolderId !== PASTA_SALA) {
      sheet.folderId = targetFolderId;
+     if (applyFolderViewMode(folders, sheet) && sheet.id === state.id) ajustarTelaAoModoDaPasta();
      save(true, 'FICHA MOVIDA PARA PASTA');
      render();
     }

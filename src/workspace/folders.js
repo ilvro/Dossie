@@ -74,6 +74,8 @@ export const DEFAULT_FOLDERS = [
   }
 ];
 
+export const FOLDER_VIEW_MODES = ['traditional', 'cinematic', 'vigilia', 'solace'];
+
 export function makeFolderId() {
   return `fld-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 }
@@ -100,8 +102,36 @@ export function normalizeFolder(raw = {}, index = 0) {
     icon: String(raw.icon || (raw.id === 'folder-threats' ? 'skull' : (raw.id === 'folder-vigilia' ? 'shield' : (raw.id === 'folder-characters' ? 'user' : 'folder')))),
     collapsed: Boolean(raw.collapsed),
     order: typeof raw.order === 'number' ? raw.order : index,
-    system: isSys
+    system: isSys,
+    viewMode: FOLDER_VIEW_MODES.includes(raw.viewMode) ? raw.viewMode : null
   };
+}
+
+/**
+ * Modo de ficha efetivo de uma pasta: o dela ou o do ancestral mais próximo que define um.
+ */
+export function folderViewMode(folders = [], folderId = null) {
+  const seen = new Set();
+  let curr = folders.find(f => f.id === folderId);
+  while (curr && !seen.has(curr.id)) {
+    if (FOLDER_VIEW_MODES.includes(curr.viewMode)) return curr.viewMode;
+    seen.add(curr.id);
+    curr = folders.find(f => f.id === curr.parentId);
+  }
+  return null;
+}
+
+/**
+ * Põe a ficha no modo padrão da pasta dela. Ameaças não mudam; fichas de Ordem RPG
+ * só têm os modos tradicional e cinematográfico. Devolve true se o modo mudou.
+ */
+export function applyFolderViewMode(folders = [], sheet = null) {
+  if (!sheet || sheet.systemMode === 'threat') return false;
+  const mode = folderViewMode(folders, sheet.folderId);
+  if (!mode || sheet.viewMode === mode) return false;
+  if (sheet.systemMode === 'original' && mode !== 'traditional' && mode !== 'cinematic') return false;
+  sheet.viewMode = mode;
+  return true;
 }
 
 /**
@@ -157,7 +187,7 @@ export function migrateSheetsFolders(sheetsList = []) {
 /**
  * Cria uma nova pasta personalizada.
  */
-export function createFolder(folders = [], { name = 'Nova Pasta', parentId = null, color = '#3187ff', icon = 'folder' } = {}) {
+export function createFolder(folders = [], { name = 'Nova Pasta', parentId = null, color = '#3187ff', icon = 'folder', viewMode = null } = {}) {
   const list = normalizeFolders(folders);
   const maxOrder = list.reduce((acc, f) => Math.max(acc, f.order || 0), 0);
   const newFolder = normalizeFolder({
@@ -167,6 +197,7 @@ export function createFolder(folders = [], { name = 'Nova Pasta', parentId = nul
     parentId: parentId || null,
     color,
     icon,
+    viewMode,
     collapsed: false,
     order: maxOrder + 1,
     system: false
