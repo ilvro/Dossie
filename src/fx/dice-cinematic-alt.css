@@ -53,6 +53,21 @@
   --label-font: 'Wak-Bold', 'Cinzel', Georgia, serif;
 }
 
+.bg3-stage.theme-solace {
+  --frame: #d9ae63;
+  --frame-soft: rgba(217, 174, 99, .35);
+  --fill-top: #241a2c;
+  --fill-bot: #0d0a12;
+  --gem-fill: #1a1320;
+  --glow: #e0a35a;
+  --text: #f5e8cc;
+  --muted: #c2a87c;
+  --ok: #8fe3d6;
+  --bad: #f08a66;
+  --title-font: 'El Messiri', 'Cinzel', Georgia, serif;
+  --label-font: 'El Messiri', 'Cinzel', Georgia, serif;
+}
+
 /* Como no jogo: o mundo continua visível, só uma vinheta suave */
 .bg3-shade {
   position: absolute;
@@ -264,6 +279,36 @@
 .bg3-roll-btn:hover,
 .bg3-roll-btn:focus-visible { outline: none; filter: brightness(1.2); transform: translateY(-1px); }
 .bg3-roll-btn:active { transform: scale(.97); }
+/* Solace: cartela de latão com pontas ogivais */
+.theme-solace .bg3-roll-btn {
+  clip-path: polygon(0 50%, 5% 0, 95% 0, 100% 50%, 95% 100%, 5% 100%);
+  background: linear-gradient(180deg, #f6dea2, #c99b4f 50%, #a87b37 52%, #e7c27b);
+  color: var(--text);
+  font-family: 'El Messiri', Georgia, serif;
+  letter-spacing: .12em;
+  box-shadow: none;
+  isolation: isolate;
+}
+.theme-solace .bg3-roll-btn::before {
+  content: '';
+  position: absolute;
+  inset: 1.5px 2px;
+  z-index: -1;
+  clip-path: inherit;
+  background: linear-gradient(180deg, #2a2132, #120e18);
+}
+.theme-solace .bg3-sub span {
+  background: none;
+  clip-path: none;
+  box-shadow: none;
+  padding: 0;
+  font-size: 13px;
+  letter-spacing: .16em;
+  color: var(--muted);
+  text-shadow: 0 1px 6px #000;
+}
+.theme-solace .bg3-card-gem { background: rgba(79, 184, 173, .22); }
+
 /* Vigília: placa de pedra chanfrada com borda dupla */
 .theme-vigilia .bg3-roll-btn {
   --cut: 3.2cqw;

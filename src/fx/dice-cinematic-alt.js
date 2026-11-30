@@ -692,19 +692,36 @@ function triquetra(cx, cy, r) {
   return `<path class="f-knot" d="${lens(pts[0], pts[1])} ${lens(pts[1], pts[2])} ${lens(pts[2], pts[0])}"/><circle class="f-knot" cx="${cx}" cy="${cy}" r="${(r * 0.62).toFixed(2)}"/>`;
 }
 
+// estrela de oito pontas (dois quadrados sobrepostos), o ornamento de Solace
+function star8(cx, cy, R, rot = 0) {
+  const r = R * Math.cos(Math.PI / 4) / Math.cos(Math.PI / 8);
+  const pts = Array.from({ length: 16 }, (_, k) => {
+    const a = rot + k * Math.PI / 8 - Math.PI / 2;
+    const rad = k % 2 ? r : R;
+    return `${(cx + rad * Math.cos(a)).toFixed(2)} ${(cy + rad * Math.sin(a)).toFixed(2)}`;
+  });
+  return `M${pts.join(' L')}Z`;
+}
+
 // voluta nos "ombros" do arco
 const SCROLL = 'c0 -16 12 -24 24 -19 c8 3.5 6 13 -1.5 13 c-6 0 -6.5 -7.5 -.5 -7.5';
 
 function frameSvg(theme, uid) {
   const vig = theme === 'vigilia';
+  const sol = theme === 'solace';
   const t = TRAY;
   const bracket = (x, y, sx, sy) => `<path class="f-line" d="M${x} ${y + sy * 16} V${y} H${x + sx * 16}"/>`;
   const knotDivider = vig
     ? `<path class="f-thin" d="M66 142 H146 M194 142 H274"/>${triquetra(170, 142, 9)}`
-    : `<path class="f-thin" d="M66 142 H150 M190 142 H274"/><path class="f-gem" d="${diamond(170, 142, 7)}"/><circle class="f-orn" cx="156" cy="142" r="1.8"/><circle class="f-orn" cx="184" cy="142" r="1.8"/>`;
+    : sol
+      ? `<path class="f-thin" d="M66 142 H152 M188 142 H274"/><path class="f-gem" d="${star8(170, 142, 10)}"/><path class="f-orn" d="${star8(170, 142, 4, Math.PI / 8)}"/><path class="f-orn" d="${star8(146, 142, 2.6)}"/><path class="f-orn" d="${star8(194, 142, 2.6)}"/>`
+      : `<path class="f-thin" d="M66 142 H150 M190 142 H274"/><path class="f-gem" d="${diamond(170, 142, 7)}"/><circle class="f-orn" cx="156" cy="142" r="1.8"/><circle class="f-orn" cx="184" cy="142" r="1.8"/>`;
   const finial = vig
     ? `${triquetra(170, -8, 13)}`
-    : `<path class="f-gem f-glow" d="${diamond(170, -6, 12)}"/><path class="f-thin" d="M146 -6 H156 M184 -6 H194"/>`;
+    : sol
+      ? `<path class="f-gem f-glow" d="${star8(170, -6, 15)}"/><path class="f-thin" d="${star8(170, -6, 10, Math.PI / 8)}"/><path class="f-orn" d="${star8(170, -6, 4)}"/><path class="f-thin" d="M140 -6 H152 M188 -6 H200"/>`
+      : `<path class="f-gem f-glow" d="${diamond(170, -6, 12)}"/><path class="f-thin" d="M146 -6 H156 M184 -6 H194"/>`;
+  const gem = (cx, cy, r) => sol ? star8(cx, cy, r * 1.15) : diamond(cx, cy, r);
   return `
   <svg class="bg3-frame" viewBox="0 ${FY} ${FW} ${FH}" preserveAspectRatio="none" aria-hidden="true">
     <defs>
@@ -737,18 +754,18 @@ function frameSvg(theme, uid) {
       <path class="f-line" transform="translate(340 0) scale(-1 1)" d="M40 118 ${SCROLL}"/>
       <circle class="f-line" cx="170" cy="96" r="33"/>
       <circle class="f-thin" cx="170" cy="96" r="27.5"/>
-      <path class="f-gem" d="${diamond(170, 63, 4.5)}"/>
-      <path class="f-gem" d="${diamond(137, 96, 4.5)}"/>
-      <path class="f-gem" d="${diamond(203, 96, 4.5)}"/>
+      <path class="f-gem" d="${gem(170, 63, 4.5)}"/>
+      <path class="f-gem" d="${gem(137, 96, 4.5)}"/>
+      <path class="f-gem" d="${gem(203, 96, 4.5)}"/>
       ${knotDivider}
       <rect class="f-tray" x="${t.x}" y="${t.y}" width="${t.w}" height="${t.h}" rx="3"/>
       ${bracket(t.x - 4, t.y - 4, 1, 1)}${bracket(t.x + t.w + 4, t.y - 4, -1, 1)}
       ${bracket(t.x - 4, t.y + t.h + 4, 1, -1)}${bracket(t.x + t.w + 4, t.y + t.h + 4, -1, -1)}
-      <path class="f-gem" d="${diamond(18, 250, 8)}"/>
-      <path class="f-gem" d="${diamond(322, 250, 8)}"/>
+      <path class="f-gem" d="${gem(18, 250, 8)}"/>
+      <path class="f-gem" d="${gem(322, 250, 8)}"/>
       <path class="f-thin" d="M18 236 V214 M18 264 V286 M322 236 V214 M322 264 V286"/>
-      <path class="f-gem" d="${diamond(170, 462, 7)}"/>
-      ${vig ? `${triquetra(44, 430, 7)}${triquetra(296, 430, 7)}` : `<path class="f-orn" d="${diamond(44, 432, 4)}"/><path class="f-orn" d="${diamond(296, 432, 4)}"/>`}
+      <path class="f-gem" d="${gem(170, 462, 7)}"/>
+      ${vig ? `${triquetra(44, 430, 7)}${triquetra(296, 430, 7)}` : `<path class="f-orn" d="${gem(44, 432, 4)}"/><path class="f-orn" d="${gem(296, 432, 4)}"/>`}
     </g>
   </svg>`;
 }
@@ -847,7 +864,7 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
   const quick = options.scene !== 'full';
   const waitForClick = options.autoRoll ? false : true;
   const pace = quick ? 0.6 : 1;
-  const theme = options.theme === 'vigilia' ? 'vigilia' : 'cinematic';
+  const theme = ['vigilia', 'solace'].includes(options.theme) ? options.theme : 'cinematic';
   const accent = /^#[0-9a-f]{6}$/i.test(options.accent || '') ? options.accent : '#e0150d';
   const signed = v => `${v >= 0 ? '+' : '−'}${Math.abs(v)}`;
   const uid = `bg3f${++stageUid}`;
@@ -1004,7 +1021,7 @@ export function rollDiceCinematicAlt(configs, title = 'Rolagem', modifier = 0, s
     camera.fov = FOV;
     camera.position.set(0, CAM_H, 0);
     camera.lookAt(0, 0, 0);
-    candle.color.set(theme === 'vigilia' ? 0x9fd8c0 : 0xff9a4a);
+    candle.color.set(theme === 'vigilia' ? 0x9fd8c0 : theme === 'solace' ? 0xffb86a : 0xff9a4a);
     hemi.intensity = 0.35;
     key.intensity = 1.7;
 
