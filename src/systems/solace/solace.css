@@ -10,11 +10,11 @@
   --sl-cream: #f9dcae;       /* nome, atributos, dados, PV/PD, marcadores */
   --sl-cream-hi: #f6e6c9;    /* nomes das perícias */
   --sl-bold: #f8ebce;        /* negrito no texto */
-  --sl-text: #dcc09d;        /* texto corrido */
+  --sl-text: #e8d5b6;        /* texto corrido */
   --sl-banner: #efd8ab;      /* texto das faixas */
   --sl-tan: #d09e6d;         /* sobrenome */
   --sl-amber: #e6b172;       /* ocupação, nível */
-  --sl-label: #a97f56;       /* atributo ao lado da perícia */
+  --sl-label: #cfb08a;       /* atributo ao lado da perícia */
   --sl-plus: #845a38;
   --sl-line: #dc9d5c;        /* divisória do cabeçalho */
   --sl-dark: #322013;        /* espaço vazio */
@@ -35,11 +35,11 @@
 }
 
 /* Calibrado na referência (fundo novo × referência, célula a célula): a pintura inteira
-   perde ~28% da saturação e a faixa do texto (do topo até a metade da página)
+   perde ~18% da saturação e a faixa do texto (do topo até a metade da página)
    recebe ~25% de sombra, que alivia para ~13% embaixo; bordas e o céu
    da direita quase não mudam. Antes a vinheta escurecia o centro pela metade. */
 .solace-page .vigilia-bg-clip .vigilia-bg-layer:not(.is-custom) {
-  filter: blur(var(--vg-bg-blur, 0px)) saturate(0.72);
+  filter: blur(var(--vg-bg-blur, 0px)) saturate(0.82);
 }
 .solace-page .vigilia-bg-clip::after {
   content: '';
@@ -47,25 +47,58 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(30, 17, 8, 0) 0%, rgba(30, 17, 8, 0.14) 7%, rgba(30, 17, 8, 0.26) 20%, rgba(30, 17, 8, 0.26) 50%, rgba(30, 17, 8, 0.1) 63%, rgba(30, 17, 8, 0) 73%);
-  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, #000 12%, #000 45%, rgba(0, 0, 0, 0.6) 65%, rgba(0, 0, 0, 0.5) 100%);
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, #000 12%, #000 45%, rgba(0, 0, 0, 0.6) 65%, rgba(0, 0, 0, 0.5) 100%);
+  background:
+    radial-gradient(ellipse 34% 30% at 12% 28%, rgba(30, 17, 8, 0.3) 0%, rgba(30, 17, 8, 0.12) 60%, transparent 100%),
+    linear-gradient(90deg, rgba(30, 17, 8, 0.05) 0%, rgba(30, 17, 8, 0.24) 8%, rgba(30, 17, 8, 0.38) 22%, rgba(30, 17, 8, 0.38) 42%, rgba(30, 17, 8, 0.34) 51%, rgba(30, 17, 8, 0.14) 56%, rgba(30, 17, 8, 0) 60%);
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, #000 12%, #000 50%, rgba(0, 0, 0, 0.78) 68%, rgba(0, 0, 0, 0.6) 100%);
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, #000 12%, #000 50%, rgba(0, 0, 0, 0.78) 68%, rgba(0, 0, 0, 0.6) 100%);
 }
 
-/* ─── Arte da Vigília em sépia ─── */
+/* ─── Placas: miolo escuro e linhas de areia (arte própria em public/assets/solace) ─── */
 .solace-page .profile-banner-img,
 .solace-page .banner-atributos-img,
 .solace-page .banner-pericias-img,
 .solace-page .power-banner-img,
-.solace-page .banner-relacoes-img {
-  filter: sepia(1) saturate(1.7) hue-rotate(-10deg) brightness(0.52) contrast(1.3);
+.solace-page .banner-relacoes-img,
+.solace-page .badge-res-img {
+  filter: drop-shadow(0 2px 4px rgba(20, 10, 3, 0.55));
 }
-.solace-page .badge-res-img,
+/* O medalhão do nível continua claro, cor de areia (arte da Vigília em sépia) */
 .solace-page .level-badge-img {
   filter: sepia(1) saturate(1.6) hue-rotate(-10deg) brightness(0.62) contrast(1.45);
 }
 .solace-page .vigilia-back-divider img {
   filter: sepia(1) saturate(1.6) hue-rotate(-10deg) brightness(0.9);
+}
+
+/* Títulos das placas: letras maiores e um pouco mais altas que na Vigília, como na referência */
+.solace-page .profile-text,
+.solace-page .banner-text,
+.solace-page .power-title,
+.solace-page .banner-relacoes-title {
+  display: inline-block;
+  transform: scaleY(1.1);
+}
+.solace-page .power-title { font-size: 20px; letter-spacing: 0.08em; }
+/* Com o título maior, as placas precisam de respiro antes da ponta rasgada */
+.solace-page .power-banner-wrap { padding: 0 24px 0 22px; margin-left: -6px; height: 42px; }
+.solace-page .profile-banner-wrap { padding: 0 26px; }
+.solace-page .profile-text { font-size: 19px; }
+.solace-page .banner-pericias-wrap .banner-text { font-size: 18px; }
+
+/* ATRIBUTOS: placa e letras maiores que na Vigília, como na referência */
+.solace-page .banner-atributos-wrap { height: 52px; padding: 0 28px; }
+.solace-page .banner-atributos-wrap .banner-text { font-size: 19px; }
+
+/* Texto corrido um pouco maior, como na referência */
+.solace-page .power-content,
+.solace-page .equipment-content { font-size: 14.5px; }
+
+/* A seta dos atributos em laranja de arenito, com brilho */
+.solace-page .atributos-chevron-ray {
+  height: 138px;
+  overflow: visible;
+  filter: drop-shadow(0 0 4px rgba(232, 160, 88, 0.55)) drop-shadow(0 2px 3px rgba(26, 13, 4, 0.8));
 }
 
 /* Palavras dos atributos: a forma vem do SVG da Vigília (máscara), a cor é a de Solace */
@@ -104,9 +137,21 @@
 .solace-page .vigilia-title-name .last-name,
 .solace-page .back-last-name { color: var(--sl-tan); text-shadow: var(--sl-shadow); }
 .solace-page .vigilia-identity-badge,
-.solace-page .vigilia-identity-badge .occupation-text { color: var(--sl-amber); text-shadow: var(--sl-shadow); }
-.solace-page .vigilia-identity-badge .level-label { color: var(--sl-amber); }
-.solace-page .vigilia-identity-badge .id-dot { color: #b07a48; }
+.solace-page .vigilia-identity-badge .occupation-text,
+.solace-page .vigilia-identity-badge .level-label {
+  color: #6a4a2c;
+  font-weight: 600;
+  text-shadow: 0 1px 0 rgba(255, 226, 180, 0.4);
+}
+/* A Optima do projeto está quebrada (2 KB) e cai na Wak; a referência usa capitulares serifadas */
+.solace-page .vigilia-identity-badge .occupation-text {
+  font-family: 'Cinzel', serif;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.solace-page .vigilia-identity-badge .id-dot { color: #7a5634; }
 .solace-page .vigilia-header-divider {
   background: linear-gradient(90deg, rgba(220, 157, 92, 0.25) 0%, var(--sl-line) 30%, rgba(220, 157, 92, 0.45) 100%);
 }
@@ -207,12 +252,16 @@
 .solace-page .vigilia-character-portrait {
   filter: sepia(0.18) saturate(0.92) drop-shadow(0 20px 36px rgba(20, 10, 3, 0.9));
 }
+/* O retrato se dissolve na areia embaixo, em vez de terminar numa borda reta */
+.solace-page .vigilia-portrait-container {
+  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 97%);
+  mask-image: linear-gradient(to bottom, #000 72%, transparent 97%);
+}
 
 /* ══ AMBIENTE DO DESERTO ════════════════════════════════════════════════
-   No molde da Vigília: camadas largas que derivam devagar e respiram, em vez de
-   efeitos por cima da pintura. A bruma usa a textura da névoa na cor da areia
-   (--sl-dust) em "screen": clareia a pintura onde passa, como poeira ao sol,
-   sem manchar o texto. */
+   No molde da Vigília: camadas largas que derivam e respiram. A bruma usa a textura
+   da névoa na cor da areia (--sl-dust), em mistura normal: nuvens de poeira que se
+   veem passar, mais densas perto do chão. */
 
 /* O sol da pintura (atrás da grande pirâmide) pulsa devagar */
 .solace-sun {
@@ -235,16 +284,15 @@
   width: calc(100% + 1400px);
   height: 100%;
   background-image: var(--sl-dust, none);
-  mix-blend-mode: screen;
 }
 /* Bruma distante: grande, lenta, deriva com o vento (para a esquerda) */
 .solace-haze.haze-far {
   background-size: 1400px 1400px;
-  --haze-min: 0.08;
-  --haze-max: 0.2;
+  --haze-min: 0.12;
+  --haze-max: 0.36;
   animation:
-    solace-drift-far 260s linear infinite,
-    solace-breathe 29s ease-in-out infinite alternate;
+    solace-drift-far 190s linear infinite,
+    solace-breathe 19s ease-in-out infinite alternate;
   animation-delay: var(--amb-t, 0s), calc(var(--amb-t, 0s) - 7s);
 }
 /* Bruma próxima: sobe na diagonal, só da metade para baixo */
@@ -252,11 +300,11 @@
   width: calc(100% + 760px);
   height: calc(100% + 760px);
   background-size: 760px 760px;
-  --haze-min: 0.04;
-  --haze-max: 0.14;
+  --haze-min: 0.06;
+  --haze-max: 0.3;
   animation:
-    solace-drift-near 170s linear infinite,
-    solace-breathe 21s ease-in-out infinite alternate;
+    solace-drift-near 120s linear infinite,
+    solace-breathe 14s ease-in-out infinite alternate;
   animation-delay: var(--amb-t, 0s), calc(var(--amb-t, 0s) - 3s);
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 50%);
   mask-image: linear-gradient(to bottom, transparent 0%, #000 50%);
@@ -265,8 +313,8 @@
 .solace-haze.haze-ground {
   width: calc(100% + 820px);
   background-size: 820px 340px;
-  opacity: 0.26;
-  animation: solace-drift-ground 70s linear infinite;
+  opacity: 0.42;
+  animation: solace-drift-ground 46s linear infinite;
   animation-delay: var(--amb-t, 0s);
   -webkit-mask-image: linear-gradient(to bottom, transparent 58%, #000 90%);
   mask-image: linear-gradient(to bottom, transparent 58%, #000 90%);
@@ -276,7 +324,7 @@
   width: calc(100% + 1100px);
   background-size: 900px 380px;
   opacity: 0;
-  animation: solace-gust 31s ease-in-out infinite;
+  animation: solace-gust 23s ease-in-out infinite;
   animation-delay: calc(var(--amb-t, 0s) - 11s);
   -webkit-mask-image: linear-gradient(to bottom, transparent 50%, #000 78%, #000 92%, transparent 100%);
   mask-image: linear-gradient(to bottom, transparent 50%, #000 78%, #000 92%, transparent 100%);
@@ -299,8 +347,8 @@
 }
 @keyframes solace-gust {
   0%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
-  35% { opacity: 0.16; }
-  60% { opacity: 0.1; transform: translate3d(-900px, -10px, 0); }
+  35% { opacity: 0.3; }
+  60% { opacity: 0.2; transform: translate3d(-900px, -10px, 0); }
   75% { opacity: 0; transform: translate3d(-1100px, -14px, 0); }
 }
 
