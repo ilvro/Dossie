@@ -24,23 +24,32 @@
   color: var(--sl-text);
 }
 
-/* A pintura do deserto traz a moldura: estica para a página toda, como a moldura da Vigília */
+/* A pintura do deserto traz a moldura. Ela ocupa a largura e nunca é esticada: o arquivo
+   (3840×3432) já foi estendido para baixo, com as colunas de hieróglifos e a areia
+   continuando, para cobrir a altura da página (≈1,23:1) sem distorcer pirâmides e palmeiras. */
 .solace-page .vigilia-bg-layer:not(.is-custom) {
-  background-size: 100% 100%;
+  background-size: 100% auto;
+  background-position: center top;
+  background-color: #8a5226;
   opacity: 1;
 }
 
-/* Vinheta medida na referência: a área do texto fica ~25% mais escura e menos saturada,
-   a luz da direita (atrás do retrato) fica intacta */
+/* Calibrado na referência (fundo novo × referência, célula a célula): a pintura inteira
+   perde ~28% da saturação e a faixa do texto (do topo até a metade da página)
+   recebe ~25% de sombra, que alivia para ~13% embaixo; bordas e o céu
+   da direita quase não mudam. Antes a vinheta escurecia o centro pela metade. */
+.solace-page .vigilia-bg-clip .vigilia-bg-layer:not(.is-custom) {
+  filter: blur(var(--vg-bg-blur, 0px)) saturate(0.72);
+}
 .solace-page .vigilia-bg-clip::after {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(60, 42, 44, 0.3) 0%, rgba(60, 42, 44, 0.36) 30%, rgba(60, 42, 44, 0.46) 50%, rgba(60, 42, 44, 0.32) 64%, rgba(60, 42, 44, 0.06) 74%, rgba(60, 42, 44, 0) 80%);
-  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, #000 22%);
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, #000 22%);
+  background: linear-gradient(90deg, rgba(30, 17, 8, 0) 0%, rgba(30, 17, 8, 0.14) 7%, rgba(30, 17, 8, 0.26) 20%, rgba(30, 17, 8, 0.26) 50%, rgba(30, 17, 8, 0.1) 63%, rgba(30, 17, 8, 0) 73%);
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, #000 12%, #000 45%, rgba(0, 0, 0, 0.6) 65%, rgba(0, 0, 0, 0.5) 100%);
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, #000 12%, #000 45%, rgba(0, 0, 0, 0.6) 65%, rgba(0, 0, 0, 0.5) 100%);
 }
 
 /* ─── Arte da Vigília em sépia ─── */
@@ -381,6 +390,7 @@ body:has(.solace-page) .relation-option-btn { border-color: #7a5634; background:
 }
 
 /* No verso não há retrato: o texto ocupa a largura toda, então a vinheta também */
+/* Sem retrato, a coluna da direita fica sobre o céu claro e as pirâmides: ali a sombra é maior */
 .solace-page.view-back .vigilia-bg-clip::after {
-  background: linear-gradient(90deg, rgba(60, 42, 44, 0.34) 0%, rgba(60, 42, 44, 0.42) 45%, rgba(54, 36, 30, 0.55) 75%, rgba(54, 36, 30, 0.5) 100%);
+  background: linear-gradient(90deg, rgba(30, 17, 8, 0.04) 0%, rgba(30, 17, 8, 0.24) 8%, rgba(30, 17, 8, 0.28) 45%, rgba(30, 17, 8, 0.4) 70%, rgba(30, 17, 8, 0.42) 92%, rgba(30, 17, 8, 0.2) 100%);
 }
