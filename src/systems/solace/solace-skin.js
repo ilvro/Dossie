@@ -2,10 +2,12 @@
  * Skin "Solace" do layout de frente e verso de Ordem II (src/systems/vigilia/vigilia-view.js).
  * Solace é o país do deserto. A ficha é a da Vigília (mesmas fontes, faixas, medalhões e
  * palavras dos atributos), em sépia e creme, sobre a pintura do deserto com a moldura de
- * hieróglifos e o disco solar alado (public/assets/solace/solace-bg.webp, moldura inclusa).
+ * hieróglifos e o disco solar alado (public/assets/solace/solace-bg.webp, moldura inclusa,
+ * estendida para baixo para cobrir a página sem esticar).
  *
- * Ambiente: poeira em suspensão, rajadas de areia rente ao chão, grãos levados pelo vento,
- * raios de sol vindos da direita e partículas flutuando na luz.
+ * Ambiente (no molde da névoa da Vigília: camadas largas e lentas, que respiram):
+ * bruma de areia em três alturas, uma rajada rara rente ao chão, poucos grãos ao vento,
+ * pó dourado subindo na luz e o sol pulsando onde a pintura já é clara.
  */
 
 import { installMistTexture } from '../../fx/mist-texture.js';
@@ -21,32 +23,34 @@ const rand = (i, k) => {
 };
 
 function renderAmbient() {
-  installMistTexture();
-  // Grãos de areia carregados pelo vento, da direita para a esquerda, mais densos perto do chão
-  const grains = Array.from({ length: 46 }, (_, i) => `<i style="${[
-    `--y:${(22 + Math.pow(rand(i, 12.9898), 0.6) * 74).toFixed(1)}%`,
-    `--l:${(6 + rand(i, 78.233) * 22).toFixed(0)}px`,
-    `--s:${(0.8 + rand(i, 37.719) * 1.3).toFixed(1)}px`,
-    `--d:${(4.5 + rand(i, 4.581) * 6).toFixed(1)}s`,
-    `--o:${(-rand(i, 9.137) * 12).toFixed(1)}s`,
-    `--w:${(-40 + rand(i, 3.71) * 80).toFixed(0)}px`,
-    `--a:${(0.25 + rand(i, 6.13) * 0.55).toFixed(2)}`
+  // A mesma forma da névoa da Vigília, na cor da areia ao sol
+  installMistTexture({ varName: '--sl-dust', rgb: [246, 214, 168] });
+  // Poucos grãos, finos e lentos, só na metade de baixo (onde a areia corre)
+  const grains = Array.from({ length: 16 }, (_, i) => `<i style="${[
+    `--y:${(52 + Math.pow(rand(i, 12.9898), 0.7) * 44).toFixed(1)}%`,
+    `--l:${(5 + rand(i, 78.233) * 10).toFixed(0)}px`,
+    `--s:${(0.7 + rand(i, 37.719) * 0.6).toFixed(1)}px`,
+    `--d:${(9 + rand(i, 4.581) * 8).toFixed(1)}s`,
+    `--o:${(-rand(i, 9.137) * 17).toFixed(1)}s`,
+    `--w:${(-30 + rand(i, 3.71) * 50).toFixed(0)}px`,
+    `--a:${(0.18 + rand(i, 6.13) * 0.3).toFixed(2)}`
   ].join(';')}"></i>`).join('');
-  // Pó fino flutuando na luz, subindo devagar
-  const motes = Array.from({ length: 20 }, (_, i) => `<i style="${[
+  // Pó dourado flutuando na luz, subindo devagar
+  const motes = Array.from({ length: 18 }, (_, i) => `<i style="${[
     `--x:${(rand(i, 21.17) * 100).toFixed(1)}%`,
     `--y:${(30 + rand(i, 5.71) * 65).toFixed(1)}%`,
-    `--s:${(1.4 + rand(i, 8.43) * 2.2).toFixed(1)}px`,
-    `--d:${(16 + rand(i, 2.9) * 16).toFixed(1)}s`,
-    `--o:${(-rand(i, 1.37) * 32).toFixed(1)}s`
+    `--s:${(1.4 + rand(i, 8.43) * 2).toFixed(1)}px`,
+    `--d:${(18 + rand(i, 2.9) * 16).toFixed(1)}s`,
+    `--o:${(-rand(i, 1.37) * 34).toFixed(1)}s`
   ].join(';')}"></i>`).join('');
 
   return `
     <div class="vigilia-ambient solace-ambient" aria-hidden="true">
-      <div class="solace-rays"></div>
-      <div class="solace-dust dust-far"></div>
-      <div class="solace-dust dust-gust"></div>
-      <div class="solace-dust dust-ground"></div>
+      <div class="solace-sun"></div>
+      <div class="solace-haze haze-far"></div>
+      <div class="solace-haze haze-near"></div>
+      <div class="solace-haze haze-ground"></div>
+      <div class="solace-haze haze-gust"></div>
       <div class="solace-grains">${grains}</div>
       <div class="solace-motes">${motes}</div>
     </div>

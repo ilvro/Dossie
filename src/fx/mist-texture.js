@@ -22,10 +22,16 @@ function periodicNoise(cells, seed) {
   };
 }
 
-let cachedUrl = null;
+const cache = new Map();
 
-export function installMistTexture() {
-  if (cachedUrl) return cachedUrl;
+/**
+ * Gera a textura uma vez por variável CSS. Padrão: a névoa verde-clara da Vigília em --vg-mist.
+ * Outras skins pedem a mesma forma em outra cor (ex.: a areia de Solace em --sl-dust),
+ * sem precisar de `filter` na camada animada.
+ */
+export function installMistTexture({ varName = '--vg-mist', rgb = [190, 228, 214] } = {}) {
+  if (cache.has(varName)) return cache.get(varName);
+  let url = null;
   try {
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = SIZE;
@@ -41,15 +47,16 @@ export function installMistTexture() {
         // Só os picos viram névoa; o resto fica transparente (fiapos, não um véu uniforme)
         const alpha = Math.max(0, Math.min(0.8, (n - 0.42) * 2.8));
         const i = (y * SIZE + x) * 4;
-        img.data[i] = 190;
-        img.data[i + 1] = 228;
-        img.data[i + 2] = 214;
+        img.data[i] = rgb[0];
+        img.data[i + 1] = rgb[1];
+        img.data[i + 2] = rgb[2];
         img.data[i + 3] = alpha * 255;
       }
     }
     ctx.putImageData(img, 0, 0);
-    cachedUrl = canvas.toDataURL('image/png');
-    document.documentElement.style.setProperty('--vg-mist', `url("${cachedUrl}")`);
+    url = canvas.toDataURL('image/png');
+    document.documentElement.style.setProperty(varName, `url("${url}")`);
+    cache.set(varName, url);
   } catch {}
-  return cachedUrl;
+  return url;
 }
